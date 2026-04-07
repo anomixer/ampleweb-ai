@@ -147,78 +147,15 @@ export function loadMameWasm(
       }
     }
 
-    // ── onRuntimeInitialized：FS 已就緒，寫 ROM，然後 callMain ──
-    function onRuntimeInit(this: void) {
-      runtimeInitialized = true
-      const mod = (window as any).Module as MameWasmModule
-      _moduleRef = mod
-
-      console.log('[WasmLoader] Runtime initialized.')
-      console.log('[WasmLoader] Module.FS available:', !!mod.FS)
-      console.log('[WasmLoader] Module.callMain available:', !!mod.callMain)
-      console.log('[WasmLoader] Module.FS_createDataFile available:', !!mod.FS_createDataFile)
-
-      // ── 寫入 ROM 檔 ──
-      if (romFiles.length > 0) {
-        writeRoms(mod, romFiles, romPath, onLog)
-      }
-
-      // ── 通知 UI Ready ──
-      onProgress?.(100, 100)
-      onReady?.(mod)
-      resolve(mod)
-
-      // ── 手動 callMain（因為 noInitialRun: true）──
-      // Canvas 已在建立 Module 前就確保掛在 DOM 上了，這裡只需要顯示它
-
-      if (mod.callMain) {
-        canvas.style.display = ''
-        console.log('[WasmLoader] Calling Module.callMain with args:', finalArgs)
-        onLog?.('Calling MAME main()...', false)
-        try {
-          mod.callMain!(finalArgs)
-        } catch (e: any) {
-          // MAME 的 quit() 會 throw，這是正常的
-          const code = typeof e === 'number' ? e : e?.message
-          if (typeof e === 'number' && e === 0) {
-            onLog?.('MAME exited normally (code 0)', false)
-          } else {
-            onLog?.(`MAME exited with: ${code}`, true)
-            console.warn('[WasmLoader] callMain threw:', e)
-
-            // Look for exception string pointer (commonly located at e or e+4 or e+8)
-            if (typeof e === 'number' && typeof (mod as any).HEAPU8 !== 'undefined') {
-              const heap = (mod as any).HEAPU8
-              try {
-                const HEAP32 = new Int32Array(heap.buffer)
-                for (let i = 0; i < 4; i++) {
-                  let strPtr = HEAP32[(e >> 2) + i]
-                  if (strPtr > 0 && strPtr < heap.length) {
-                    let str = ''
-                    while (heap[strPtr] !== 0) str += String.fromCharCode(heap[strPtr++])
-                    if (str.length > 5) {
-                      console.warn(`[WasmLoader] Potential exception string at offset ${i*4}:`, str)
-                      if (str.includes('missing') || str.includes('NOT FOUND') || str.includes('Error:')) {
-                        onLog?.(`MAME Error: ${str}`, true)
-                      }
-                    }
-                  }
-                }
-              } catch (memErr) {}
-            }
-          }
-        }
-      } else {
-        // fallback：讓 mame.js 自動跑（理論上 noInitialRun:true 時不會）
-        console.warn('[WasmLoader] Module.callMain not available! Using auto-run.')
-        onLog?.('Warning: callMain not exported, falling back to auto-run', true)
-      }
-    }
-
     const Module: any = {
+      // KEY CHANGE: Use Module.arguments, NOT noInitialRun + callMain.
+      // The original mame.html works this way - MAME runs automatically
+      // after FS init. The noInitialRun+callMain approach triggers a
+      // C++ exception handling bug in this WASM build causing Abort().
+      arguments: finalArgs,
+
+      // Assign canvas directly - this is the correct Emscripten SDL binding
       canvas,
-      // noInitialRun: true → 讓我們在 onRuntimeInitialized 後手動 callMain
-      noInitialRun: true,
 
       locateFile: (path: string) => {
         if (path.endsWith('.wasm')) return wasmUrl
@@ -242,7 +179,33 @@ export function loadMameWasm(
         if (left === 0 && totalDeps > 0) onProgress?.(100, 100)
       },
 
-      onRuntimeInitialized: onRuntimeInit,
+      // NOTE: preRun fires BEFORE FS.init, so we cannot write files there.
+      // Instead we use onRuntimeInitialized which fires after FS is ready.
+      // We use addRunDependency to pause MAME's main() until ROMs are written.
+      preRun: [function() {
+        const FS = (window as any).FS
+        if (!FS) return  // FS not ready yet - will write in onRuntimeInitialized
+        console.log('[WasmLoader] preRun: FS pre-check ok')
+      }],
+
+      onRuntimeInitialized: function() {
+        runtimeInitialized = true
+        const m = (window as any).Module as MameWasmModule
+        _moduleRef = m
+
+        console.log('[WasmLoader] Runtime initialized, writing ROMs then MAME will auto-start.')
+        console.log('[WasmLoader] Module.FS available:', !!(m as any).FS)
+
+        // Write ROMs NOW - FS is ready after onRuntimeInitialized
+        if (romFiles.length > 0) {
+          writeRoms(m, romFiles, romPath, onLog)
+        }
+
+        canvas.style.display = ''
+        onProgress?.(100, 100)
+        onReady?.(m)
+        resolve(m)
+      },
 
       onAbort: (what: string) => {
         const msg = `MAME aborted: ${what}`
@@ -277,7 +240,7 @@ export function loadMameWasm(
     const script = document.createElement('script')
     script.id = 'mame-js-script'
     script.src = jsUrl
-    script.onload = () => console.log('[WasmLoader] mame.js loaded, awaiting runtime init...')
+    script.onload = () => console.log('[WasmLoader] mame.js loaded, MAME will auto-start...')
     script.onerror = () => fail(`Failed to load: ${jsUrl}`)
     document.head.appendChild(script)
   })
