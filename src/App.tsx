@@ -135,10 +135,11 @@ function App() {
     setLaunchState('loading-wasm')
     setStatusText('Loading MAME WASM...')
 
+    // 恢復正軌：指定機型以及啟動參數
     const args = buildMameArgs(selectedMachine.name, {
-      slots: slotValues,
       video: 'soft',
       resolution: '640x480',
+      window: true,
       extraArgs: ['-verbose'],
     })
 
@@ -401,8 +402,10 @@ function App() {
             {/* Emulator Canvas 區域 */}
             <div
               className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}
-              ref={canvasContainerRef}
             >
+              {/* 這個空的 span 專門用來放 canvas，避免 React 嘗試 unmount 被我們強制改過 DOM 的 element */}
+              <div ref={canvasContainerRef} style={{ width: '100%', height: '100%', display: launchState === 'running' ? 'block' : 'none' }} />
+              
               {launchState !== 'running' && (
                 <div className="emulator-placeholder">
                   {launchState === 'idle' && <p>Press Launch to start emulation</p>}
