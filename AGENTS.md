@@ -330,4 +330,129 @@ Module['setCanvasSize']
 1. 準備符合此版 MAME WASM checksum 的 `apple2` ROM 檔 (特別是 `a2.chr` 的正確 dump)。
 2. 若要使用擴充卡，需準備對應的 ROM 包（例如 `votrsc01a.zip`, `a2diskiing.zip`, `d2fdc.zip`）並透過同樣的載入機制寫入 FS。
 
+---
 
+## 🔬 Session 2 — 深度除錯：Abort() 根本原因分析（2026-04-07）
+
+### 問題現象
+即使 ROM 全部成功寫入虛擬 FS（94 個檔案正確解壓），MAME 每次在印出 `Starting Apple ][ ':'` 後立刻 Aborted()。
+
+```
+a2.chr ROM NEEDS REDUMP
+WARNING: the machine might not run correctly.
+Optional memory region ':screen' not found
+Starting Apple ][ ':'
+MAME aborted: 
+Aborted()
+```
+
+### 🔍 關鍵排除實驗結果
+
+#### 實驗 1：`macplus` 機型測試
+強制執行 `macplus`（而非 apple2），MAME **沒有** Aborted，而是正常的 **Missing files** 錯誤退出：
+```
+341-0332-a.bin NOT FOUND (tried in mackbd_m0110a macplus)
+MAME Error: Required files are missing, the machine cannot be run.
+```
+
+**結論**：WASM 核心本身的 Exception Handling 並非完全壞掉 —— 問題是「apple2 在啟動 CPU 時觸發了一種特定類型的 C++ 例外，而這種例外在 `___cxa_begin_catch` 階段引發了二次錯誤（double fault）」。
+
+#### 實驗 2：`-sound none` 排除 WebAudio 問題
+完全關閉音效，依然相同崩潰。排除了 WebAudio Context/User Gesture 限制的假設。
+
+#### 實驗 3：無機型啟動（只傳 `-window -video soft -verbose`）
+MAME 將 `soft` 解讀為機型名稱，印出 `Unknown system 'soft'` 然後正常退出（非 Abort），確認 WASM core 能識別無效機型並正常退出。
+
+### 🔍 根本原因分析：`noInitialRun + callMain` 的致命組合
+
+**發現**：這整段時間我們都在用這個 WASM build 並不完整支援的啟動方式。
+
+查閱原始 `wasm/mame.html` 的啟動邏輯：
+```js
+var Module = {
+  canvas: canvasElement,
+  arguments: ['apple2', ...args],  // ← 直接傳 arguments，讓 MAME 自己跑
+  print: ..., setStatus: ..., ...
+}
+```
+原始 HTML 從來不用 `noInitialRun: true` + 手動 `callMain()`！
+
+**而我們的策略是**：
+```js
+Module.noInitialRun = true
+// 在 onRuntimeInitialized 後手動呼叫
+Module.callMain(finalArgs)  // ← 這個呼叫本身就會觸發 apple2 CPU 的 C++ 例外
+                       //   + WASM 的 Exception Refcount 機制有 bug → Double Abort
+```
+
+`callMain` 呼叫時的 Call Stack 顯示它在 `___cxa_increment_exception_refcount` 裡直接炸掉 —— 這是 Emscripten 的 Exception Handling 簿記機制，在這個版本的 WASM build 裡有記憶體計數器錯誤。
+
+### ✅ 修復：改回 `Module.arguments` 自動啟動
+
+**`src/core/wasm_loader.ts` 重大重構：**
+
+```typescript
+// ❌ 舊方法（觸發 Abort）
+const Module = {
+  noInitialRun: true,
+  ...
+}
+// 在 onRuntimeInitialized 後：
+Module.callMain(finalArgs)
+
+// ✅ 新方法（匹配原始 mame.html）
+const Module = {
+  arguments: finalArgs,  // MAME 自己根據 arguments 啟動
+  canvas,                // canvas 直接 assign（非靠 getElementById）
+  preRun: [function() { /* FS pre-check */ }],
+  onRuntimeInitialized: function() {
+    // 在 FS 就緒後、main() 執行前寫入 ROM
+    writeRoms(m, romFiles, romPath, onLog)
+    resolve(m)
+  },
+  ...
+}
+```
+
+**時序正確性**（由 mame.js 原始碼確認）：
+```
+preRun() callback  →  initRuntime() / FS.init()  →  onRuntimeInitialized()  →  callMain()自動
+```
+我們在 `onRuntimeInitialized` 寫 ROM，此時 FS 已就緒，且 `callMain` 尚未執行。
+
+### 🧹 其他修復：`.gitignore` 事故
+
+原本 `AmpleWeb/` 目錄沒有 `.gitignore`，導致一次 commit 把 `node_modules/`、所有 `public/roms/*.zip` 和 `wasm/*.wasm` 全部 push 上去（GitHub 因檔案超過 100MB 拒絕接受）。
+
+**已建立 `AmpleWeb/.gitignore`，排除：**
+- `node_modules/`
+- `dist/` / `build/` / `.vite/`
+- `wasm/*.wasm` / `wasm/*.wasm.br`（大型二進位，需另外管理）
+- `public/roms/*.zip`（ROM 檔不應進版本控制）
+
+**修復方式**：
+```bash
+git reset --soft HEAD~1           # 撤銷壞掉的 commit
+git rm -r --cached node_modules wasm/mame.wasm wasm/mame.wasm.br public/roms
+git add .gitignore src/ ...       # 只加入原始碼
+git commit -m "..."
+```
+
+### 📋 當前狀態（截至 Session 2 結束）
+
+| 項目 | 狀態 |
+|------|------|
+| WASM 載入 | ✅ 正常 |
+| ROM 解壓寫入 FS | ✅ 正常（94 個 apple2 ROM 檔） |
+| MAME 參數傳遞 | ✅ 正常（改用 `Module.arguments`） |
+| React DOM 衝突 | ✅ 修復（canvas 容器隔離） |
+| `.gitignore` | ✅ 已建立 |
+| Apple ][ 啟動 | ⏳ 待驗證新的啟動策略效果 |
+| canvas id | 🔍 已確認 `canvas` 直接 assign 到 `Module.canvas`，不靠 id 搜尋 |
+
+### 💡 給下一個 Session 的提示
+
+如果 `Module.arguments` 方式仍然 Abort：
+1. 嘗試在 `mame.html` 原始 HTML 裡直接傳 `apple2` args，在瀏覽器裡開 `wasm/mame.html?args=apple2` 測試，確認是 WASM 核心問題而非前端問題
+2. 嘗試換一顆 MAME WASM 核心（如 MAME 0.26x 穩定版）  
+3. 考慮使用 `mametiny.js` / `mametiny.wasm`（已在 wasm/ 目錄，可能是精簡版本，支援的機型較少但可能更穩定）
