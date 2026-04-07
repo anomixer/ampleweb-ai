@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+
+# Vite cache
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# WASM binaries (too large for git - use LFS or host separately)
+wasm/*.wasm
+wasm/*.wasm.br
+
+# ROMs (large binary files, not for source control)
+public/roms/*.zip
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*

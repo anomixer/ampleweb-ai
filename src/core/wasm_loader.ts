@@ -102,16 +102,26 @@ export function loadMameWasm(
     } = opts
 
     // ── canvas ──
-    const existingCanvas = document.getElementById('mame-canvas') as HTMLCanvasElement | null
+    // Emscripten SDL hardcodes document.getElementById('canvas') internally.
+    // The id MUST be 'canvas' or SDL will fail to find the screen surface,
+    // causing 'Optional memory region :screen not found' and Aborted().
+    const existingCanvas = document.getElementById('canvas') as HTMLCanvasElement | null
     const canvas = existingCanvas ?? (() => {
       const c = document.createElement('canvas')
-      c.id = 'mame-canvas'
+      c.id = 'canvas'  // MUST be 'canvas' - Emscripten SDL hardcodes this
       c.className = 'emscripten'
       c.tabIndex = -1
       c.width = 640
       c.height = 480
       return c
     })()
+
+    // Canvas MUST be in the DOM before we create the Module object,
+    // otherwise SDL init races and loses the reference.
+    if (!canvas.parentElement) {
+      canvas.style.display = 'none'
+      document.body.appendChild(canvas)
+    }
 
     const jsUrl = wasmUrl.replace('.wasm', '.js')
 
@@ -159,15 +169,9 @@ export function loadMameWasm(
       resolve(mod)
 
       // ── 手動 callMain（因為 noInitialRun: true）──
-      // 必須確保 canvas 在 DOM 樹上，否則 SDL 初始化會當機
-      if (!canvas.parentElement) {
-        // 先暫時塞在 body 底下隱藏起來，等 React render 時會把它搬走
-        canvas.style.display = 'none'
-        document.body.appendChild(canvas)
-      }
+      // Canvas 已在建立 Module 前就確保掛在 DOM 上了，這裡只需要顯示它
 
       if (mod.callMain) {
-        // 在真正啟動前把它顯示出來，確保長寬正常
         canvas.style.display = ''
         console.log('[WasmLoader] Calling Module.callMain with args:', finalArgs)
         onLog?.('Calling MAME main()...', false)
