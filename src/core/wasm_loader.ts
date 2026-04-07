@@ -167,45 +167,43 @@ export function loadMameWasm(
       }
 
       if (mod.callMain) {
-        setTimeout(() => {
-          // 在真正啟動前把它顯示出來，確保長寬正常
-          canvas.style.display = ''
-          console.log('[WasmLoader] Calling Module.callMain with args:', finalArgs)
-          onLog?.('Calling MAME main()...', false)
-          try {
-            mod.callMain!(finalArgs)
-          } catch (e: any) {
-            // MAME 的 quit() 會 throw，這是正常的
-            const code = typeof e === 'number' ? e : e?.message
-            if (typeof e === 'number' && e === 0) {
-              onLog?.('MAME exited normally (code 0)', false)
-            } else {
-              onLog?.(`MAME exited with: ${code}`, true)
-              console.warn('[WasmLoader] callMain threw:', e)
+        // 在真正啟動前把它顯示出來，確保長寬正常
+        canvas.style.display = ''
+        console.log('[WasmLoader] Calling Module.callMain with args:', finalArgs)
+        onLog?.('Calling MAME main()...', false)
+        try {
+          mod.callMain!(finalArgs)
+        } catch (e: any) {
+          // MAME 的 quit() 會 throw，這是正常的
+          const code = typeof e === 'number' ? e : e?.message
+          if (typeof e === 'number' && e === 0) {
+            onLog?.('MAME exited normally (code 0)', false)
+          } else {
+            onLog?.(`MAME exited with: ${code}`, true)
+            console.warn('[WasmLoader] callMain threw:', e)
 
-              // Look for exception string pointer (commonly located at e or e+4 or e+8)
-              if (typeof e === 'number' && typeof (mod as any).HEAPU8 !== 'undefined') {
-                const heap = (mod as any).HEAPU8
-                try {
-                  const HEAP32 = new Int32Array(heap.buffer)
-                  for (let i = 0; i < 4; i++) {
-                    let strPtr = HEAP32[(e >> 2) + i]
-                    if (strPtr > 0 && strPtr < heap.length) {
-                      let str = ''
-                      while (heap[strPtr] !== 0) str += String.fromCharCode(heap[strPtr++])
-                      if (str.length > 5) {
-                        console.warn(`[WasmLoader] Potential exception string at offset ${i*4}:`, str)
-                        if (str.includes('missing') || str.includes('NOT FOUND') || str.includes('Error:')) {
-                          onLog?.(`MAME Error: ${str}`, true)
-                        }
+            // Look for exception string pointer (commonly located at e or e+4 or e+8)
+            if (typeof e === 'number' && typeof (mod as any).HEAPU8 !== 'undefined') {
+              const heap = (mod as any).HEAPU8
+              try {
+                const HEAP32 = new Int32Array(heap.buffer)
+                for (let i = 0; i < 4; i++) {
+                  let strPtr = HEAP32[(e >> 2) + i]
+                  if (strPtr > 0 && strPtr < heap.length) {
+                    let str = ''
+                    while (heap[strPtr] !== 0) str += String.fromCharCode(heap[strPtr++])
+                    if (str.length > 5) {
+                      console.warn(`[WasmLoader] Potential exception string at offset ${i*4}:`, str)
+                      if (str.includes('missing') || str.includes('NOT FOUND') || str.includes('Error:')) {
+                        onLog?.(`MAME Error: ${str}`, true)
                       }
                     }
                   }
-                } catch (memErr) {}
-              }
+                }
+              } catch (memErr) {}
             }
           }
-        }, 100)
+        }
       } else {
         // fallback：讓 mame.js 自動跑（理論上 noInitialRun:true 時不會）
         console.warn('[WasmLoader] Module.callMain not available! Using auto-run.')
