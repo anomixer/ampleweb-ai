@@ -17,6 +17,17 @@ interface LogLine {
   ts: number
 }
 
+/**
+ * Apple II / Mac 常見的附屬 ROM。
+ * MAME 在 WASM 中無法自動掃描目錄，必須明確 fetch 並寫入 VFS。
+ * 這裡只列出 apple2e 真正需要的。
+ */
+const APPLE2E_AUX_ROMS = [
+  'a2diskiing',  // Disk II controller
+  'votrsc01a',   // Votrax speech
+  'd2fdc',       // Duo Disk floppy controller
+]
+
 function App() {
   const { theme, toggleTheme } = useStore()
   const [models, setModels] = useState<ModelEntry[]>([])
@@ -40,7 +51,6 @@ function App() {
     dataManager.loadModels().then(setModels)
   }, [])
 
-  // 自動捲到 log 底部
   useEffect(() => {
     if (showLogs) {
       logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -50,7 +60,6 @@ function App() {
   const addLog = useCallback((text: string, isError: boolean) => {
     setLogs(prev => {
       const next = [...prev, { text, isError, ts: Date.now() }]
-      // 最多保留 500 行
       return next.length > 500 ? next.slice(next.length - 500) : next
     })
   }, [])
@@ -74,10 +83,56 @@ function App() {
   }, [])
 
   /**
+   * Fetch 所有需要的 ROM ZIP 檔。
+   * 關鍵修正：寫入 VFS 的是完整的 ZIP 檔，MAME 會自行解壓和驗證。
+   */
+  const fetchAllRoms = useCallback(async (driverName: string): Promise<RomFile[]> => {
+    const romFiles: RomFile[] = []
+
+    // 1. 主要 Machine ROM — 嘗試 .zip 和 .7z
+    const mainRomUrls = [
+      `/roms/${driverName}.zip`,
+      `/roms/${driverName}.7z`,
+    ]
+
+    let mainRomLoaded = false
+    for (const url of mainRomUrls) {
+      try {
+        const rom = await fetchRom(url, driverName)
+        romFiles.push(rom)
+        addLog(`ROM loaded: ${url} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
+        mainRomLoaded = true
+        break
+      } catch {
+        // 嘗試下一個 URL
+      }
+    }
+
+    if (!mainRomLoaded) {
+      addLog(`No main ROM found for ${driverName}. MAME will report errors.`, true)
+    }
+
+    // 2. 附屬 ROM — 只載入 Apple II 相關的
+    const auxRoms = APPLE2E_AUX_ROMS
+    for (const auxName of auxRoms) {
+      if (auxName === driverName) continue  // 避免重複
+      try {
+        const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
+        romFiles.push(rom)
+        addLog(`Aux ROM loaded: ${auxName}.zip`, false)
+      } catch {
+        // 沒有就跳過
+      }
+    }
+
+    return romFiles
+  }, [addLog])
+
+  /**
    * 主要 Launch 流程：
-   * 1. Fetch ROM（若有）
+   * 1. Fetch ROM（完整的 ZIP 檔）
    * 2. 載入 MAME WASM
-   * 3. preRun 寫入 ROM → MAME 執行
+   * 3. preRun 寫入 ROM ZIP → MAME 自動執行
    */
   const handleLaunch = useCallback(async () => {
     if (!selectedMachine) return
@@ -91,51 +146,12 @@ function App() {
     setLaunchState('fetching-rom')
     setStatusText('Fetching ROM...')
 
-    const romFiles: RomFile[] = []
-
-    // 1. 嘗試從 /roms/<driver>.zip 取得主要 Machine ROM
-    const possibleRomUrls = [
-      `/roms/${selectedMachine.name}.zip`,
-      `/roms/${selectedMachine.name}.7z`,
-    ]
-
-    for (const url of possibleRomUrls) {
-      try {
-        const rom = await fetchRom(url, selectedMachine.name)
-        romFiles.push(rom)
-        addLog(`ROM loaded: ${url} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
-        break
-      } catch {
-        // 嘗試下一個 URL
-      }
-    }
-
-    if (romFiles.length === 0) {
-      addLog(`No ROM found for ${selectedMachine.name} at /roms/. MAME will attempt to use built-in resources.`, true)
-    }
-
-    // 2. 嘗試載入常見的擴充卡 ROM (因為 WASM 無法自動掃描目錄，必須明確 Fetch)
-    // 這裡列出 Apple II 與 Mac 常用到的 Slot / Device ROM 名稱
-    const auxiliaryRomNames = [
-      'votrsc01a', 'a2diskiing', 'd2fdc', 'diskii', 'mockingboard', 'mac128k', 'mac512k', 'macplus'
-    ]
-    for (const auxName of auxiliaryRomNames) {
-      // 避免重複載入 main machine
-      if (auxName === selectedMachine.name) continue
-      try {
-        const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
-        romFiles.push(rom)
-        addLog(`Aux ROM loaded: /roms/${auxName}.zip`, false)
-      } catch {
-        // 沒有這個檔就忽略
-      }
-    }
+    const romFiles = await fetchAllRoms(selectedMachine.name)
 
     // 步驟 2：載入 WASM
     setLaunchState('loading-wasm')
     setStatusText('Loading MAME WASM...')
 
-    // 恢復正軌：指定機型以及啟動參數
     const args = buildMameArgs(selectedMachine.name, {
       video: 'soft',
       resolution: '640x480',
@@ -170,7 +186,7 @@ function App() {
 
           // 把 canvas 放進容器
           requestAnimationFrame(() => {
-            const c = document.getElementById('mame-canvas') as HTMLCanvasElement | null
+            const c = document.getElementById('canvas') as HTMLCanvasElement | null
             if (c && canvasContainerRef.current) {
               canvasContainerRef.current.innerHTML = ''
               canvasContainerRef.current.appendChild(c)
@@ -186,10 +202,10 @@ function App() {
       setLaunchState('error')
       addLog(`Fatal: ${msg}`, true)
     }
-  }, [selectedMachine, slotValues, addLog])
+  }, [selectedMachine, slotValues, addLog, fetchAllRoms])
 
   /**
-   * 快速測試：不帶 ROM，直接看 MAME 能否啟動
+   * 快速測試：用 apple2e driver，不帶 ROM
    */
   const handleTestLaunch = useCallback(async () => {
     setWasmModule(null)
@@ -198,10 +214,10 @@ function App() {
     setWasmProgress(0)
     setShowLogs(true)
     setLaunchState('loading-wasm')
-    setStatusText('Loading MAME WASM (no ROM)...')
-    addLog('Test launch: no ROM, using apple2 driver', false)
+    setStatusText('Loading MAME WASM (apple2e, no ROM)...')
+    addLog('Test launch: apple2e driver, no ROM', false)
 
-    const args = buildMameArgs('apple2', {
+    const args = buildMameArgs('apple2e', {
       video: 'soft',
       resolution: '640x480',
       extraArgs: ['-verbose'],
@@ -228,7 +244,7 @@ function App() {
           setLaunchState('running')
           addLog('MAME runtime ready', false)
           requestAnimationFrame(() => {
-            const c = document.getElementById('mame-canvas') as HTMLCanvasElement | null
+            const c = document.getElementById('canvas') as HTMLCanvasElement | null
             if (c && canvasContainerRef.current) {
               canvasContainerRef.current.innerHTML = ''
               canvasContainerRef.current.appendChild(c)
@@ -403,9 +419,8 @@ function App() {
             <div
               className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}
             >
-              {/* 這個空的 span 專門用來放 canvas，避免 React 嘗試 unmount 被我們強制改過 DOM 的 element */}
               <div ref={canvasContainerRef} style={{ width: '100%', height: '100%', display: launchState === 'running' ? 'block' : 'none' }} />
-              
+
               {launchState !== 'running' && (
                 <div className="emulator-placeholder">
                   {launchState === 'idle' && <p>Press Launch to start emulation</p>}
@@ -537,10 +552,8 @@ function TreeItem({
   const hasChildren = !!(entry.children && entry.children.length > 0)
   const id = entry.description + entry.value
 
-  // 過濾：如果自己或子節點沒有符合，就不顯示
   if (filter && !matchesFilter(entry, filter)) return null
 
-  // 有過濾詞時自動展開符合的群組
   const isExpanded = filter ? matchesFilter(entry, filter) : expanded.has(id)
   const isSelected = selected?.name === entry.value && !!entry.value
 

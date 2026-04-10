@@ -1,50 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // wasm_loader.ts  —  MAME WASM 載入器
 //
-// 關鍵時序（mame.js internals）：
-//   run() → preRun() → doRun() → initRuntime() [FS.init() 在這裡] →
-//   onRuntimeInitialized() → if(!noInitialRun) callMain()
+// 核心策略（參考 test_mamewasm.html 已驗證的做法）：
+//   1. Module.arguments = 自動啟動（不用 noInitialRun + callMain）
+//   2. preRun + addRunDependency 暫停 MAME 啟動
+//   3. 在 preRun 內寫入 ROM（ZIP 檔直接寫入，不解壓縮）
+//   4. removeRunDependency 後 MAME 自動執行 callMain
 //
-// 修復策略：
-//   1. noInitialRun: true  → 讓我們自己控制何時 callMain
-//   2. onRuntimeInitialized 時 FS 已就緒，用 Module.FS_createDataFile 寫 ROM
-//      （mame.js 有 export FS_createDataFile / FS_createPath）
-//   3. mame.js 已被 patch，加了 Module['callMain'] = callMain 和 Module['FS'] = FS
-//   4. 寫完 ROM 後手動呼叫 Module.callMain(args)
+// MAME 會自行開啟 ZIP 檔並驗證 checksum，不需要我們先解壓縮。
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface MameWasmModule {
-  // patched exports
-  callMain?: (args: string[]) => void
-  FS?: {
-    mkdir: (path: string) => void
-    writeFile: (path: string, data: Uint8Array, opts?: any) => void
-    readFile: (path: string) => Uint8Array
-    unlink: (path: string) => void
-    analyzePath: (path: string) => { exists: boolean; object?: any }
-    createPath: (parent: string, path: string, canRead: boolean, canWrite: boolean) => void
-    createDataFile: (
-      parent: string,
-      name: string | null,
-      data: string | Uint8Array,
-      canRead: boolean,
-      canWrite: boolean,
-      canOwn?: boolean
-    ) => void
-  }
-  // official emscripten exports in this build
-  FS_createPath?: (parent: string, path: string, canRead: boolean, canWrite: boolean) => void
-  FS_createDataFile?: (
-    parent: string,
-    name: string | null,
-    data: string | Uint8Array,
-    canRead: boolean,
-    canWrite: boolean,
-    canOwn?: boolean
-  ) => void
-  FS_createPreloadedFile: (...args: any[]) => void
-  FS_unlink: (path: string) => void
-  // emscripten standard
   canvas?: HTMLCanvasElement
   noInitialRun?: boolean
   arguments?: string[]
@@ -58,24 +24,26 @@ export interface MameWasmModule {
   setStatus?: (text: string) => void
   preRun?: Array<() => void>
   quit?: (code: number, toThrow?: any) => void
-  cwrap?: (name: string, ret: string, args: string[]) => (...a: any[]) => any
+  addRunDependency?: (id: string) => void
+  removeRunDependency?: (id: string) => void
 }
 
+/** ROM 檔案：driver 名稱 + ZIP bytes */
 export interface RomFile {
-  /** MAME driver 名稱，同時是 rompath 下的子目錄（例如 "apple2"）*/
+  /** MAME driver 名稱，例如 "apple2e" */
   driver: string
-  /** 檔名（例如 "apple2.zip"）*/
+  /** 檔名，例如 "apple2e.zip" */
   name: string
-  /** 原始 bytes（zip/7z 格式，MAME 會自行解壓 zip）*/
+  /** 原始 ZIP bytes（MAME 會自行解壓） */
   data: Uint8Array
 }
 
 export interface WasmLoaderOptions {
-  /** MAME 啟動參數（driver + flags），不含 rompath（會自動加）*/
+  /** MAME 啟動參數（driver + flags），不含 rompath（會自動加） */
   driverArgs?: string[]
-  /** 預先 fetch 好的 ROM 檔 */
+  /** 預先 fetch 好的 ROM ZIP 檔 */
   romFiles?: RomFile[]
-  /** WASM 虛擬 FS 中的 rompath 根目錄（預設 /roms）*/
+  /** WASM 虛擬 FS 中的 rompath 根目錄（預設 /roms） */
   romPath?: string
   onReady?: (module: MameWasmModule) => void
   onProgress?: (loaded: number, total: number) => void
@@ -103,12 +71,10 @@ export function loadMameWasm(
 
     // ── canvas ──
     // Emscripten SDL hardcodes document.getElementById('canvas') internally.
-    // The id MUST be 'canvas' or SDL will fail to find the screen surface,
-    // causing 'Optional memory region :screen not found' and Aborted().
     const existingCanvas = document.getElementById('canvas') as HTMLCanvasElement | null
     const canvas = existingCanvas ?? (() => {
       const c = document.createElement('canvas')
-      c.id = 'canvas'  // MUST be 'canvas' - Emscripten SDL hardcodes this
+      c.id = 'canvas'
       c.className = 'emscripten'
       c.tabIndex = -1
       c.width = 640
@@ -116,8 +82,6 @@ export function loadMameWasm(
       return c
     })()
 
-    // Canvas MUST be in the DOM before we create the Module object,
-    // otherwise SDL init races and loses the reference.
     if (!canvas.parentElement) {
       canvas.style.display = 'none'
       document.body.appendChild(canvas)
@@ -132,11 +96,11 @@ export function loadMameWasm(
     }
 
     console.log('[WasmLoader] args:', finalArgs)
-    console.log('[WasmLoader] ROM files:', romFiles.map(r => `${r.driver}/${r.name}`))
+    console.log('[WasmLoader] ROM files:', romFiles.map(r => r.name))
 
     let totalDeps = 0
     let maxDeps = 0
-    let runtimeInitialized = false
+    let resolved = false
     let rejected = false
 
     const fail = (msg: string) => {
@@ -147,14 +111,20 @@ export function loadMameWasm(
       }
     }
 
+    const succeed = (m: MameWasmModule) => {
+      if (!resolved && !rejected) {
+        resolved = true
+        _moduleRef = m
+        onReady?.(m)
+        resolve(m)
+      }
+    }
+
     const Module: any = {
-      // KEY CHANGE: Use Module.arguments, NOT noInitialRun + callMain.
-      // The original mame.html works this way - MAME runs automatically
-      // after FS init. The noInitialRun+callMain approach triggers a
-      // C++ exception handling bug in this WASM build causing Abort().
+      // 關鍵：用 Module.arguments 自動啟動，不用 noInitialRun + callMain
+      // 原因：noInitialRun + callMain 會觸發 WASM C++ exception handling bug
       arguments: finalArgs,
 
-      // Assign canvas directly - this is the correct Emscripten SDL binding
       canvas,
 
       locateFile: (path: string) => {
@@ -179,39 +149,59 @@ export function loadMameWasm(
         if (left === 0 && totalDeps > 0) onProgress?.(100, 100)
       },
 
-      // NOTE: preRun fires BEFORE FS.init, so we cannot write files there.
-      // Instead we use onRuntimeInitialized which fires after FS is ready.
-      // We use addRunDependency to pause MAME's main() until ROMs are written.
-      preRun: [function() {
+      // 核心修正：用 preRun + addRunDependency 暫停 MAME
+      // 在 preRun 內寫入 ROM ZIP 檔，完成後 removeRunDependency
+      // 這樣 MAME 的 callMain 會在我們寫完 ROM 之後才執行
+      preRun: [function () {
+        // FS 已在 preRun 之前初始化，可以直接用
         const FS = (window as any).FS
-        if (!FS) return  // FS not ready yet - will write in onRuntimeInitialized
-        console.log('[WasmLoader] preRun: FS pre-check ok')
-      }],
-
-      onRuntimeInitialized: function() {
-        runtimeInitialized = true
-        const m = (window as any).Module as MameWasmModule
-        _moduleRef = m
-
-        console.log('[WasmLoader] Runtime initialized, writing ROMs then MAME will auto-start.')
-        console.log('[WasmLoader] Module.FS available:', !!(m as any).FS)
-
-        // Write ROMs NOW - FS is ready after onRuntimeInitialized
-        if (romFiles.length > 0) {
-          writeRoms(m, romFiles, romPath, onLog)
+        if (!FS) {
+          console.error('[WasmLoader] FS not available in preRun!')
+          return
         }
 
+        // 建立 rompath 目錄
+        try { FS.mkdir(romPath) } catch { /* 已存在 */ }
+
+        if (romFiles.length > 0) {
+          // 暫停 MAME 啟動直到 ROM 寫完
+          Module.addRunDependency('rom-write')
+
+          // 用 setTimeout 讓非同步 ROM fetch 有機會完成
+          // （如果 romFiles 已經有資料，這裡是同步寫入）
+          try {
+            for (const rom of romFiles) {
+              const dest = `${romPath}/${rom.name}`
+              FS.writeFile(dest, rom.data)
+              const sizeKB = (rom.data.length / 1024).toFixed(0)
+              const msg = `[FS] Wrote ${dest} (${sizeKB} KB)`
+              console.log('[WasmLoader]', msg)
+              onLog?.(msg, false)
+            }
+          } catch (e: any) {
+            const msg = `Failed to write ROM: ${e?.message}`
+            console.error('[WasmLoader]', msg)
+            onLog?.(msg, true)
+          }
+
+          // ROM 寫完，釋放依賴
+          Module.removeRunDependency('rom-write')
+        }
+      }],
+
+      onRuntimeInitialized: function () {
+        console.log('[WasmLoader] Runtime initialized, MAME will auto-start.')
         canvas.style.display = ''
         onProgress?.(100, 100)
-        onReady?.(m)
-        resolve(m)
+        // 注意：不在此處 resolve，因為 MAME 尚未執行 callMain
+        // callMain 會在 onRuntimeInitialized 之後自動執行
       },
 
       onAbort: (what: string) => {
         const msg = `MAME aborted: ${what}`
         console.error('[WasmLoader]', msg)
         onLog?.(msg, true)
-        if (!runtimeInitialized) fail(msg)
+        fail(msg)
       },
 
       setStatus: (text: string) => {
@@ -225,8 +215,9 @@ export function loadMameWasm(
         const isErr = code !== 0
         console.log(`[WasmLoader] MAME quit(${code})`)
         onLog?.(`MAME exited (code ${code})`, isErr)
-        if (isErr && !runtimeInitialized) {
-          fail(`MAME exited with code ${code} before runtime initialized`)
+        // MAME 正常退出也算成功（resolve Module）
+        if (!resolved && !rejected) {
+          succeed(Module)
         }
       },
     }
@@ -240,78 +231,23 @@ export function loadMameWasm(
     const script = document.createElement('script')
     script.id = 'mame-js-script'
     script.src = jsUrl
-    script.onload = () => console.log('[WasmLoader] mame.js loaded, MAME will auto-start...')
+    script.onload = () => {
+      console.log('[WasmLoader] mame.js loaded, MAME will auto-start...')
+      // MAME 開始執行後，稍等一下再 resolve
+      // （因為 MAME 是非同步啟動的，callMain 可能在下一個 tick）
+      setTimeout(() => {
+        if (!resolved && !rejected) {
+          succeed((window as any).Module as MameWasmModule)
+        }
+      }, 2000)
+    }
     script.onerror = () => fail(`Failed to load: ${jsUrl}`)
     document.head.appendChild(script)
   })
 }
 
-import { unzipSync } from 'fflate'
-
-/**
- * 把 ROM 寫入 WASM 虛擬 FS。
- * 必須在 onRuntimeInitialized 之後才能呼叫（FS 才就緒）。
- * 在這裡我們使用 fflate 將 ZIP 解壓縮，逐一寫入個別 ROM 檔。
- */
-function writeRoms(
-  mod: MameWasmModule,
-  romFiles: RomFile[],
-  romPath: string,
-  onLog?: (line: string, isError: boolean) => void
-) {
-  for (const rom of romFiles) {
-    if (rom.name.endsWith('.zip')) {
-      try {
-        const unzipped = unzipSync(rom.data)
-        const driverDir = `${romPath}/${rom.driver}`
-        
-        // 建立 driver folder
-        if (mod.FS) {
-          try { mod.FS.mkdir(romPath) } catch { /* ok */ }
-          try { mod.FS.mkdir(driverDir) } catch { /* ok */ }
-        } else if (mod.FS_createDataFile) {
-          try { mod.FS_createPath?.('/', 'roms', true, true) } catch { /* ok */ }
-          try { mod.FS_createPath?.(romPath, rom.driver, true, true) } catch { /* ok */ }
-        }
-
-        // 寫入每一個檔案
-        let writeCount = 0
-        for (const [filename, fileData] of Object.entries(unzipped)) {
-          // fflate 的 unzipSync 會包含目錄項 (長度0，結尾有 /)
-          if (fileData.length === 0 || filename.endsWith('/')) continue
-          
-          // 如果 ZIP 內原本就帶有 driver 目錄 (如 apple2/341-xxx.e0)，我們取出 basename 
-          const baseName = filename.split('/').pop() || filename
-          const fileFullPath = `${driverDir}/${baseName}`
-
-          if (mod.FS) {
-            mod.FS.writeFile(fileFullPath, fileData)
-            writeCount++
-          } else if (mod.FS_createDataFile) {
-            mod.FS_createDataFile(driverDir, baseName, fileData, true, true, true)
-            writeCount++
-          }
-        }
-        
-        const msg = `[FS] Extracted and wrote ${writeCount} files from ${rom.name} to ${driverDir}`
-        console.log('[WasmLoader]', msg)
-        onLog?.(msg, false)
-
-      } catch (e: any) {
-        console.error('[WasmLoader] Failed to unzip and write ROM:', e)
-        onLog?.(`Failed to unzip and write ${rom.name}: ${e?.message}`, true)
-      }
-    } else {
-      // 非 ZIP 檔案的處理，我們目前不支援
-      onLog?.(`Skipped non-zip file: ${rom.name}`, true)
-    }
-  }
-}
-
-
-
 // ─────────────────────────────────────────────────────────────────────────────
-// fetchRom：從 URL 取得 ROM 並包裝成 RomFile
+// fetchRom：從 URL 取得 ROM ZIP 並包裝成 RomFile
 // ─────────────────────────────────────────────────────────────────────────────
 export async function fetchRom(
   url: string,
@@ -319,16 +255,13 @@ export async function fetchRom(
   filename?: string
 ): Promise<RomFile> {
   const resp = await fetch(url)
-  // Vite 在開發模式下如果找不到檔案，有時會回傳 index.html (200 OK, 但 content-type 是 text/html)
-  // 或是直接回 404。必須確保抓到的是二進位檔。
   if (!resp.ok) {
     throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`)
   }
   const contentType = resp.headers.get('content-type')
   if (contentType && contentType.includes('text/html')) {
-    throw new Error(`Failed to fetch ${url}: Server returned HTML (probably 404 fallback)` )
+    throw new Error(`Failed to fetch ${url}: Server returned HTML (probably 404 fallback)`)
   }
-  
   const buf = await resp.arrayBuffer()
   const name = filename ?? url.split('/').pop() ?? 'rom.zip'
   return { driver, name, data: new Uint8Array(buf) }
