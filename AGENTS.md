@@ -24,15 +24,23 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ WASM loading and Module setup verified working
 
 ### What Doesn't Work Yet
-- ❌ apple2e doesn't run — 239MB full `mame.wasm` is too large and unstable
-- ❌ Need dedicated `apple2eonly` WASM build (much smaller, more stable)
+- ❌ 239MB full `mame.wasm` is too large and unstable
 
 ### Key Insight (Session 3)
 The **239MB full mame.wasm** is the root cause of most issues:
 - Too large for practical web use (loading time, memory pressure)
 - V8 function size limit issues
 - C++ exception handling bugs specific to the full build
-- The `apple2eonly` custom target in MameWasm will produce a ~10-20MB WASM
+
+### Key Insight (Session 4 — emularity pivot)
+Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.70, 4.0.23) have wasm-ld defaulting to wasm64, rejecting wasm32 object files. Tried every approach: `-m wasm32` flags, building.py patching, different Emscripten versions, clang flags. All failed.
+
+**Solution**: Use Internet Archive's [emularity-engine](https://github.com/internetarchive/emularity-engine) which ships pre-built `mameapple2e.wasm.gz` + `mameapple2e.js.gz`. These are Emscripten-compiled MAME Apple IIe modules ready for browser use.
+
+- `mameapple2e.wasm` — 27MB (decompressed from 5.7MB gz)
+- `mameapple2e.js` — 1.7MB (decompressed from 263KB gz)
+- JS glue uses `wasmBinaryFile="apple2e.wasm"` + `locateFile` to find the .wasm
+- BIOS: `apple2e.zip` from [emularity-bios](https://github.com/internetarchive/emularity-bios)
 
 ### Key Files
 - `src/App.tsx` — Main app with machine tree, slot config, launch buttons
@@ -40,10 +48,9 @@ The **239MB full mame.wasm** is the root cause of most issues:
 - `src/core/data_manager.ts` — Plist/XML parser
 - `src/core/store.ts` — Zustand store (theme only)
 - `src/styles/global.css` — Dark/light theme CSS
-- `public/roms/apple2e.zip` — Apple IIe ROM set (142KB)
-- `public/roms/a2diskiing.zip` — Disk II controller ROM
-- `public/roms/votrsc01a.zip` — Votrax speech ROM
-- `public/roms/d2fdc.zip` — Duo Disk floppy controller ROM
+- `public/wasm/apple2e.wasm` — Pre-built MAME Apple IIe WASM (from emularity-engine, 27MB)
+- `public/wasm/apple2e.js` — Emscripten JS glue (from emularity-engine, 1.7MB)
+- `public/roms/apple2e.zip` — Apple IIe BIOS ROM (from emularity-bios, 555KB)
 
 ---
 
@@ -68,8 +75,11 @@ The **239MB full mame.wasm** is the root cause of most issues:
 - [x] **Session 3**: Fix wasm_loader.ts — use `preRun` + `addRunDependency` (proven approach)
 - [x] **Session 3**: Remove fflate dependency (no longer needed)
 - [x] **Session 3**: Fix `apple2eonly.lua` — add AY8910, TTL74259, VOTRAX dependencies
-- [ ] **BLOCKED**: Build `apple2eonly` WASM (build.ps1 running on Windows)
-- [ ] Test apple2e with dedicated WASM build
+- [x] **Session 4**: Switch to emularity pre-built WASM (MAME WASM build blocked on wasm64)
+- [x] **Session 4**: Copy `mameapple2e.wasm` + `mameapple2e.js` from emularity-engine
+- [x] **Session 4**: Copy `apple2e.zip` BIOS from emularity-bios
+- [x] **Session 4**: Fix WASM target detection (sync XHR instead of async fetch HEAD)
+- [ ] **TODO**: Fix screen aspect ratio (emularity MAME resolution mismatch)
 
 ### Phase 3：插槽/媒體系統
 - [ ] Dynamic slot configuration UI
@@ -176,9 +186,54 @@ WSL `emmake make` 方式失敗原因：
 | apple2eonly WASM 建置 | 🔄 build.ps1 執行中 |
 | apple2e 實際啟動測試 | ⏳ 待 WASM 建置完成 |
 
+---
+
+## Session: 2026-04-25 — Emularity Pivot (MAME WASM Build Blocked)
+
+### 🎯 Objective
+Abandon custom MAME WASM build. Use Internet Archive's pre-built emularity MAME Apple IIe WASM.
+
+### Problem: MAME WASM Build Exhausted All Options
+All Emscripten releases (2.0.24, 3.1.70, 4.0.23) have wasm-ld that defaults to **wasm64 mode**, rejecting wasm32 object files with:
+```
+wasm-ld: error: wasm32 object file can't be linked in wasm64 mode
+```
+
+Tried fixes (all failed):
+- `-m wasm32` / `-m wasm32-emscripten` via linker flags — rejected as invalid target architecture
+- `-s MEMORY64=0` in command line — didn't reach wasm-ld or ignored
+- Patched `building.py` to insert `-m wasm32` before `-o` — same issue
+- Emscripten 2.0.24 (clang-13) — crashed, harfbuzz cmake compatibility issues
+- Emscripten 4.0.23 — same wasm64 issue
+
+### Solution: Use emularity-engine pre-built WASM
+Internet Archive's [emularity-engine](https://github.com/internetarchive/emularity-engine) ships pre-built MAME Apple IIe WASM.
+
+**Files copied to AmpleWeb**:
+| File | Source | Size |
+|------|--------|------|
+| `public/wasm/apple2e.wasm` | emularity-engine `mameapple2e.wasm.gz` | 27 MB |
+| `public/wasm/apple2e.js` | emularity-engine `mameapple2e.js.gz` | 1.7 MB |
+| `public/roms/apple2e.zip` | emularity-bios | 555 KB |
+
+**Integration details**:
+- JS glue has `wasmBinaryFile="apple2e.wasm"` hardcoded
+- Uses `locateFile` to resolve `.wasm` path relative to JS file location (`/wasm/`)
+- `WASM_TARGET_MAP` updated: `apple2eonly` → `apple2e`
+- WASM detection fixed: async `fetch()` HEAD requests were racing — replaced with sync `XMLHttpRequest` to avoid detecting non-existent `/wasm/mame.wasm` (which returned HTML 404 → `<!doctype` magic word → WASM compile failure)
+
+### 📋 當前狀態
+
+| 項目 | 狀態 |
+|------|------|
+| emularity WASM 複製 + 解壓縮 | ✅ 已複製到 public/wasm/ |
+| BIOS apple2e.zip 複製 | ✅ 已複製到 public/roms/ |
+| WASM target detection (sync XHR) | ✅ 已修正 |
+| apple2e 啟動測試 | ✅ 已開機！ |
+| 螢幕畫面比例 | ❌ 需要修正 |
+
 ### 💡 給下一個 Session 的提示
-1. 檢查 `build.ps1` 建置結果（可能已在背景完成）
-2. 建置成功後，將 `mameapple2eonly.js` 和 `mameapple2eonly.wasm` 複製到 `AmpleWeb/public/wasm/`
-3. 更新 `App.tsx` 中的 WASM 路徑從 `/wasm/mame.wasm` 改為 `/wasm/mameapple2eonly.wasm`
-4. 用 `npm run dev` 測試 apple2e 啟動
-5. 若建置失敗，可能需手動跑 `build.ps1` 互動模式（PowerShell 視窗中執行）
+1. **螢幕比例** — 已修正：resolution 改為 `560x384`（匹配 native_resolution），移除 canvas `max-width/max-height` 防止拉伸
+2. **畫面偏左** — 已修正：canvasContainerRef 從 `block` 改為 `flex`（`alignItems: center, justifyContent: center`），canvas 加 `margin: auto`
+3. 測試畫面是否正確顯示
+4. 如果比例還不對，檢查 emularity MAME 的實際渲染尺寸是否真的是 560x384

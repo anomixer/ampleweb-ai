@@ -9,6 +9,49 @@ import {
 } from './core/wasm_loader'
 import { useStore } from './core/store'
 
+/** WASM target → filename under /wasm/. Priority: smallest to largest. */
+const WASM_TARGET_MAP: Record<string, string> = {
+  full: 'mame',
+  tiny: 'mametiny',
+  apple2eonly: 'apple2e',
+}
+
+/** Lightweight file existence check (synchronous, checks browser cache). */
+const _wasmCache: Record<string, boolean> = {}
+function _wasmExists(targetKey: string): boolean {
+  const url = `/wasm/${WASM_TARGET_MAP[targetKey]}.wasm`
+  if (!(url in _wasmCache)) {
+    _wasmCache[url] = false // default to false; will be updated async
+    fetch(url, { method: 'HEAD' })
+      .then(r => { _wasmCache[url] = r.ok })
+      .catch(() => { _wasmCache[url] = false })
+  }
+  return _wasmCache[url]
+}
+
+/**
+ * Determine best available WASM target by checking which files exist.
+ * Uses synchronous XHR to avoid async race conditions.
+ */
+function detectWasmTarget(): 'apple2eonly' | 'tiny' | 'full' {
+  const candidates: Array<'apple2eonly' | 'tiny' | 'full'> = ['apple2eonly', 'tiny', 'full']
+  for (const target of candidates) {
+    const url = `/wasm/${WASM_TARGET_MAP[target]}.wasm`
+    try {
+      const xhr = new XMLHttpRequest()
+      xhr.open('HEAD', url, false) // sync
+      xhr.send()
+      if (xhr.status === 200) {
+        _wasmCache[url] = true
+        return target
+      }
+    } catch { /* skip */ }
+    _wasmCache[url] = false
+  }
+  console.warn(`[App] No WASM file confirmed available, will try ${candidates[0]} (${WASM_TARGET_MAP[candidates[0]]}.wasm)`)
+  return candidates[0]
+}
+
 type LaunchState = 'idle' | 'fetching-rom' | 'loading-wasm' | 'running' | 'error'
 
 interface LogLine {
@@ -18,9 +61,8 @@ interface LogLine {
 }
 
 /**
- * Apple II / Mac 常見的附屬 ROM。
- * MAME 在 WASM 中無法自動掃描目錄，必須明確 fetch 並寫入 VFS。
- * 這裡只列出 apple2e 真正需要的。
+ * Apple II auxiliary ROMs needed for apple2e.
+ * MAME WASM can't auto-scan directories — we must write these to VFS explicitly.
  */
 const APPLE2E_AUX_ROMS = [
   'a2diskiing',  // Disk II controller
@@ -46,6 +88,9 @@ function App() {
 
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
+
+  // Detect available WASM on mount
+  const [wasmTarget] = useState(detectWasmTarget())
 
   useEffect(() => {
     dataManager.loadModels().then(setModels)
@@ -83,56 +128,41 @@ function App() {
   }, [])
 
   /**
-   * Fetch 所有需要的 ROM ZIP 檔。
-   * 關鍵修正：寫入 VFS 的是完整的 ZIP 檔，MAME 會自行解壓和驗證。
+   * Fetch all required ROM ZIP files for a driver.
+   * Key: write the complete ZIP to VFS — MAME handles unzip internally.
    */
   const fetchAllRoms = useCallback(async (driverName: string): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
 
-    // 1. 主要 Machine ROM — 嘗試 .zip 和 .7z
-    const mainRomUrls = [
-      `/roms/${driverName}.zip`,
-      `/roms/${driverName}.7z`,
-    ]
-
-    let mainRomLoaded = false
-    for (const url of mainRomUrls) {
+    // 1. Main machine ROM — try .zip then .7z
+    for (const ext of ['zip', '7z']) {
       try {
+        const url = `/roms/${driverName}.${ext}`
         const rom = await fetchRom(url, driverName)
         romFiles.push(rom)
-        addLog(`ROM loaded: ${url} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
-        mainRomLoaded = true
+        addLog(`ROM: ${url} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
         break
-      } catch {
-        // 嘗試下一個 URL
-      }
+      } catch { /* try next */ }
     }
 
-    if (!mainRomLoaded) {
-      addLog(`No main ROM found for ${driverName}. MAME will report errors.`, true)
-    }
-
-    // 2. 附屬 ROM — 只載入 Apple II 相關的
-    const auxRoms = APPLE2E_AUX_ROMS
-    for (const auxName of auxRoms) {
-      if (auxName === driverName) continue  // 避免重複
+    // 2. Auxiliary ROMs for Apple II
+    for (const auxName of APPLE2E_AUX_ROMS) {
+      if (auxName === driverName) continue
       try {
         const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
         romFiles.push(rom)
-        addLog(`Aux ROM loaded: ${auxName}.zip`, false)
-      } catch {
-        // 沒有就跳過
-      }
+        addLog(`Aux: ${auxName}.zip`, false)
+      } catch { /* optional */ }
     }
 
     return romFiles
   }, [addLog])
 
   /**
-   * 主要 Launch 流程：
-   * 1. Fetch ROM（完整的 ZIP 檔）
-   * 2. 載入 MAME WASM
-   * 3. preRun 寫入 ROM ZIP → MAME 自動執行
+   * Main launch sequence:
+   * 1. fetch ROM ZIP files
+   * 2. load WASM with detected target
+   * 3. preRun writes ZIPs to VFS → MAME auto-starts
    */
   const handleLaunch = useCallback(async () => {
     if (!selectedMachine) return
@@ -142,27 +172,32 @@ function App() {
     setWasmProgress(0)
     setShowLogs(true)
 
-    // 步驟 1：Fetch ROM
+    // Step 1: fetch ROMs
     setLaunchState('fetching-rom')
     setStatusText('Fetching ROM...')
 
-    const romFiles = await fetchAllRoms(selectedMachine.name)
+    let romFiles: RomFile[] = []
+    try {
+      romFiles = await fetchAllRoms(selectedMachine.name)
+    } catch (e) {
+      addLog(`ROM fetch failed: ${e}`, true)
+    }
 
-    // 步驟 2：載入 WASM
+    // Step 2: load WASM
     setLaunchState('loading-wasm')
-    setStatusText('Loading MAME WASM...')
+    const wasmName = `${WASM_TARGET_MAP[wasmTarget]}.wasm`
+    addLog(`Using /wasm/${wasmName} (target: ${wasmTarget})`, false)
 
     const args = buildMameArgs(selectedMachine.name, {
       video: 'soft',
-      resolution: '640x480',
+      resolution: '560x384',
       window: true,
       extraArgs: ['-verbose'],
     })
-
-    addLog(`Launch args: ${args.join(' ')}`, false)
+    addLog(`args: ${args.join(' ')}`, false)
 
     try {
-      const mod = await loadMameWasm('/wasm/mame.wasm', {
+      const mod = await loadMameWasm(`/wasm/${wasmName}`, {
         driverArgs: args,
         romFiles,
         romPath: '/roms',
@@ -170,21 +205,27 @@ function App() {
           if (total > 0) {
             const pct = Math.round((loaded / total) * 100)
             setWasmProgress(pct)
-            setStatusText(`Loading WASM... ${pct}%`)
+            setStatusText(`Loading... ${pct}%`)
           }
         },
         onError: (err) => {
-          setErrorText(err)
+          // Improve error message for missing WASM
+          let msg = err
+          if (err.includes('Failed to fetch') || err.includes('404')) {
+            msg += `\nPlace the correct mame*.wasm in public/wasm/`
+            msg += `\nAvailable targets: apple2eonly, tiny, full`
+          }
+          setErrorText(msg)
           setLaunchState('error')
-          addLog(`Error: ${err}`, true)
+          addLog(`Error: ${msg}`, true)
         },
         onLog: addLog,
         onReady: (m) => {
           setWasmModule(m)
           setLaunchState('running')
-          setStatusText('MAME running')
+          setStatusText('')
 
-          // 把 canvas 放進容器
+          // Move canvas into container
           requestAnimationFrame(() => {
             const c = document.getElementById('canvas') as HTMLCanvasElement | null
             if (c && canvasContainerRef.current) {
@@ -194,7 +235,6 @@ function App() {
           })
         },
       })
-
       setWasmModule(mod)
     } catch (e: any) {
       const msg = e.message || String(e)
@@ -202,10 +242,10 @@ function App() {
       setLaunchState('error')
       addLog(`Fatal: ${msg}`, true)
     }
-  }, [selectedMachine, slotValues, addLog, fetchAllRoms])
+  }, [selectedMachine, wasmTarget, addLog, fetchAllRoms])
 
   /**
-   * 快速測試：用 apple2e driver，不帶 ROM
+   * Test launch — no ROMs, just load the WASM runtime.
    */
   const handleTestLaunch = useCallback(async () => {
     setWasmModule(null)
@@ -214,8 +254,9 @@ function App() {
     setWasmProgress(0)
     setShowLogs(true)
     setLaunchState('loading-wasm')
-    setStatusText('Loading MAME WASM (apple2e, no ROM)...')
-    addLog('Test launch: apple2e driver, no ROM', false)
+
+    const wasmName = `${WASM_TARGET_MAP[wasmTarget]}.wasm`
+    addLog(`Test: /wasm/${wasmName}`, false)
 
     const args = buildMameArgs('apple2e', {
       video: 'soft',
@@ -224,7 +265,7 @@ function App() {
     })
 
     try {
-      await loadMameWasm('/wasm/mame.wasm', {
+      await loadMameWasm(`/wasm/${wasmName}`, {
         driverArgs: args,
         romFiles: [],
         onProgress: (loaded, total) => {
@@ -242,7 +283,6 @@ function App() {
         onReady: (mod) => {
           setWasmModule(mod)
           setLaunchState('running')
-          addLog('MAME runtime ready', false)
           requestAnimationFrame(() => {
             const c = document.getElementById('canvas') as HTMLCanvasElement | null
             if (c && canvasContainerRef.current) {
@@ -253,12 +293,11 @@ function App() {
         },
       })
     } catch (e: any) {
-      const msg = e.message || String(e)
-      setErrorText(msg)
+      setErrorText(e.message || String(e))
       setLaunchState('error')
-      addLog(`Fatal: ${msg}`, true)
+      addLog(`Fatal: ${e}`, true)
     }
-  }, [addLog])
+  }, [wasmTarget, addLog])
 
   const toggleNode = useCallback((id: string) => {
     setExpandedNodes(prev => {
@@ -273,7 +312,7 @@ function App() {
 
   return (
     <div className={`app ${theme}`}>
-      {/* ── 左側 Sidebar ── */}
+      {/* ── Left Sidebar ── */}
       <div className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-title">
@@ -306,17 +345,20 @@ function App() {
         </div>
 
         <div className="sidebar-footer">
-          {models.length > 0
-            ? `${models.length} machine groups`
-            : 'Loading machines...'}
+          {wasmTarget && (
+            <code style={{ fontSize: '9px', opacity: 0.6 }}>
+              wasm:{wasmTarget}
+            </code>
+          )}
+          {models.length > 0 && ` · ${models.length} groups`}
         </div>
       </div>
 
-      {/* ── 右側主面板 ── */}
+      {/* ── Right Main Panel ── */}
       <div className="main">
         {selectedMachine ? (
           <div className="machine-panel">
-            {/* 機器標題 */}
+            {/* Machine header */}
             <div className="machine-header">
               <div>
                 <h2 className="machine-title">{selectedMachine.description}</h2>
@@ -332,7 +374,7 @@ function App() {
               </div>
             </div>
 
-            {/* 槽位設定 */}
+            {/* Slot configuration */}
             {machineConfig && machineConfig.slots.length > 0 && (
               <div className="section">
                 <div className="section-heading">
@@ -364,28 +406,25 @@ function App() {
               </div>
             )}
 
-            {/* 進度列 */}
+            {/* Progress bar */}
             {isLoading && (
               <div className="progress-wrap">
                 <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${wasmProgress}%` }}
-                  />
+                  <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
                 </div>
                 <span className="progress-label">{statusText}</span>
               </div>
             )}
 
-            {/* 錯誤訊息 */}
+            {/* Error banner */}
             {errorText && (
               <div className="error-banner">
                 <span className="error-icon">⚠️</span>
-                <span>{errorText}</span>
+                <pre>{errorText}</pre>
               </div>
             )}
 
-            {/* 啟動按鈕列 */}
+            {/* Launch buttons */}
             <div className="launch-row">
               <button
                 className="btn btn-primary"
@@ -415,11 +454,18 @@ function App() {
               </button>
             </div>
 
-            {/* Emulator Canvas 區域 */}
-            <div
-              className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}
-            >
-              <div ref={canvasContainerRef} style={{ width: '100%', height: '100%', display: launchState === 'running' ? 'block' : 'none' }} />
+            {/* Emulator canvas area */}
+            <div className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}>
+              <div
+                ref={canvasContainerRef}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: launchState === 'running' ? 'flex' : 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              />
 
               {launchState !== 'running' && (
                 <div className="emulator-placeholder">
@@ -437,24 +483,14 @@ function App() {
               )}
             </div>
 
-            {/* MAME Console Log */}
+            {/* MAME console log */}
             {showLogs && (
               <div className="log-panel">
                 <div className="log-header">
                   <span>📋 MAME Console</span>
                   <div className="log-actions">
-                    <button
-                      className="log-btn"
-                      onClick={() => setLogs([])}
-                    >
-                      Clear
-                    </button>
-                    <button
-                      className="log-btn"
-                      onClick={() => setShowLogs(false)}
-                    >
-                      ✕
-                    </button>
+                    <button className="log-btn" onClick={() => setLogs([])}>Clear</button>
+                    <button className="log-btn" onClick={() => setShowLogs(false)}>✕</button>
                   </div>
                 </div>
                 <div className="log-body">
@@ -462,10 +498,7 @@ function App() {
                     <span className="log-empty">No log output yet.</span>
                   )}
                   {logs.map((l, i) => (
-                    <div
-                      key={i}
-                      className={`log-line ${l.isError ? 'log-err' : ''}`}
-                    >
+                    <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
                       {l.text}
                     </div>
                   ))}
@@ -479,6 +512,11 @@ function App() {
             <div className="welcome-icon">🍎</div>
             <h2>AmpleWeb</h2>
             <p>Browser-based Apple II &amp; Macintosh emulation</p>
+            {wasmTarget && (
+              <p style={{ fontSize: '12px', opacity: 0.5 }}>
+                WASM target: {wasmTarget}
+              </p>
+            )}
             <p className="welcome-sub">Select a machine from the sidebar to begin</p>
           </div>
         )}
@@ -489,7 +527,7 @@ function App() {
 
 export default App
 
-/* ─── Machine Tree 元件 ─── */
+/* ─── Machine Tree Components ─── */
 
 function MachineTree({
   models,
