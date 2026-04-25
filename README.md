@@ -22,20 +22,23 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 
 ## Currently Deployed Emulators
 
-| Emulator | WASM Size | Source |
-|----------|-----------|--------|
-| Apple IIe | 27 MB | emularity dedicated |
-| Apple IIgs | 27 MB | emularity MAME-wrapped |
-| Apple III | 26 MB | emularity MAME-wrapped |
-| Mac (all variants) | 24 MB | emularity dedicated |
-| Mac 128K | 33 MB | emularity dedicated |
-| Mac IIci | 26 MB | emularity dedicated |
-| ColecoVision / Coco | 21 MB | emularity MAME-wrapped |
-| Coco 3 | 21 MB | emularity MAME-wrapped |
-| TRS-80 | 20 MB | emularity MAME-wrapped |
-| Atari ST | 20 MB | emularity MAME-wrapped |
-| Commodore 64 | 11 MB | emularity dedicated |
-| MC-10 | 22 MB | emularity dedicated |
+| Emulator | WASM Size | Supported Machines | Status |
+|----------|-----------|-------------------|--------|
+| Apple IIe | 27 MB | apple2e, apple2ee, apple2ep, apple2c, apple2cp, etc. | ✅ Working |
+| Apple IIgs | 27 MB | apple2gs, apple2gsr0, apple2gsr1 | ✅ Working |
+| Apple III | 26 MB | apple3 | ✅ Working |
+| Mac (mac128.wasm) | 33 MB | mac128k, mac512k, mac512ke, macplus, macse, macsefd | ✅ Working |
+| Mac IIci | 26 MB | maciici | ✅ Working |
+| ColecoVision / Coco | 21 MB | coco, cocoh, coco2b, coco2bh | ✅ Working |
+| Coco 3 | 21 MB | coco3, coco3p, coco3h | ✅ Working |
+| TRS-80 | 20 MB | trs80, trs80l2 | ✅ Working |
+| Commodore 64 | 11 MB | c64, c64c | ✅ Working |
+| MC-10 | 22 MB | mc10 | ✅ Working |
+| Atari ST | — | _none_ | ❌ No WASM (st.wasm is Stadium Hero arcade) |
+
+## Unsupported Machines
+
+55+ Mac variants and other machines have **NO emularity WASM support**: macii, maciix, macquadra, maclc, macportable, macpb, macpd, macclasc, macclas2, maccclas, mactv, Franklin ACE, Agat, Chinese Education Computers, and more. These will show "No emulator support" when selected.
 
 ## Getting Started
 

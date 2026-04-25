@@ -20,9 +20,8 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ Machine detail panel with slot configuration
 - ✅ Light/dark theme support
 - ✅ 251 `.plist` resource files copied to `public/resources/`
-- ✅ ROM ZIP files for all 11 emulators in `public/roms/`
+- ✅ ROM ZIP files for all supported emulators in `public/roms/`
 - ✅ WASM loading and Module setup verified working
-- ✅ 11 emulator WASM files deployed (apple2e, apple2gs, apple3, mac, mac128, maciici, coco, coco3, trs80, st, c64, mc10)
 - ✅ Per-emulator WASM routing (each machine loads its correct WASM)
 - ✅ Per-emulator ROM mapping (DRIVER_ROM_MAP)
 - ✅ Per-emulator MAME driver mapping (DRIVER_MAP)
@@ -30,12 +29,24 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ **apple2e** — boots and runs correctly
 - ✅ **apple3** — boots and runs correctly
 - ✅ **apple2gs** — boots and runs correctly
+- ✅ **mac128k / mac512k / mac512ke** — boots and runs correctly (via mac128.wasm)
+- ✅ **macplus** — boots and runs correctly (via mac128.wasm)
+- ✅ **macse / macsefd** — boots and runs correctly (via mac128.wasm)
+- ✅ **maciici** — boots and runs correctly (via maciici.wasm)
+- ✅ **c64** — boots and runs correctly
+- ✅ **coco** — boots and runs correctly
+- ✅ **coco3** — boots and runs correctly
+- ✅ **trs80 (trs80l2)** — boots and runs correctly
+- ✅ **mc10** — boots and runs correctly
+- ✅ Config area right panel is resizable
 
 ### What Doesn't Work Yet
-- ❓ Non-Apple emulators (mac, c64, coco, trs80, st, mc10) — ROMs downloaded, not yet tested
-- ❓ Mac canvas thin line — resolution fixed, not yet verified
-- ❌ Resolution hardcoded to 640x480 (should read from machine plist)
-- ❌ Many Ample emulators have no emularity WASM (Franklin, Agat, Chinese PCs, etc.)
+- ❌ 55+ Mac variants have NO emularity WASM (macii, maciix, macquadra, maclc, macportable, macpb, macpd, macclasc, macclas2, maccclas, mactv, etc.) — shows "No emulator support" error
+- ❌ Atari ST — no emularity WASM available (st.wasm is Stadium Hero arcade, not Atari ST)
+- ❌ Franklin ACE, Agat, Chinese Education Computers — no emularity WASM
+- ❌ Dynamic slot/media file selectors (floppies, hard drives) not implemented
+- ❌ ROM download engine not implemented
+- ❌ IndexedDB integration for disk image storage not implemented
 
 ### Key Insight (Session 3)
 The **239MB full mame.wasm** is the root cause of most issues:
@@ -276,14 +287,50 @@ Deploy all emularity WASM emulators that Ample supports (not all 1101 emularity 
 apple2e*     → apple2e.wasm (apple2e.js, driver: apple2e)
 apple2gs*    → apple2gs.wasm (apple2gs.js, driver: apple2gs)
 apple3*      → apple3.wasm (apple3.js, driver: apple3)
-mac*         → mac.wasm (mac.js, driver: mac)
+maciici*     → maciici.wasm (maciici.js, driver: maciici)
+mac128*      → mac128.wasm (mac128.js, driver: mac128k)
+macplus      → mac128.wasm (mac128.js, driver: macplus)
+macse        → mac128.wasm (mac128.js, driver: macse)
+macsefd      → mac128.wasm (mac128.js, driver: macse)
 coco3*       → coco3.wasm (coco3.js, driver: coco3)
-coco*        → coco.wasm (coco.js, driver: cocoh)
-trs80*       → trs80.wasm (trs80.js, driver: trs80)
+coco*        → coco.wasm (coco.js, driver: coco)
+trs80*       → trs80.wasm (trs80.js, driver: trs80l2)
 c64*         → c64.wasm (c64.js, driver: c64)
 mc10*        → mc10.wasm (mc10.js, driver: mc10)
-st*          → st.wasm (st.js, driver: stadhero)
 ```
+
+### Supported Machines
+
+| Emulator | WASM Size | Supported Machines | ROM ZIP | Resolution |
+|----------|-----------|-------------------|---------|------------|
+| Apple IIe | 27 MB | apple2e, apple2ee, apple2ep, apple2c, apple2cp, etc. | apple2e.zip | 560x384 |
+| Apple IIgs | 27 MB | apple2gs, apple2gsr0, apple2gsr1 | apple2gs.zip | 704x462 |
+| Apple III | 26 MB | apple3 | apple3.zip | 560x384 |
+| Mac (mac128.wasm) | 33 MB | mac128k, mac512k, mac512ke, macplus, macse, macsefd | mac128k.zip / macplus.zip / macse.zip | 512x342 / 512x342 / 512x342 |
+| Mac IIci | 26 MB | maciici | maciici.zip | 640x480 |
+| ColecoVision / Coco | 21 MB | coco, cocoh, coco2b, coco2bh | coco.zip | 320x240 |
+| Coco 3 | 21 MB | coco3, coco3p, coco3h | coco3.zip | 640x480 |
+| TRS-80 | 20 MB | trs80, trs80l2 | trs80.zip | 384x192 |
+| Commodore 64 | 11 MB | c64, c64c | c64.zip | 384x272 |
+| MC-10 | 22 MB | mc10 | mc10.zip | 372x243 |
+
+### Unsupported Machines
+
+These machines have **NO emularity WASM** and will show "No emulator support" error:
+
+| Category | Machines |
+|----------|----------|
+| Mac II family | macii, maciihmu, mac2fdhd, maciix, maciifx, maciicx, maciisi, maciivx, maciivi |
+| Mac Quadra | macqd605, macqd610, macqd650, macqd700, macqd800, macqd900, macqd950 |
+| Mac LC/Performa | maclc, maclc2, maclc3, maclc3p, maclc475, maclc520, maclc550, maclc575, macct610, macct650, mactv |
+| Mac Portable | macprtb, macpb100, macpb140, macpb145, macpb145b, macpb160, macpb165, macpb165c, macpb170, macpb180, macpb180c |
+| Mac Duo | macpd210, macpd230, macpd250, macpd270c, macpd280, macpd280c |
+| Mac Classic | macclasc, macclas2, maccclas |
+| Atari ST | All variants (st.wasm is Stadium Hero arcade, NOT Atari ST) |
+| Franklin ACE | franklin, franklin100, franklin120, etc. |
+| Agat | agat, agat10, agat6, agat6m, agat6mp, agatplus, etc. |
+| Chinese PCs | cekc, ceckc, cecpc, etc. |
+| Apple II Clones | laser12, superga2, tk2000, etc. |
 
 ### Deployed WASM Files
 

@@ -278,6 +278,21 @@ body {
   color: rgba(255,255,255,0.7);
 }
 
+/* ─── Resize Handle ─── */
+.resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.15s;
+  z-index: 10;
+}
+.resize-handle:hover,
+.resize-handle.active {
+  background: var(--accent);
+}
+
 /* ═══════════════════════════════════════
    MAIN PANEL
 ════════════════════════════════════════ */

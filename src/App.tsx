@@ -14,86 +14,60 @@ import { useStore } from './core/store'
  * Maps Ample's emulator values to the correct WASM file and MAME driver.
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
-  // Dedicated emularity builds
+  // Dedicated emularity builds (each WASM = one emularity config)
   apple2e:    { wasm: 'apple2e.wasm',   js: 'apple2e.js',     driver: 'apple2e' },
-  mac:        { wasm: 'mac.wasm',       js: 'mac.js',         driver: 'mac' },
   mac128:     { wasm: 'mac128.wasm',    js: 'mac128.js',      driver: 'mac128k' },
   maciici:    { wasm: 'maciici.wasm',   js: 'maciici.js',     driver: 'maciici' },
   mc10:       { wasm: 'mc10.wasm',      js: 'mc10.js',        driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
   apple2gs:   { wasm: 'apple2gs.wasm',  js: 'apple2gs.js',    driver: 'apple2gs' },
   apple3:     { wasm: 'apple3.wasm',    js: 'apple3.js',      driver: 'apple3' },
-  coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'cocoh' },
+  coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'coco' },
   coco3:      { wasm: 'coco3.wasm',     js: 'coco3.js',       driver: 'coco3' },
-  trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80' },
-  st:         { wasm: 'st.wasm',        js: 'st.js',          driver: 'stadhero' },
-  // Dedicated C64 build
+  trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80l2' },
+  // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
+  // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
   c64:        { wasm: 'c64.wasm',       js: 'c64.js',         driver: 'c64' },
 }
 
 /**
- * Driver name → MAME driver name mapping.
- * Some emularity WASM files expect different driver names than the Ample machine name.
- * e.g. mac128k machine → mac.wasm → driver 'mac'
+ * Machine name → MAME driver name mapping.
+ * mac128.wasm supports 3 drivers (per emularity configs): mac128k, macplus, macse.
+ * maciici.wasm supports only maciici driver.
+ * Other Mac variants (macii, maciix, macquadra, maclc, macportable, macpb, etc.)
+ * are NOT supported by emularity-engine — no dedicated WASM exists.
  */
 const DRIVER_MAP: Record<string, string> = {
-  // mac.wasm expects 'mac' driver, not 'mac128k' etc.
-  mac128k: 'mac',
-  mac512k: 'mac',
-  mac512ke: 'mac',
-  macplus: 'mac',
-  macse: 'mac',
-  macsefd: 'mac',
-  maciici: 'mac',
-  macclasc: 'mac',
-  macclas2: 'mac',
-  maccclas: 'mac',
-  macii: 'mac',
-  maciihmu: 'mac',
-  mac2fdhd: 'mac',
-  maciix: 'mac',
-  maciifx: 'mac',
-  maciicx: 'mac',
-  maciisi: 'mac',
-  maciivx: 'mac',
-  maciivi: 'mac',
-  macqd605: 'mac',
-  macqd610: 'mac',
-  macqd650: 'mac',
-  macqd700: 'mac',
-  macqd800: 'mac',
-  macqd950: 'mac',
-  maclc: 'mac',
-  maclc2: 'mac',
-  maclc3: 'mac',
-  maclc3p: 'mac',
-  maclc475: 'mac',
-  maclc520: 'mac',
-  maclc550: 'mac',
-  maclc575: 'mac',
-  macct610: 'mac',
-  macct650: 'mac',
-  mactv: 'mac',
-  macprtb: 'mac',
-  macpb100: 'mac',
-  macpb140: 'mac',
-  macpb145: 'mac',
-  macpb145b: 'mac',
-  macpb160: 'mac',
-  macpb165: 'mac',
-  macpb165c: 'mac',
-  macpb170: 'mac',
-  macpb180: 'mac',
-  macpb180c: 'mac',
-  macpd210: 'mac',
-  macpd230: 'mac',
-  macpd250: 'mac',
-  macpd270c: 'mac',
-  macpd280: 'mac',
-  macpd280c: 'mac',
-  macse30: 'mac',
-  macp: 'mac',
+  mac128k: 'mac128k',
+  mac512k: 'mac128k',
+  mac512ke: 'mac128k',
+  macplus: 'macplus',
+  macse: 'macse',
+  macsefd: 'macse',
 }
+
+/**
+ * Mac machines NOT supported by emularity-engine.
+ * These need dedicated WASM builds that don't exist.
+ */
+const UNSUPPORTED_MAC = new Set([
+  // Mac II family
+  'macii', 'maciihmu', 'mac2fdhd', 'maciix', 'maciifx', 'maciicx', 'maciisi', 'maciivx', 'maciivi',
+  // Mac Quadra
+  'macqd605', 'macqd610', 'macqd650', 'macqd700', 'macqd800', 'macqd900', 'macqd950',
+  // Mac LC/Performa
+  'maclc', 'maclc2', 'maclc3', 'maclc3p', 'maclc475', 'maclc520', 'maclc550', 'maclc575',
+  'macct610', 'macct650', 'mactv',
+  // Mac Portable
+  'macprtb', 'macpb100', 'macpb140', 'macpb145', 'macpb145b', 'macpb160', 'macpb165', 'macpb165c',
+  'macpb170', 'macpb180', 'macpb180c',
+  // Mac Duo
+  'macpd210', 'macpd230', 'macpd250', 'macpd270c', 'macpd280', 'macpd280c',
+  // Mac Classic
+  'macclasc', 'macclas2', 'maccclas',
+  // Mac TV
+  'mactv',
+])
 
 /** Lightweight file existence check (synchronous, checks browser cache). */
 const _wasmCache: Record<string, boolean> = {}
@@ -173,55 +147,9 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macse: 'macplus.zip',
   macsefd: 'macplus.zip',
   maciici: 'maciici.zip',
-  macclasc: 'macplus.zip',
-  macclas2: 'macplus.zip',
-  maccclas: 'macplus.zip',
-  macii: 'macplus.zip',
-  maciihmu: 'macplus.zip',
-  mac2fdhd: 'macplus.zip',
-  maciix: 'macplus.zip',
-  maciifx: 'macplus.zip',
-  maciicx: 'macplus.zip',
-  maciisi: 'macplus.zip',
-  maciivx: 'macplus.zip',
-  maciivi: 'macplus.zip',
-  macqd605: 'macplus.zip',
-  macqd610: 'macplus.zip',
-  macqd650: 'macplus.zip',
-  macqd700: 'macplus.zip',
-  macqd800: 'macplus.zip',
-  macqd900: 'macplus.zip',
-  macqd950: 'macplus.zip',
-  maclc: 'macplus.zip',
-  maclc2: 'macplus.zip',
-  maclc3: 'macplus.zip',
-  maclc3p: 'macplus.zip',
-  maclc475: 'macplus.zip',
-  maclc520: 'macplus.zip',
-  maclc550: 'macplus.zip',
-  maclc575: 'macplus.zip',
-  macct610: 'macplus.zip',
-  macct650: 'macplus.zip',
-  mactv: 'macplus.zip',
-  macprtb: 'macplus.zip',
-  macpb100: 'macplus.zip',
-  macpb140: 'macplus.zip',
-  macpb145: 'macplus.zip',
-  macpb145b: 'macplus.zip',
-  macpb160: 'macplus.zip',
-  macpb165: 'macplus.zip',
-  macpb165c: 'macplus.zip',
-  macpb170: 'macplus.zip',
-  macpb180: 'macplus.zip',
-  macpb180c: 'macplus.zip',
-  macpd210: 'macplus.zip',
-  macpd230: 'macplus.zip',
-  macpd250: 'macplus.zip',
-  macpd270c: 'macplus.zip',
-  macpd280: 'macplus.zip',
-  macpd280c: 'macplus.zip',
-  macse30: 'macplus.zip',
-  macp: 'macplus.zip',
+  // NOTE: All other Mac variants (macii, maciix, macquadra, maclc, macportable, macpb,
+  // macpd, macclasc, macclas2, maccclas, mactv, etc.) have NO emularity WASM support.
+  // They are caught by getEmulatorForMachine → returns null → "No emulator support" error.
   // Other emulators
   c64: 'c64.zip',
   coco: 'coco.zip',
@@ -234,6 +162,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   trs80: 'trs80.zip',
   trs80l2: 'trs80.zip',
   mc10: 'mc10.zip',
+  // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST ROMs.
   // Fallback
   apple2: 'apple2c.zip',
   apple2p: 'apple2c.zip',
@@ -249,13 +178,11 @@ const DEFAULT_RESOLUTIONS: Record<string, string> = {
   apple2e: '560x384',
   apple2gs: '704x462',
   apple3: '560x384',
-  mac: '512x342',
   mac128: '512x342',
   maciici: '640x480',
   coco: '320x240',
-  coco3: '320x240',
-  trs80: '640x480',
-  st: '640x480',
+  coco3: '640x480',
+  trs80: '384x192',
   c64: '384x272',
   mc10: '372x243',
 }
@@ -275,6 +202,10 @@ function App() {
   const [logs, setLogs] = useState<LogLine[]>([])
   const [showLogs, setShowLogs] = useState(false)
   const [search, setSearch] = useState('')
+  const [sidebarWidth, setSidebarWidth] = useState(280)
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false)
+  const [configWidth, setConfigWidth] = useState(280)
+  const [isConfigResizing, setIsConfigResizing] = useState(false)
 
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -296,6 +227,48 @@ function App() {
       logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [logs, showLogs])
+
+  // ── Sidebar resize ──
+  useEffect(() => {
+    if (!isSidebarResizing) return
+    const onMove = (e: MouseEvent) => {
+      const w = Math.max(200, Math.min(500, e.clientX))
+      setSidebarWidth(w)
+    }
+    const onUp = () => setIsSidebarResizing(false)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isSidebarResizing])
+
+  // ── Config area resize ──
+  useEffect(() => {
+    if (!isConfigResizing) return
+    const onMove = (e: MouseEvent) => {
+      // config width from right edge of viewport
+      const rightEdge = window.innerWidth - e.clientX
+      const w = Math.max(200, Math.min(500, rightEdge))
+      setConfigWidth(w)
+    }
+    const onUp = () => setIsConfigResizing(false)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isConfigResizing])
 
   const addLog = useCallback((text: string, isError: boolean) => {
     setLogs(prev => {
@@ -372,8 +345,14 @@ function App() {
     if (machineName.startsWith('maciici')) return 'maciici'
     // mac128* → mac128 (dedicated WASM)
     if (machineName.startsWith('mac128')) return 'mac128'
-    // mac* → mac (all other Mac variants share the mac WASM)
-    if (machineName.startsWith('mac')) return 'mac'
+    // mac* → check supported variants first
+    if (machineName.startsWith('mac')) {
+      if (UNSUPPORTED_MAC.has(machineName)) return null
+      // macplus, macse, macsefd — also use mac128.wasm (resolved by DRIVER_MAP)
+      if (machineName === 'macplus' || machineName === 'macse' || machineName === 'macsefd') return 'mac128'
+      // All other mac* variants are unsupported
+      return null
+    }
     // coco* → coco (Coco 1/2), coco3* → coco3
     if (machineName.startsWith('coco3')) return 'coco3'
     if (machineName.startsWith('coco')) return 'coco'
@@ -383,8 +362,8 @@ function App() {
     if (machineName.startsWith('c64')) return 'c64'
     // mc10 → mc10
     if (machineName.startsWith('mc10')) return 'mc10'
-    // st* → st
-    if (machineName.startsWith('st')) return 'st'
+    // st* → no emularity WASM for Atari ST (st.wasm is Stadium Hero arcade)
+    // if (machineName.startsWith('st')) return 'st'
     // apple1, apple2 → apple2e (fallback)
     if (machineName.startsWith('apple')) return 'apple2e'
     return null
@@ -442,11 +421,13 @@ function App() {
     const resolution = DEFAULT_RESOLUTIONS[emulator] ?? '640x480'
     // Resolve MAME driver name (e.g. mac128k → mac)
     const mameDriver = DRIVER_MAP[selectedMachine.name] ?? wasmInfo.driver
+
+    const extraArgs = ['-verbose', '-resolution', resolution]
+
     const args = buildMameArgs(mameDriver, {
       video: 'soft',
-      resolution,
       window: true,
-      extraArgs: ['-verbose'],
+      extraArgs,
     })
     addLog(`args: ${args.join(' ')}`, false)
 
@@ -576,7 +557,7 @@ function App() {
   return (
     <div className={`app ${theme}`}>
       {/* ── Left Sidebar ── */}
-      <div className="sidebar">
+      <div className="sidebar" style={{ width: sidebarWidth }}>
         <div className="sidebar-header">
           <div className="sidebar-title">
             <span className="sidebar-logo">🍎</span>
@@ -617,8 +598,14 @@ function App() {
         </div>
       </div>
 
+      {/* ── Sidebar Resize Handle ── */}
+      <div
+        className={`resize-handle ${isSidebarResizing ? 'active' : ''}`}
+        onMouseDown={() => setIsSidebarResizing(true)}
+      />
+
       {/* ── Right Main Panel ── */}
-      <div className="main">
+      <div className="main" style={{ minWidth: 0 }}>
         {selectedMachine ? (
           <div className="machine-panel">
             {/* Machine header */}
@@ -689,8 +676,15 @@ function App() {
                 </div>
               </div>
 
+              {/* Config resize handle */}
+              <div
+                className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
+                onMouseDown={() => setIsConfigResizing(true)}
+                style={{ alignSelf: 'stretch' }}
+              />
+
               {/* Right: slot config + launch */}
-              <div className="config-area">
+              <div className="config-area" style={{ width: configWidth }}>
                 {/* Slot configuration */}
                 {machineConfig && machineConfig.slots.length > 0 && (
                   <div className="section">
