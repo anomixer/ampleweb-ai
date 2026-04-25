@@ -31,6 +31,70 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   c64:        { wasm: 'c64.wasm',       js: 'c64.js',         driver: 'c64' },
 }
 
+/**
+ * Driver name → MAME driver name mapping.
+ * Some emularity WASM files expect different driver names than the Ample machine name.
+ * e.g. mac128k machine → mac.wasm → driver 'mac'
+ */
+const DRIVER_MAP: Record<string, string> = {
+  // mac.wasm expects 'mac' driver, not 'mac128k' etc.
+  mac128k: 'mac',
+  mac512k: 'mac',
+  mac512ke: 'mac',
+  macplus: 'mac',
+  macse: 'mac',
+  macsefd: 'mac',
+  maciici: 'mac',
+  macclasc: 'mac',
+  macclas2: 'mac',
+  maccclas: 'mac',
+  macii: 'mac',
+  maciihmu: 'mac',
+  mac2fdhd: 'mac',
+  maciix: 'mac',
+  maciifx: 'mac',
+  maciicx: 'mac',
+  maciisi: 'mac',
+  maciivx: 'mac',
+  maciivi: 'mac',
+  macqd605: 'mac',
+  macqd610: 'mac',
+  macqd650: 'mac',
+  macqd700: 'mac',
+  macqd800: 'mac',
+  macqd950: 'mac',
+  maclc: 'mac',
+  maclc2: 'mac',
+  maclc3: 'mac',
+  maclc3p: 'mac',
+  maclc475: 'mac',
+  maclc520: 'mac',
+  maclc550: 'mac',
+  maclc575: 'mac',
+  macct610: 'mac',
+  macct650: 'mac',
+  mactv: 'mac',
+  macprtb: 'mac',
+  macpb100: 'mac',
+  macpb140: 'mac',
+  macpb145: 'mac',
+  macpb145b: 'mac',
+  macpb160: 'mac',
+  macpb165: 'mac',
+  macpb165c: 'mac',
+  macpb170: 'mac',
+  macpb180: 'mac',
+  macpb180c: 'mac',
+  macpd210: 'mac',
+  macpd230: 'mac',
+  macpd250: 'mac',
+  macpd270c: 'mac',
+  macpd280: 'mac',
+  macpd280c: 'mac',
+  macse30: 'mac',
+  macp: 'mac',
+}
+
 /** Lightweight file existence check (synchronous, checks browser cache). */
 const _wasmCache: Record<string, boolean> = {}
 function _wasmExists(filename: string): boolean {
@@ -73,14 +137,128 @@ interface LogLine {
 }
 
 /**
- * Apple II auxiliary ROMs needed for apple2e.
- * MAME WASM can't auto-scan directories — we must write these to VFS explicitly.
+ * Driver name → ROM ZIP filename mapping.
+ * MAME needs the correct BIOS ROM for each driver.
  */
-const APPLE2E_AUX_ROMS = [
-  'a2diskiing',  // Disk II controller
-  'votrsc01a',   // Votrax speech
-  'd2fdc',       // Duo Disk floppy controller
-]
+const DRIVER_ROM_MAP: Record<string, string> = {
+  // Apple IIe variants
+  apple2e: 'apple2e.zip',
+  apple2ee: 'apple2e.zip',
+  apple2eeuk: 'apple2e.zip',
+  apple2eede: 'apple2e.zip',
+  apple2eese: 'apple2e.zip',
+  apple2eefr: 'apple2e.zip',
+  apple2ep: 'apple2e.zip',
+  apple2euk: 'apple2e.zip',
+  apple2ede: 'apple2e.zip',
+  apple2ese: 'apple2e.zip',
+  apple2efr: 'apple2e.zip',
+  apple2ees: 'apple2e.zip',
+  // Apple IIc variants
+  apple2c: 'apple2c.zip',
+  apple2c0: 'apple2c.zip',
+  apple2c3: 'apple2c.zip',
+  apple2cp: 'apple2c.zip',
+  // Apple IIgs
+  apple2gs: 'apple2gs.zip',
+  apple2gsr0: 'apple2gs.zip',
+  apple2gsr1: 'apple2gs.zip',
+  // Apple III
+  apple3: 'apple3.zip',
+  // Mac variants
+  mac128k: 'mac128k.zip',
+  mac512k: 'mac128k.zip',
+  mac512ke: 'mac128k.zip',
+  macplus: 'macplus.zip',
+  macse: 'macplus.zip',
+  macsefd: 'macplus.zip',
+  maciici: 'maciici.zip',
+  macclasc: 'macplus.zip',
+  macclas2: 'macplus.zip',
+  maccclas: 'macplus.zip',
+  macii: 'macplus.zip',
+  maciihmu: 'macplus.zip',
+  mac2fdhd: 'macplus.zip',
+  maciix: 'macplus.zip',
+  maciifx: 'macplus.zip',
+  maciicx: 'macplus.zip',
+  maciisi: 'macplus.zip',
+  maciivx: 'macplus.zip',
+  maciivi: 'macplus.zip',
+  macqd605: 'macplus.zip',
+  macqd610: 'macplus.zip',
+  macqd650: 'macplus.zip',
+  macqd700: 'macplus.zip',
+  macqd800: 'macplus.zip',
+  macqd900: 'macplus.zip',
+  macqd950: 'macplus.zip',
+  maclc: 'macplus.zip',
+  maclc2: 'macplus.zip',
+  maclc3: 'macplus.zip',
+  maclc3p: 'macplus.zip',
+  maclc475: 'macplus.zip',
+  maclc520: 'macplus.zip',
+  maclc550: 'macplus.zip',
+  maclc575: 'macplus.zip',
+  macct610: 'macplus.zip',
+  macct650: 'macplus.zip',
+  mactv: 'macplus.zip',
+  macprtb: 'macplus.zip',
+  macpb100: 'macplus.zip',
+  macpb140: 'macplus.zip',
+  macpb145: 'macplus.zip',
+  macpb145b: 'macplus.zip',
+  macpb160: 'macplus.zip',
+  macpb165: 'macplus.zip',
+  macpb165c: 'macplus.zip',
+  macpb170: 'macplus.zip',
+  macpb180: 'macplus.zip',
+  macpb180c: 'macplus.zip',
+  macpd210: 'macplus.zip',
+  macpd230: 'macplus.zip',
+  macpd250: 'macplus.zip',
+  macpd270c: 'macplus.zip',
+  macpd280: 'macplus.zip',
+  macpd280c: 'macplus.zip',
+  macse30: 'macplus.zip',
+  macp: 'macplus.zip',
+  // Other emulators
+  c64: 'c64.zip',
+  coco: 'coco.zip',
+  cocoh: 'coco.zip',
+  coco2b: 'coco.zip',
+  coco2bh: 'coco.zip',
+  coco3: 'coco3.zip',
+  coco3p: 'coco3.zip',
+  coco3h: 'coco3.zip',
+  trs80: 'trs80.zip',
+  trs80l2: 'trs80.zip',
+  mc10: 'mc10.zip',
+  // Fallback
+  apple2: 'apple2c.zip',
+  apple2p: 'apple2c.zip',
+  apple2jp: 'apple2c.zip',
+}
+
+/**
+ * Default resolution per emulator type.
+ * Each emularity WASM has a native resolution from its config.
+ * For MAME-wrapped builds, these are used as -resolution flags.
+ */
+const DEFAULT_RESOLUTIONS: Record<string, string> = {
+  apple2e: '560x384',
+  apple2gs: '704x462',
+  apple3: '560x384',
+  mac: '512x342',
+  mac128: '512x342',
+  maciici: '640x480',
+  coco: '320x240',
+  coco3: '320x240',
+  trs80: '640x480',
+  st: '640x480',
+  c64: '384x272',
+  mc10: '372x243',
+}
 
 function App() {
   const { theme, toggleTheme } = useStore()
@@ -146,30 +324,34 @@ function App() {
 
   /**
    * Fetch all required ROM ZIP files for a driver.
-   * Key: write the complete ZIP to VFS — MAME handles unzip internally.
+   * Uses DRIVER_ROM_MAP to find the correct BIOS ROM.
    */
   const fetchAllRoms = useCallback(async (driverName: string): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
 
-    // 1. Main machine ROM — try .zip then .7z
-    for (const ext of ['zip', '7z']) {
+    // 1. Main machine ROM — look up from DRIVER_ROM_MAP
+    const romFile = DRIVER_ROM_MAP[driverName]
+    if (romFile) {
       try {
-        const url = `/roms/${driverName}.${ext}`
+        const url = `/roms/${romFile}`
         const rom = await fetchRom(url, driverName)
         romFiles.push(rom)
         addLog(`ROM: ${url} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
-        break
-      } catch { /* try next */ }
+      } catch {
+        addLog(`ROM not found: ${romFile}`, true)
+      }
     }
 
-    // 2. Auxiliary ROMs for Apple II
-    for (const auxName of APPLE2E_AUX_ROMS) {
-      if (auxName === driverName) continue
-      try {
-        const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
-        romFiles.push(rom)
-        addLog(`Aux: ${auxName}.zip`, false)
-      } catch { /* optional */ }
+    // 2. Auxiliary ROMs for Apple IIe
+    if (driverName.startsWith('apple2')) {
+      for (const auxName of ['a2diskiing', 'votrsc01a', 'd2fdc']) {
+        if (auxName === driverName) continue
+        try {
+          const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
+          romFiles.push(rom)
+          addLog(`Aux: ${auxName}.zip`, false)
+        } catch { /* optional */ }
+      }
     }
 
     return romFiles
@@ -186,7 +368,11 @@ function App() {
     if (machineName.startsWith('apple2')) return 'apple2e'
     // apple3* → apple3
     if (machineName.startsWith('apple3')) return 'apple3'
-    // mac* → mac (all Mac variants share the mac WASM)
+    // maciici* → maciici (dedicated WASM)
+    if (machineName.startsWith('maciici')) return 'maciici'
+    // mac128* → mac128 (dedicated WASM)
+    if (machineName.startsWith('mac128')) return 'mac128'
+    // mac* → mac (all other Mac variants share the mac WASM)
     if (machineName.startsWith('mac')) return 'mac'
     // coco* → coco (Coco 1/2), coco3* → coco3
     if (machineName.startsWith('coco3')) return 'coco3'
@@ -252,9 +438,13 @@ function App() {
     const wasmUrl = `/wasm/${wasmInfo.wasm}`
     addLog(`Using /wasm/${wasmInfo.wasm} (emulator: ${emulator}, driver: ${wasmInfo.driver})`, false)
 
-    const args = buildMameArgs(selectedMachine.name, {
+    // Use emulator-appropriate resolution
+    const resolution = DEFAULT_RESOLUTIONS[emulator] ?? '640x480'
+    // Resolve MAME driver name (e.g. mac128k → mac)
+    const mameDriver = DRIVER_MAP[selectedMachine.name] ?? wasmInfo.driver
+    const args = buildMameArgs(mameDriver, {
       video: 'soft',
-      resolution: '640x480',
+      resolution,
       window: true,
       extraArgs: ['-verbose'],
     })

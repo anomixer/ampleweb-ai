@@ -20,13 +20,20 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ Machine detail panel with slot configuration
 - ✅ Light/dark theme support
 - ✅ 251 `.plist` resource files copied to `public/resources/`
-- ✅ ROM ZIP files for apple2e and aux devices in `public/roms/`
+- ✅ ROM ZIP files for all 11 emulators in `public/roms/`
 - ✅ WASM loading and Module setup verified working
 - ✅ 11 emulator WASM files deployed (apple2e, apple2gs, apple3, mac, mac128, maciici, coco, coco3, trs80, st, c64, mc10)
 - ✅ Per-emulator WASM routing (each machine loads its correct WASM)
+- ✅ Per-emulator ROM mapping (DRIVER_ROM_MAP)
+- ✅ Per-emulator MAME driver mapping (DRIVER_MAP)
+- ✅ Per-emulator resolution (native from emularity config)
+- ✅ **apple2e** — boots and runs correctly
+- ✅ **apple3** — boots and runs correctly
+- ✅ **apple2gs** — boots and runs correctly
 
 ### What Doesn't Work Yet
-- ❌ BIOS/ROM files missing for non-Apple emulators (c64, trs80, coco, st, mc10)
+- ❓ Non-Apple emulators (mac, c64, coco, trs80, st, mc10) — ROMs downloaded, not yet tested
+- ❓ Mac canvas thin line — resolution fixed, not yet verified
 - ❌ Resolution hardcoded to 640x480 (should read from machine plist)
 - ❌ Many Ample emulators have no emularity WASM (Franklin, Agat, Chinese PCs, etc.)
 
@@ -88,9 +95,13 @@ Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.7
 - [x] **Session 5**: Fix screen aspect ratio + canvas centering + height
 - [x] **Session 6**: Deploy 11 emulator WASM files from emularity-engine
 - [x] **Session 6**: Implement per-emulator WASM routing (replaced global WASM_TARGET_MAP)
-- [ ] **TODO**: Add BIOS/ROM files for non-Apple emulators (c64, trs80, coco, st, mc10)
-- [ ] **TODO**: Read resolution from machine plist instead of hardcoding 640x480
+- [x] **Session 7**: Download BIOS ROMs for all 11 deployed emulators
+- [x] **Session 7**: Add `DRIVER_ROM_MAP` — driver name → ROM ZIP filename mapping
+- [x] **Session 7**: Fix `fetchAllRoms` — look up ROM from map instead of driver name
+- [x] **Session 7**: Add `DRIVER_MAP` — machine name → MAME driver name (e.g. mac128k → mac)
+- [x] **Session 7**: Fix per-emulator resolutions (was hardcoded 640x480)
 - [ ] **TODO**: Test each emulator and verify correct boot
+- [ ] **TODO**: Verify Mac canvas renders correctly (thin line was resolution mismatch)
 
 ### Phase 3：插槽/媒體系統
 - [ ] Dynamic slot configuration UI
@@ -281,7 +292,7 @@ st*          → st.wasm (st.js, driver: stadhero)
 | `apple2e.wasm` | 27 MB | emularity-engine | apple2e, apple2ee, apple2ep, apple2c, etc. |
 | `apple2gs.wasm` | 27 MB | emularity-engine (mameapple2gs.wasm.gz) | apple2gs, apple2gsr0, apple2gsr1 |
 | `apple3.wasm` | 26 MB | emularity-engine (mameapple3.wasm.gz) | apple3 |
-| `mac.wasm` | 24 MB | emularity-engine | mac, mac128, macplus, maciici, etc. |
+| `mac.wasm` | 24 MB | emularity-engine | mac, mac128, macplus, macse, macii, etc. |
 | `mac128.wasm` | 33 MB | emularity-engine | mac128k variants |
 | `maciici.wasm` | 26 MB | emularity-engine | maciici |
 | `coco.wasm` | 21 MB | emularity-engine (mamecoco12.wasm.gz) | coco, cocoh, coco2b, coco2bh |
@@ -291,6 +302,23 @@ st*          → st.wasm (st.js, driver: stadhero)
 | `c64.wasm` | 11 MB | emularity-engine (dedicated) | c64, c64c |
 | `mc10.wasm` | 22 MB | emularity-engine | mc10 |
 | `mame.wasm` / `mametiny.wasm` | 239/45 MB | MAME WASM build | fallback |
+
+### Deployed ROM/BIOS Files
+
+| File | Size | Source |
+|------|------|--------|
+| `apple2e.zip` | 555 KB | emularity-bios |
+| `apple2c.zip` | 23 KB | emularity-bios |
+| `apple2gs.zip` | 816 KB | emularity-bios |
+| `apple3.zip` | 17 KB | emularity-bios |
+| `macplus.zip` | 980 KB | emularity-bios |
+| `mac128k.zip` | 98 KB | emularity-bios |
+| `maciici.zip` | 344 KB | emularity-bios |
+| `c64.zip` | 407 KB | emularity-bios |
+| `coco.zip` | 180 KB | emularity-bios |
+| `coco3.zip` | 78 KB | emularity-bios |
+| `trs80.zip` | 450 KB | emularity-bios |
+| `mc10.zip` | 15 KB | emularity-bios |
 
 ### WASM Loading Flow
 1. `handleLaunch` → `getEmulatorForMachine(machineName)` → emulator type
@@ -313,7 +341,7 @@ These Ample emulators have NO emularity WASM — will show "no emulator support"
 - Most other non-Apple/non-Mac machines
 
 ### 💡 給下一個 Session 的提示
-1. 測試各 emulator 能否正常啟動
-2. 確認各 emulator 的 resolution 是否正確（目前統一 640x480）
+1. 測試各 emulator 能否正常啟動 — apple2e, apple3, apple2gs 已確認正常
+2. 測試 mac, c64, coco, trs80, st, mc10 啟動是否正常
 3. 為沒有 WASM 的 emulator 顯示更清晰的 "unsupported" 提示
 4. 可選：為每個 emulator 設定專屬 resolution（從 machine plist 的 resolution field 讀取）
