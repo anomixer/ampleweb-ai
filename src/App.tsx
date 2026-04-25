@@ -9,19 +9,34 @@ import {
 } from './core/wasm_loader'
 import { useStore } from './core/store'
 
-/** WASM target → filename under /wasm/. Priority: smallest to largest. */
-const WASM_TARGET_MAP: Record<string, string> = {
-  full: 'mame',
-  tiny: 'mametiny',
-  apple2eonly: 'apple2e',
+/**
+ * Emulator type → WASM file info.
+ * Maps Ample's emulator values to the correct WASM file and MAME driver.
+ */
+const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
+  // Dedicated emularity builds
+  apple2e:    { wasm: 'apple2e.wasm',   js: 'apple2e.js',     driver: 'apple2e' },
+  mac:        { wasm: 'mac.wasm',       js: 'mac.js',         driver: 'mac' },
+  mac128:     { wasm: 'mac128.wasm',    js: 'mac128.js',      driver: 'mac128k' },
+  maciici:    { wasm: 'maciici.wasm',   js: 'maciici.js',     driver: 'maciici' },
+  mc10:       { wasm: 'mc10.wasm',      js: 'mc10.js',        driver: 'mc10' },
+  // MAME-wrapped builds (full MAME with specific driver)
+  apple2gs:   { wasm: 'apple2gs.wasm',  js: 'apple2gs.js',    driver: 'apple2gs' },
+  apple3:     { wasm: 'apple3.wasm',    js: 'apple3.js',      driver: 'apple3' },
+  coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'cocoh' },
+  coco3:      { wasm: 'coco3.wasm',     js: 'coco3.js',       driver: 'coco3' },
+  trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80' },
+  st:         { wasm: 'st.wasm',        js: 'st.js',          driver: 'stadhero' },
+  // Dedicated C64 build
+  c64:        { wasm: 'c64.wasm',       js: 'c64.js',         driver: 'c64' },
 }
 
 /** Lightweight file existence check (synchronous, checks browser cache). */
 const _wasmCache: Record<string, boolean> = {}
-function _wasmExists(targetKey: string): boolean {
-  const url = `/wasm/${WASM_TARGET_MAP[targetKey]}.wasm`
+function _wasmExists(filename: string): boolean {
+  const url = `/wasm/${filename}`
   if (!(url in _wasmCache)) {
-    _wasmCache[url] = false // default to false; will be updated async
+    _wasmCache[url] = false
     fetch(url, { method: 'HEAD' })
       .then(r => { _wasmCache[url] = r.ok })
       .catch(() => { _wasmCache[url] = false })
@@ -30,26 +45,23 @@ function _wasmExists(targetKey: string): boolean {
 }
 
 /**
- * Determine best available WASM target by checking which files exist.
- * Uses synchronous XHR to avoid async race conditions.
+ * Get the WASM info for an emulator type, falling back to available targets.
  */
-function detectWasmTarget(): 'apple2eonly' | 'tiny' | 'full' {
-  const candidates: Array<'apple2eonly' | 'tiny' | 'full'> = ['apple2eonly', 'tiny', 'full']
-  for (const target of candidates) {
-    const url = `/wasm/${WASM_TARGET_MAP[target]}.wasm`
-    try {
-      const xhr = new XMLHttpRequest()
-      xhr.open('HEAD', url, false) // sync
-      xhr.send()
-      if (xhr.status === 200) {
-        _wasmCache[url] = true
-        return target
-      }
-    } catch { /* skip */ }
-    _wasmCache[url] = false
+function getWasmForEmulator(emulator: string): { wasm: string; js: string; driver: string } | null {
+  // Direct match
+  const info = EMULATOR_WASM_MAP[emulator]
+  if (info && _wasmExists(info.wasm)) return info
+
+  // Fallback: try to find any available WASM
+  for (const [emu, wasmInfo] of Object.entries(EMULATOR_WASM_MAP)) {
+    if (_wasmExists(wasmInfo.wasm)) {
+      console.warn(`[App] ${emulator} WASM not available, falling back to ${emu} (${wasmInfo.driver})`)
+      return wasmInfo
+    }
   }
-  console.warn(`[App] No WASM file confirmed available, will try ${candidates[0]} (${WASM_TARGET_MAP[candidates[0]]}.wasm)`)
-  return candidates[0]
+
+  console.warn(`[App] No WASM file available for ${emulator}`)
+  return null
 }
 
 type LaunchState = 'idle' | 'fetching-rom' | 'loading-wasm' | 'running' | 'error'
@@ -89,8 +101,13 @@ function App() {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
 
-  // Detect available WASM on mount
-  const [wasmTarget] = useState(detectWasmTarget())
+  // Detect available WASM on mount (legacy display only)
+  const [wasmTarget] = useState(() => {
+    for (const [emu, info] of Object.entries(EMULATOR_WASM_MAP)) {
+      if (_wasmExists(info.wasm)) return emu
+    }
+    return 'none'
+  })
 
   useEffect(() => {
     dataManager.loadModels().then(setModels)
@@ -159,10 +176,40 @@ function App() {
   }, [addLog])
 
   /**
+   * Determine which emulator type a machine belongs to.
+   * Maps machine driver names to emulator WASM files.
+   */
+  function getEmulatorForMachine(machineName: string): string | null {
+    // apple2gs* → apple2gs
+    if (machineName.startsWith('apple2gs')) return 'apple2gs'
+    // apple2* → apple2e (all Apple IIe variants share the apple2e WASM)
+    if (machineName.startsWith('apple2')) return 'apple2e'
+    // apple3* → apple3
+    if (machineName.startsWith('apple3')) return 'apple3'
+    // mac* → mac (all Mac variants share the mac WASM)
+    if (machineName.startsWith('mac')) return 'mac'
+    // coco* → coco (Coco 1/2), coco3* → coco3
+    if (machineName.startsWith('coco3')) return 'coco3'
+    if (machineName.startsWith('coco')) return 'coco'
+    // trs80* → trs80
+    if (machineName.startsWith('trs80')) return 'trs80'
+    // c64* → c64
+    if (machineName.startsWith('c64')) return 'c64'
+    // mc10 → mc10
+    if (machineName.startsWith('mc10')) return 'mc10'
+    // st* → st
+    if (machineName.startsWith('st')) return 'st'
+    // apple1, apple2 → apple2e (fallback)
+    if (machineName.startsWith('apple')) return 'apple2e'
+    return null
+  }
+
+  /**
    * Main launch sequence:
-   * 1. fetch ROM ZIP files
-   * 2. load WASM with detected target
-   * 3. preRun writes ZIPs to VFS → MAME auto-starts
+   * 1. determine emulator type from machine
+   * 2. fetch ROM ZIP files
+   * 3. load the correct WASM (per-emulator)
+   * 4. preRun writes ZIPs to VFS → MAME auto-starts
    */
   const handleLaunch = useCallback(async () => {
     if (!selectedMachine) return
@@ -171,6 +218,23 @@ function App() {
     setLogs([])
     setWasmProgress(0)
     setShowLogs(true)
+
+    // Step 0: determine emulator type
+    const emulator = getEmulatorForMachine(selectedMachine.name)
+    if (!emulator) {
+      setErrorText(`No emulator support for machine: ${selectedMachine.name}`)
+      setLaunchState('error')
+      addLog(`Error: no emulator for ${selectedMachine.name}`, true)
+      return
+    }
+
+    const wasmInfo = getWasmForEmulator(emulator)
+    if (!wasmInfo) {
+      setErrorText(`No WASM file available for ${emulator}.\nPlace ${emulator}.wasm in public/wasm/`)
+      setLaunchState('error')
+      addLog(`Error: no WASM for ${emulator}`, true)
+      return
+    }
 
     // Step 1: fetch ROMs
     setLaunchState('fetching-rom')
@@ -185,22 +249,23 @@ function App() {
 
     // Step 2: load WASM
     setLaunchState('loading-wasm')
-    const wasmName = `${WASM_TARGET_MAP[wasmTarget]}.wasm`
-    addLog(`Using /wasm/${wasmName} (target: ${wasmTarget})`, false)
+    const wasmUrl = `/wasm/${wasmInfo.wasm}`
+    addLog(`Using /wasm/${wasmInfo.wasm} (emulator: ${emulator}, driver: ${wasmInfo.driver})`, false)
 
     const args = buildMameArgs(selectedMachine.name, {
       video: 'soft',
-      resolution: '560x384',
+      resolution: '640x480',
       window: true,
       extraArgs: ['-verbose'],
     })
     addLog(`args: ${args.join(' ')}`, false)
 
     try {
-      const mod = await loadMameWasm(`/wasm/${wasmName}`, {
+      const mod = await loadMameWasm(wasmUrl, {
         driverArgs: args,
         romFiles,
         romPath: '/roms',
+        jsUrl: `/wasm/${wasmInfo.js}`,
         onProgress: (loaded, total) => {
           if (total > 0) {
             const pct = Math.round((loaded / total) * 100)
@@ -212,8 +277,7 @@ function App() {
           // Improve error message for missing WASM
           let msg = err
           if (err.includes('Failed to fetch') || err.includes('404')) {
-            msg += `\nPlace the correct mame*.wasm in public/wasm/`
-            msg += `\nAvailable targets: apple2eonly, tiny, full`
+            msg += `\nPlace the correct WASM in public/wasm/`
           }
           setErrorText(msg)
           setLaunchState('error')
@@ -255,8 +319,16 @@ function App() {
     setShowLogs(true)
     setLaunchState('loading-wasm')
 
-    const wasmName = `${WASM_TARGET_MAP[wasmTarget]}.wasm`
-    addLog(`Test: /wasm/${wasmName}`, false)
+    // Use apple2e for test
+    const wasmInfo = getWasmForEmulator('apple2e')
+    if (!wasmInfo) {
+      setErrorText('No WASM file available')
+      setLaunchState('error')
+      return
+    }
+
+    const wasmUrl = `/wasm/${wasmInfo.wasm}`
+    addLog(`Test: /wasm/${wasmInfo.wasm}`, false)
 
     const args = buildMameArgs('apple2e', {
       video: 'soft',
@@ -265,9 +337,10 @@ function App() {
     })
 
     try {
-      await loadMameWasm(`/wasm/${wasmName}`, {
+      await loadMameWasm(wasmUrl, {
         driverArgs: args,
         romFiles: [],
+        jsUrl: `/wasm/${wasmInfo.js}`,
         onProgress: (loaded, total) => {
           if (total > 0) {
             const pct = Math.round((loaded / total) * 100)
@@ -374,39 +447,7 @@ function App() {
               </div>
             </div>
 
-            {/* Slot configuration */}
-            {machineConfig && machineConfig.slots.length > 0 && (
-              <div className="section">
-                <div className="section-heading">
-                  <span>⚙️ Configuration</span>
-                  <span className="section-count">{machineConfig.slots.length} slots</span>
-                </div>
-                <div className="slot-grid">
-                  {machineConfig.slots.map(slot => (
-                    <div key={slot.name} className="slot-row">
-                      <label className="slot-label" title={slot.name}>
-                        {slot.description}
-                      </label>
-                      <select
-                        className="slot-select"
-                        value={slotValues[slot.name] ?? ''}
-                        onChange={e =>
-                          setSlotValues(prev => ({ ...prev, [slot.name]: e.target.value }))
-                        }
-                      >
-                        {slot.options.map((opt, i) => (
-                          <option key={i} value={opt.value} disabled={opt.disabled}>
-                            {opt.description}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Progress bar */}
+            {/* Progress bar (top of panel, before layout split) */}
             {isLoading && (
               <div className="progress-wrap">
                 <div className="progress-bar">
@@ -424,88 +465,129 @@ function App() {
               </div>
             )}
 
-            {/* Launch buttons */}
-            <div className="launch-row">
-              <button
-                className="btn btn-primary"
-                onClick={handleLaunch}
-                disabled={isLoading}
-                id="btn-launch"
-              >
-                {isLoading ? '⏳ Loading...' : wasmModule ? '🔄 Restart' : '🚀 Launch'}
-              </button>
+            {/* Content row: emulator + config side by side */}
+            <div className="content-row">
+              {/* Left: emulator canvas */}
+              <div className="emulator-area">
+                {/* Emulator canvas area */}
+                <div className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}>
+                  <div
+                    ref={canvasContainerRef}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: launchState === 'running' ? 'flex' : 'none',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  />
 
-              {!wasmModule && !isLoading && (
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleTestLaunch}
-                  id="btn-test"
-                >
-                  🔬 Test WASM
-                </button>
-              )}
-
-              <button
-                className={`btn btn-ghost ${showLogs ? 'active' : ''}`}
-                onClick={() => setShowLogs(v => !v)}
-                id="btn-toggle-logs"
-              >
-                {showLogs ? '📋 Hide Log' : '📋 Show Log'}
-              </button>
-            </div>
-
-            {/* Emulator canvas area */}
-            <div className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}>
-              <div
-                ref={canvasContainerRef}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: launchState === 'running' ? 'flex' : 'none',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-
-              {launchState !== 'running' && (
-                <div className="emulator-placeholder">
-                  {launchState === 'idle' && <p>Press Launch to start emulation</p>}
-                  {isLoading && (
-                    <div className="loading-indicator">
-                      <div className="spinner" />
-                      <p>{statusText}</p>
+                  {launchState !== 'running' && (
+                    <div className="emulator-placeholder">
+                      {launchState === 'idle' && <p>Press Launch to start emulation</p>}
+                      {isLoading && (
+                        <div className="loading-indicator">
+                          <div className="spinner" />
+                          <p>{statusText}</p>
+                        </div>
+                      )}
+                      {launchState === 'error' && (
+                        <p className="placeholder-error">Emulation failed — check log for details</p>
+                      )}
                     </div>
                   )}
-                  {launchState === 'error' && (
-                    <p className="placeholder-error">Emulation failed — check log for details</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* MAME console log */}
-            {showLogs && (
-              <div className="log-panel">
-                <div className="log-header">
-                  <span>📋 MAME Console</span>
-                  <div className="log-actions">
-                    <button className="log-btn" onClick={() => setLogs([])}>Clear</button>
-                    <button className="log-btn" onClick={() => setShowLogs(false)}>✕</button>
-                  </div>
-                </div>
-                <div className="log-body">
-                  {logs.length === 0 && (
-                    <span className="log-empty">No log output yet.</span>
-                  )}
-                  {logs.map((l, i) => (
-                    <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
-                      {l.text}
-                    </div>
-                  ))}
-                  <div ref={logEndRef} />
                 </div>
               </div>
-            )}
+
+              {/* Right: slot config + launch */}
+              <div className="config-area">
+                {/* Slot configuration */}
+                {machineConfig && machineConfig.slots.length > 0 && (
+                  <div className="section">
+                    <div className="section-heading">
+                      <span>⚙️ Configuration</span>
+                      <span className="section-count">{machineConfig.slots.length} slots</span>
+                    </div>
+                    <div className="slot-grid">
+                      {machineConfig.slots.map(slot => (
+                        <div key={slot.name} className="slot-row">
+                          <label className="slot-label" title={slot.name}>
+                            {slot.description}
+                          </label>
+                          <select
+                            className="slot-select"
+                            value={slotValues[slot.name] ?? ''}
+                            onChange={e =>
+                              setSlotValues(prev => ({ ...prev, [slot.name]: e.target.value }))
+                            }
+                          >
+                            {slot.options.map((opt, i) => (
+                              <option key={i} value={opt.value} disabled={opt.disabled}>
+                                {opt.description}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Launch buttons */}
+                <div className="launch-row">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleLaunch}
+                    disabled={isLoading}
+                    id="btn-launch"
+                  >
+                    {isLoading ? '⏳ Loading...' : wasmModule ? '🔄 Restart' : '🚀 Launch'}
+                  </button>
+
+                  {!wasmModule && !isLoading && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleTestLaunch}
+                      id="btn-test"
+                    >
+                      🔬 Test WASM
+                    </button>
+                  )}
+
+                  <button
+                    className={`btn btn-ghost ${showLogs ? 'active' : ''}`}
+                    onClick={() => setShowLogs(v => !v)}
+                    id="btn-toggle-logs"
+                  >
+                    {showLogs ? '📋 Hide Log' : '📋 Show Log'}
+                  </button>
+                </div>
+
+                {/* MAME console log */}
+                {showLogs && (
+                  <div className="log-panel">
+                    <div className="log-header">
+                      <span>📋 MAME Console</span>
+                      <div className="log-actions">
+                        <button className="log-btn" onClick={() => setLogs([])}>Clear</button>
+                        <button className="log-btn" onClick={() => setShowLogs(false)}>✕</button>
+                      </div>
+                    </div>
+                    <div className="log-body">
+                      {logs.length === 0 && (
+                        <span className="log-empty">No log output yet.</span>
+                      )}
+                      {logs.map((l, i) => (
+                        <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
+                          {l.text}
+                        </div>
+                      ))}
+                      <div ref={logEndRef} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="welcome">

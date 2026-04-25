@@ -22,9 +22,13 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ 251 `.plist` resource files copied to `public/resources/`
 - ✅ ROM ZIP files for apple2e and aux devices in `public/roms/`
 - ✅ WASM loading and Module setup verified working
+- ✅ 11 emulator WASM files deployed (apple2e, apple2gs, apple3, mac, mac128, maciici, coco, coco3, trs80, st, c64, mc10)
+- ✅ Per-emulator WASM routing (each machine loads its correct WASM)
 
 ### What Doesn't Work Yet
-- ❌ 239MB full `mame.wasm` is too large and unstable
+- ❌ BIOS/ROM files missing for non-Apple emulators (c64, trs80, coco, st, mc10)
+- ❌ Resolution hardcoded to 640x480 (should read from machine plist)
+- ❌ Many Ample emulators have no emularity WASM (Franklin, Agat, Chinese PCs, etc.)
 
 ### Key Insight (Session 3)
 The **239MB full mame.wasm** is the root cause of most issues:
@@ -43,14 +47,16 @@ Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.7
 - BIOS: `apple2e.zip` from [emularity-bios](https://github.com/internetarchive/emularity-bios)
 
 ### Key Files
-- `src/App.tsx` — Main app with machine tree, slot config, launch buttons
-- `src/core/wasm_loader.ts` — WASM loader (preRun + addRunDependency, writes ZIP directly)
+- `src/App.tsx` — Main app with machine tree, slot config, per-emulator WASM routing
+- `src/core/wasm_loader.ts` — WASM loader (preRun + addRunDependency, jsUrl option)
 - `src/core/data_manager.ts` — Plist/XML parser
 - `src/core/store.ts` — Zustand store (theme only)
 - `src/styles/global.css` — Dark/light theme CSS
-- `public/wasm/apple2e.wasm` — Pre-built MAME Apple IIe WASM (from emularity-engine, 27MB)
-- `public/wasm/apple2e.js` — Emscripten JS glue (from emularity-engine, 1.7MB)
+- `public/wasm/` — 13 WASM files (apple2e, apple2gs, apple3, mac, mac128, maciici, coco, coco3, trs80, st, c64, mc10, mame, mametiny)
+- `public/wasm/*.js` — Corresponding JS glue files
 - `public/roms/apple2e.zip` — Apple IIe BIOS ROM (from emularity-bios, 555KB)
+- `public/resources/` — 251 `.plist` resource files
+- `AGENTS.md` — Development log
 
 ---
 
@@ -79,7 +85,12 @@ Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.7
 - [x] **Session 4**: Copy `mameapple2e.wasm` + `mameapple2e.js` from emularity-engine
 - [x] **Session 4**: Copy `apple2e.zip` BIOS from emularity-bios
 - [x] **Session 4**: Fix WASM target detection (sync XHR instead of async fetch HEAD)
-- [ ] **TODO**: Fix screen aspect ratio (emularity MAME resolution mismatch)
+- [x] **Session 5**: Fix screen aspect ratio + canvas centering + height
+- [x] **Session 6**: Deploy 11 emulator WASM files from emularity-engine
+- [x] **Session 6**: Implement per-emulator WASM routing (replaced global WASM_TARGET_MAP)
+- [ ] **TODO**: Add BIOS/ROM files for non-Apple emulators (c64, trs80, coco, st, mc10)
+- [ ] **TODO**: Read resolution from machine plist instead of hardcoding 640x480
+- [ ] **TODO**: Test each emulator and verify correct boot
 
 ### Phase 3：插槽/媒體系統
 - [ ] Dynamic slot configuration UI
@@ -237,3 +248,72 @@ Internet Archive's [emularity-engine](https://github.com/internetarchive/emulari
 2. **畫面偏左** — 已修正：canvasContainerRef 從 `block` 改為 `flex`（`alignItems: center, justifyContent: center`），canvas 加 `margin: auto`
 3. 測試畫面是否正確顯示
 4. 如果比例還不對，檢查 emularity MAME 的實際渲染尺寸是否真的是 560x384
+
+---
+
+## Session: 2026-04-25 — Per-Emulator WASM Routing + Multi-Emulator Deployment
+
+### 🎯 Objective
+Deploy all emularity WASM emulators that Ample supports (not all 1101 emularity files). Implement per-emulator WASM routing so each machine loads its correct WASM file.
+
+### Architecture Change: Per-Emulator WASM
+**Before**: Single global `WASM_TARGET_MAP` → all machines share one WASM target.
+**After**: `EMULATOR_WASM_MAP` maps emulator types to their dedicated WASM + JS + MAME driver. Each machine is routed to the correct WASM via `getEmulatorForMachine(machineName)`.
+
+### Emulator Routing (`getEmulatorForMachine`)
+```
+apple2e*     → apple2e.wasm (apple2e.js, driver: apple2e)
+apple2gs*    → apple2gs.wasm (apple2gs.js, driver: apple2gs)
+apple3*      → apple3.wasm (apple3.js, driver: apple3)
+mac*         → mac.wasm (mac.js, driver: mac)
+coco3*       → coco3.wasm (coco3.js, driver: coco3)
+coco*        → coco.wasm (coco.js, driver: cocoh)
+trs80*       → trs80.wasm (trs80.js, driver: trs80)
+c64*         → c64.wasm (c64.js, driver: c64)
+mc10*        → mc10.wasm (mc10.js, driver: mc10)
+st*          → st.wasm (st.js, driver: stadhero)
+```
+
+### Deployed WASM Files
+
+| File | Size | Source | Ample Emulators |
+|------|------|--------|-----------------|
+| `apple2e.wasm` | 27 MB | emularity-engine | apple2e, apple2ee, apple2ep, apple2c, etc. |
+| `apple2gs.wasm` | 27 MB | emularity-engine (mameapple2gs.wasm.gz) | apple2gs, apple2gsr0, apple2gsr1 |
+| `apple3.wasm` | 26 MB | emularity-engine (mameapple3.wasm.gz) | apple3 |
+| `mac.wasm` | 24 MB | emularity-engine | mac, mac128, macplus, maciici, etc. |
+| `mac128.wasm` | 33 MB | emularity-engine | mac128k variants |
+| `maciici.wasm` | 26 MB | emularity-engine | maciici |
+| `coco.wasm` | 21 MB | emularity-engine (mamecoco12.wasm.gz) | coco, cocoh, coco2b, coco2bh |
+| `coco3.wasm` | 21 MB | emularity-engine (mamecoco3.wasm.gz) | coco3, coco3p, coco3h |
+| `trs80.wasm` | 20 MB | emularity-engine (mametrs80.wasm.gz) | trs80, trs80l2 |
+| `st.wasm` | 20 MB | emularity-engine (mamestadhero.wasm.gz) | st (Atari ST) |
+| `c64.wasm` | 11 MB | emularity-engine (dedicated) | c64, c64c |
+| `mc10.wasm` | 22 MB | emularity-engine | mc10 |
+| `mame.wasm` / `mametiny.wasm` | 239/45 MB | MAME WASM build | fallback |
+
+### WASM Loading Flow
+1. `handleLaunch` → `getEmulatorForMachine(machineName)` → emulator type
+2. `getWasmForEmulator(emulator)` → check if WASM exists, fallback to first available
+3. `loadMameWasm(wasmUrl, { jsUrl, driverArgs, ... })` → load correct JS + WASM
+4. `locateFile` in wasm_loader returns correct `.wasm` path
+5. preRun writes ROM ZIPs to VFS → MAME auto-starts with driver
+
+### Key Code Changes
+- `src/App.tsx`: `EMULATOR_WASM_MAP`, `getEmulatorForMachine()`, `getWasmForEmulator()`, updated `handleLaunch`/`handleTestLaunch`
+- `src/core/wasm_loader.ts`: Added `jsUrl` option to `WasmLoaderOptions`
+
+### Emulators WITHOUT WASM Support
+These Ample emulators have NO emularity WASM — will show "no emulator support" error:
+- Franklin ACE series (franklin, franklin100, etc.)
+- Agat series (agat, agat10, etc.)
+- China Education Computers (cekc, ceckc, etc.)
+- Apple II clones (laser12, superga2, etc.)
+- TRS-80 Color Computer variants without dedicated WASM
+- Most other non-Apple/non-Mac machines
+
+### 💡 給下一個 Session 的提示
+1. 測試各 emulator 能否正常啟動
+2. 確認各 emulator 的 resolution 是否正確（目前統一 640x480）
+3. 為沒有 WASM 的 emulator 顯示更清晰的 "unsupported" 提示
+4. 可選：為每個 emulator 設定專屬 resolution（從 machine plist 的 resolution field 讀取）

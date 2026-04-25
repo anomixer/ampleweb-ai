@@ -45,6 +45,8 @@ export interface WasmLoaderOptions {
   romFiles?: RomFile[]
   /** WASM virtual FS root for ROMs (default /roms) */
   romPath?: string
+  /** Explicit JS bootstrap URL. If set, wasmUrl is used only for the .wasm file. */
+  jsUrl?: string
   onReady?: (module: MameWasmModule) => void
   onProgress?: (loaded: number, total: number) => void
   onError?: (error: string) => void
@@ -87,7 +89,7 @@ export function loadMameWasm(
       document.body.appendChild(canvas)
     }
 
-    const jsUrl = wasmUrl.replace('.wasm', '.js')
+    const jsUrl = opts.jsUrl ?? wasmUrl.replace('.wasm', '.js')
 
     // MAME args: ensure -rompath is present
     const finalArgs = [...driverArgs]
