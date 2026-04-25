@@ -20,6 +20,7 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   maciici:    { wasm: 'maciici.wasm',   js: 'maciici.js',     driver: 'maciici' },
   mc10:       { wasm: 'mc10.wasm',      js: 'mc10.js',        driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
+  mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js',  driver: 'apple2' },
   apple2gs:   { wasm: 'apple2gs.wasm',  js: 'apple2gs.js',    driver: 'apple2gs' },
   apple3:     { wasm: 'apple3.wasm',    js: 'apple3.js',      driver: 'apple3' },
   coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'coco' },
@@ -163,10 +164,10 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   trs80l2: 'trs80.zip',
   mc10: 'mc10.zip',
   // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST ROMs.
-  // Fallback
-  apple2: 'apple2c.zip',
-  apple2p: 'apple2c.zip',
-  apple2jp: 'apple2c.zip',
+  // Apple II / Apple II Plus (mameapple2.wasm)
+  apple2: 'apple2.zip',
+  apple2p: 'apple2p.zip',
+  apple2jp: 'apple2.zip',
 }
 
 /**
@@ -175,6 +176,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
  * For MAME-wrapped builds, these are used as -resolution flags.
  */
 const DEFAULT_RESOLUTIONS: Record<string, string> = {
+  mameapple2: '560x384',
   apple2e: '560x384',
   apple2gs: '704x462',
   apple3: '560x384',
@@ -337,8 +339,12 @@ function App() {
   function getEmulatorForMachine(machineName: string): string | null {
     // apple2gs* → apple2gs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
-    // apple2* → apple2e (all Apple IIe variants share the apple2e WASM)
-    if (machineName.startsWith('apple2')) return 'apple2e'
+    // apple2p*, apple2*, apple2jp* → mameapple2 (apple2, apple2p, apple2jp all share mameapple2.wasm)
+    if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
+    // apple2woz* → apple2e (uses apple2e.wasm)
+    if (machineName.startsWith('apple2woz')) return 'apple2e'
+    // apple2e* variants → apple2e (all Apple IIe variants share the apple2e WASM)
+    if (machineName.startsWith('apple2e')) return 'apple2e'
     // apple3* → apple3
     if (machineName.startsWith('apple3')) return 'apple3'
     // maciici* → maciici (dedicated WASM)

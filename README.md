@@ -24,6 +24,7 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 
 | Emulator | WASM Size | Supported Machines | Status |
 |----------|-----------|-------------------|--------|
+| Apple II (mameapple2.wasm) | 26 MB | apple2, apple2p, apple2woz | ✅ Working |
 | Apple IIe | 27 MB | apple2e, apple2ee, apple2ep, apple2c, apple2cp, etc. | ✅ Working |
 | Apple IIgs | 27 MB | apple2gs, apple2gsr0, apple2gsr1 | ✅ Working |
 | Apple III | 26 MB | apple3 | ✅ Working |

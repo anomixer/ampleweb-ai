@@ -284,8 +284,12 @@ Deploy all emularity WASM emulators that Ample supports (not all 1101 emularity 
 
 ### Emulator Routing (`getEmulatorForMachine`)
 ```
-apple2e*     → apple2e.wasm (apple2e.js, driver: apple2e)
 apple2gs*    → apple2gs.wasm (apple2gs.js, driver: apple2gs)
+apple2p*     → mameapple2.wasm (mameapple2.js, driver: apple2p)
+apple2*      → mameapple2.wasm (mameapple2.js, driver: apple2)
+apple2jp*    → mameapple2.wasm (mameapple2.js, driver: apple2)
+apple2woz*   → apple2e.wasm (apple2e.js, driver: apple2woz)
+apple2e*     → apple2e.wasm (apple2e.js, driver: apple2e)
 apple3*      → apple3.wasm (apple3.js, driver: apple3)
 maciici*     → maciici.wasm (maciici.js, driver: maciici)
 mac128*      → mac128.wasm (mac128.js, driver: mac128k)
@@ -303,7 +307,8 @@ mc10*        → mc10.wasm (mc10.js, driver: mc10)
 
 | Emulator | WASM Size | Supported Machines | ROM ZIP | Resolution |
 |----------|-----------|-------------------|---------|------------|
-| Apple IIe | 27 MB | apple2e, apple2ee, apple2ep, apple2c, apple2cp, etc. | apple2e.zip | 560x384 |
+| Apple II (mameapple2.wasm) | 26 MB | apple2, apple2p, apple2jp | apple2.zip / apple2p.zip | 560x384 |
+| Apple IIe | 27 MB | apple2e, apple2ee, apple2eeuk, apple2eede, apple2eese, apple2eefr, apple2ep, apple2euk, apple2ede, apple2ese, apple2efr, apple2ees | apple2e.zip | 560x384 |
 | Apple IIgs | 27 MB | apple2gs, apple2gsr0, apple2gsr1 | apple2gs.zip | 704x462 |
 | Apple III | 26 MB | apple3 | apple3.zip | 560x384 |
 | Mac (mac128.wasm) | 33 MB | mac128k, mac512k, mac512ke, macplus, macse, macsefd | mac128k.zip / macplus.zip / macse.zip | 512x342 / 512x342 / 512x342 |
