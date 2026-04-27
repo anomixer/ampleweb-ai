@@ -478,12 +478,13 @@ function App() {
           setLaunchState('running')
           setStatusText('')
 
-          // Move canvas into container
+          // Move canvas into container (centered by flexbox)
           requestAnimationFrame(() => {
             const c = document.getElementById('canvas') as HTMLCanvasElement | null
             if (c && canvasContainerRef.current) {
               canvasContainerRef.current.innerHTML = ''
               canvasContainerRef.current.appendChild(c)
+              c.style.display = ''
             }
           })
         },
@@ -550,6 +551,7 @@ function App() {
             if (c && canvasContainerRef.current) {
               canvasContainerRef.current.innerHTML = ''
               canvasContainerRef.current.appendChild(c)
+              c.style.display = ''
             }
           })
         },

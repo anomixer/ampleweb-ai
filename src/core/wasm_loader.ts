@@ -84,9 +84,16 @@ export function loadMameWasm(
       return c
     })()
 
+    // Keep canvas in DOM (Emscripten SDL needs getElementById('canvas')).
+    // It stays display:none until onReady moves it into the React container.
+    // If not already in the container, place it there so flexbox centers it.
     if (!canvas.parentElement) {
-      canvas.style.display = 'none'
-      document.body.appendChild(canvas)
+      const container = document.querySelector('.emulator-container') as HTMLElement | null
+      if (container) {
+        container.appendChild(canvas)
+      } else {
+        document.body.appendChild(canvas)
+      }
     }
 
     const jsUrl = opts.jsUrl ?? wasmUrl.replace('.wasm', '.js')
@@ -188,7 +195,8 @@ export function loadMameWasm(
 
       onRuntimeInitialized: function () {
         console.log('[WasmLoader] Runtime initialized.')
-        canvas.style.display = ''
+        // Don't show canvas here — onReady moves it into the flex container first, then shows it.
+        // Showing it here would flash it at the bottom of the page.
         onProgress?.(100, 100)
       },
 
