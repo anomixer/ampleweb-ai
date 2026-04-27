@@ -45,6 +45,12 @@ const DRIVER_MAP: Record<string, string> = {
   macplus: 'macplus',
   macse: 'macse',
   macsefd: 'macse',
+  // apple2c* variants use apple2e.wasm (mameapple2e.wasm.gz unavailable on archive)
+  // Use apple2e driver (mameapple2e.wasm was built for apple2e, apple2c driver depends on apple2 which doesn't exist)
+  apple2c: 'apple2e',
+  apple2c0: 'apple2e',
+  apple2c3: 'apple2e',
+  apple2cp: 'apple2e',
 }
 
 /**
@@ -317,15 +323,19 @@ function App() {
       }
     }
 
-    // 2. Auxiliary ROMs for Apple IIe
-    if (driverName.startsWith('apple2')) {
+    // 2. Auxiliary ROMs for Apple IIe variants
+    // NOTE: These ZIPs are tiny and optional. MAME will warn about missing files
+    // but will still boot. They can be re-added once proper copies are obtained.
+    if (driverName.startsWith('apple2e')) {
       for (const auxName of ['a2diskiing', 'votrsc01a', 'd2fdc']) {
         if (auxName === driverName) continue
         try {
           const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
           romFiles.push(rom)
           addLog(`Aux: ${auxName}.zip`, false)
-        } catch { /* optional */ }
+        } catch {
+          addLog(`Aux ROM skipped (optional): ${auxName}.zip`, false)
+        }
       }
     }
 
@@ -339,6 +349,8 @@ function App() {
   function getEmulatorForMachine(machineName: string): string | null {
     // apple2gs* → apple2gs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
+    // apple2c* → apple2e (mameapple2e.wasm doesn't exist on archive, use apple2e.wasm)
+    if (machineName.startsWith('apple2c')) return 'apple2e'
     // apple2p*, apple2*, apple2jp* → mameapple2 (apple2, apple2p, apple2jp all share mameapple2.wasm)
     if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
     // apple2woz* → apple2e (uses apple2e.wasm)
