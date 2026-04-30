@@ -21,7 +21,7 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   maciici:    { wasm: 'maciici.wasm',   js: 'maciici.js',     driver: 'maciici' },
   mc10:       { wasm: 'mc10.wasm',      js: 'mc10.js',        driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
-  mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js',  driver: 'apple2' },
+  mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js',  driver: 'apple2p' },
   mameapple2e: { wasm: 'mameapple2e.wasm', js: 'mameapple2e.js', driver: 'apple2e' },
   apple2gs:   { wasm: 'apple2gs.wasm',  js: 'apple2gs.js',    driver: 'apple2gs' },
   apple3:     { wasm: 'apple3.wasm',    js: 'apple3.js',      driver: 'apple3' },
@@ -104,11 +104,39 @@ const DRIVER_MAP: Record<string, string> = {
   macclasc: 'macclasc',
   macclas2: 'macclas2',
   maccclas: 'maccclas',
-  // apple2c* variants
+  // apple2e* variants (Platinum models use mameapple2e.wasm but use apple2e driver)
+  apple2ep: 'apple2e',
+  apple2epuk: 'apple2e',
+  apple2epde: 'apple2e',
+  apple2epfr: 'apple2e',
+  apple2epes: 'apple2e',
+  apple2epse: 'apple2e',
+  // apple2c* variants (also use mameapple2e.wasm)
   apple2c: 'apple2c',
-  apple2c0: 'apple2c',
-  apple2c3: 'apple2c',
-  apple2cp: 'apple2c',
+  apple2c0: 'apple2c0',
+  apple2c1: 'apple2c1',
+  apple2c2: 'apple2c2',
+  apple2c3: 'apple2c3',
+  apple2c4: 'apple2c4',
+  apple2cp: 'apple2cp',
+  apple2cm: 'apple2cm',
+  apple2che: 'apple2che',
+  // apple2ee* variants (Enhanced models use apple2e.wasm, might need redirection to apple2ee or apple2e)
+  apple2ee: 'apple2ee',
+  apple2eeuk: 'apple2eeuk',
+  apple2eede: 'apple2eede',
+  apple2eese: 'apple2eese',
+  apple2eefr: 'apple2eefr',
+  apple2ees: 'apple2ees',
+  // base variants
+  apple2euk: 'apple2e',
+  apple2ede: 'apple2e',
+  apple2ese: 'apple2e',
+  apple2efr: 'apple2e',
+  // apple2 (original) and variants
+  apple2: 'apple2',
+  apple2p: 'apple2p',
+  apple2jp: 'apple2jp',
 }
 
 
@@ -128,10 +156,11 @@ function _wasmExists(filename: string): boolean {
 /**
  * Get the WASM info for an emulator type, falling back to available.
  */
-function getWasmForEmulator(emulator: string, _machineName: string): { wasm: string; js: string; driver: string } | null {
+function getWasmForEmulator(emulator: string, machineName: string): { wasm: string; js: string; driver: string } | null {
   // Direct match from EMULATOR_WASM_MAP
   const info = EMULATOR_WASM_MAP[emulator]
   if (info) return info
+  if (machineName === 'apple2' || machineName === 'apple2p' || machineName === 'apple2jp') return EMULATOR_WASM_MAP['mameapple2']
   return null
 }
 
@@ -150,40 +179,45 @@ interface LogLine {
 const DRIVER_ROM_MAP: Record<string, string> = {
   // Apple IIe variants
   apple2e: 'apple2e.zip',
-  apple2ee: 'apple2ee.zip',
-  apple2eeuk: 'apple2eeuk.zip',
-  apple2eede: 'apple2eede.zip',
-  apple2eese: 'apple2eese.zip',
-  apple2eefr: 'apple2eefr.zip',
-  apple2ep: 'apple2ep.zip',
-  apple2euk: 'apple2euk.zip',
-  apple2ede: 'apple2ede.zip',
-  apple2ese: 'apple2ese.zip',
-  apple2efr: 'apple2efr.zip',
-  apple2ees: 'apple2ees.zip',
+  apple2ee: 'apple2ee.zip;apple2e.zip',
+  apple2eeuk: 'apple2eeuk.zip;apple2e.zip',
+  apple2eede: 'apple2eede.zip;apple2e.zip',
+  apple2eese: 'apple2eese.zip;apple2e.zip',
+  apple2eefr: 'apple2eefr.zip;apple2e.zip',
+  apple2ees: 'apple2ees.zip;apple2e.zip',
+  apple2ep: 'apple2ep.zip;apple2e.zip',
+  apple2epuk: 'apple2epuk.zip;apple2e.zip',
+  apple2epde: 'apple2epde.zip;apple2e.zip',
+  apple2epfr: 'apple2epfr.zip;apple2e.zip',
+  apple2epes: 'apple2epes.zip;apple2e.zip',
+  apple2epse: 'apple2epse.zip;apple2e.zip',
+  apple2euk: 'apple2euk.zip;apple2e.zip',
+  apple2ede: 'apple2ede.zip;apple2e.zip',
+  apple2ese: 'apple2ese.zip;apple2e.zip',
+  apple2efr: 'apple2efr.zip;apple2e.zip',
   // Apple IIc variants
   apple2c: 'apple2c.zip',
-  apple2c0: 'apple2c0.zip',
-  apple2c1: 'apple2c1.zip',
-  apple2c2: 'apple2c2.zip',
-  apple2c3: 'apple2c3.zip',
-  apple2c4: 'apple2c4.zip',
-  apple2cp: 'apple2cp.zip',
-  apple2cm: 'apple2cm.zip',
-  apple2che: 'apple2che.zip',
+  apple2c0: 'apple2c0.zip;apple2c.zip',
+  apple2c1: 'apple2c1.zip;apple2c.zip',
+  apple2c2: 'apple2c2.zip;apple2c.zip',
+  apple2c3: 'apple2c3.zip;apple2c.zip',
+  apple2c4: 'apple2c4.zip;apple2c.zip',
+  apple2cp: 'apple2cp.zip;apple2c.zip',
+  apple2cm: 'apple2cm.zip;apple2c.zip',
+  apple2che: 'apple2che.zip;apple2c.zip',
   // Apple IIgs
   apple2gs: 'apple2gs.zip',
-  apple2gsr0: 'apple2gsr0.zip',
-  apple2gsr1: 'apple2gsr1.zip',
+  apple2gsr0: 'apple2gsr0.zip;apple2gs.zip',
+  apple2gsr1: 'apple2gsr1.zip;apple2gs.zip',
   // Apple III
   apple3: 'apple3.zip',
   // Mac variants
   mac128k: 'mac128k.zip',
-  mac512k: 'mac512k.zip',
-  mac512ke: 'mac512ke.zip',
+  mac512k: 'mac512k.zip;mac128k.zip',
+  mac512ke: 'mac512ke.zip;macplus.zip',
   macplus: 'macplus.zip',
   macse: 'macse.zip',
-  macsefd: 'macsefd.zip',
+  macsefd: 'macsefd.zip;macse.zip',
   maciici: 'maciici.zip',
   macii: 'macii.zip',
   maciihmu: 'maciihmu.zip',
@@ -193,47 +227,48 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   maciisi: 'maciisi.zip',
   maciivx: 'maciivx.zip',
   maciivi: 'maciivi.zip',
-  macqd605: 'macqd605.zip',
-  macqd610: 'macqd610.zip',
-  macqd630: 'macqd630.zip',
-  macqd650: 'macqd650.zip',
+  macqd605: 'macqd605.zip;macqd700.zip',
+  macqd610: 'macqd610.zip;macqd700.zip',
+  macqd630: 'macqd630.zip;macqd700.zip',
+  macqd650: 'macqd650.zip;macqd700.zip',
   macqd700: 'macqd700.zip',
-  macqd800: 'macqd800.zip',
-  macqd900: 'macqd900.zip',
-  macqd950: 'macqd950.zip',
+  macqd800: 'macqd800.zip;macqd700.zip',
+  macqd900: 'macqd900.zip;macqd700.zip',
+  macqd950: 'macqd950.zip;macqd700.zip',
   maclc: 'maclc.zip',
   maclc2: 'maclc2.zip',
   maclc3: 'maclc3.zip',
   maclc3p: 'maclc3p.zip',
   maclc520: 'maclc520.zip',
   macpb100: 'macpb100.zip',
-  macpb140: 'macpb140.zip',
-  macpb160: 'macpb160.zip',
-  macpb180c: 'macpb180c.zip',
-  macpd210: 'macpd210.zip',
-  macpd270c: 'macpd270c.zip',
-  macpd280: 'macpd280.zip',
+  macpb140: 'macpb140.zip;macpb100.zip',
+  macpb160: 'macpb160.zip;macpb100.zip',
+  macpb180c: 'macpb180c.zip;macpb100.zip',
+  macpd210: 'macpd210.zip;macpb100.zip',
+  macpd270c: 'macpd270c.zip;macpb100.zip',
+  macpd280: 'macpd280.zip;macpb100.zip',
   macclasc: 'macclasc.zip',
-  macclas2: 'macclas2.zip',
-  maccclas: 'maccclas.zip',
+  macclas2: 'macclas2.zip;macclasc.zip',
+  maccclas: 'maccclas.zip;macclasc.zip',
   mactv: 'mactv.zip',
   macse30: 'macse30.zip',
   // Other emulators
-  c64c: 'c64c.zip',
+  c64c: 'c64c.zip;c64.zip',
   c64: 'c64.zip',
   coco: 'coco.zip',
-  cocoh: 'coco.zip',
-  coco2b: 'coco.zip',
-  coco2bh: 'coco.zip',
+  cocoh: 'cocoh.zip;coco.zip',
+  coco2b: 'coco2b.zip;coco.zip',
+  coco2bh: 'coco2bh.zip;coco.zip',
   coco3: 'coco3.zip',
-  coco3p: 'coco3p.zip',
-  coco3h: 'coco3h.zip',
+  coco3p: 'coco3p.zip;coco3.zip',
+  coco3h: 'coco3h.zip;coco3.zip',
   trs80: 'trs80.zip',
   trs80l2: 'trs80l2.zip',
   mc10: 'mc10.zip',
-  apple2: 'apple2.zip',
-  apple2p: 'apple2.zip',
-  apple2jp: 'apple2.zip',
+  // apple2 (original) and variants
+  apple2: 'apple2.zip;a2diskii.zip',
+  apple2p: 'apple2p.zip;a2diskii.zip',
+  apple2jp: 'apple2jp.zip;a2diskii.zip',
   // Special: IIgs needs files from apple2c set too (e.g. disk II ROMs)
   apple2gs_shared: 'apple2gs.zip;apple2c.zip',
 }
@@ -361,7 +396,8 @@ function App() {
         const option = s.options?.find(o => o.value === val) || s.options?.find(o => o.default)
         if (option) {
           next[fullPath] = option.value
-          const nextPrefix = `${fullPath}:${option.value}`
+          // Avoid trailing colon if option.value is empty
+          const nextPrefix = option.value ? `${fullPath}:${option.value}` : fullPath
           if (Array.isArray(option.slots)) walk(option.slots, nextPrefix)
           if (option.devname && devices) {
             const dev = devices.find(d => d.name === option.devname)
@@ -391,22 +427,18 @@ function App() {
     doSelectMachine(machine)
   }, [doSelectMachine])
 
-  /**
-   * Fetch all required ROM ZIP files for a driver.
-   */
-  const fetchAllRoms = useCallback(async (driverName: string): Promise<RomFile[]> => {
+  const fetchAllRoms = useCallback(async (machineName: string, effectiveDriver: string): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
-
+    
     // 1. Main machine ROM — look up from DRIVER_ROM_MAP
-    const romFile = DRIVER_ROM_MAP[driverName]
-    const rawMapValue = DRIVER_ROM_MAP[driverName] || (driverName.startsWith('apple2gs') ? DRIVER_ROM_MAP['apple2gs_shared'] : null)
-    const romFilesToFetch = rawMapValue ? rawMapValue.split(';') : [driverName + '.zip']
+    const rawMapValue = DRIVER_ROM_MAP[machineName] || (machineName.startsWith('apple2gs') ? DRIVER_ROM_MAP['apple2gs_shared'] : null)
+    const romFilesToFetch = rawMapValue ? rawMapValue.split(';') : [machineName + '.zip']
 
     for (const romFile of romFilesToFetch) {
       try {
         const url = `/roms/${romFile}`
-        // fetchRom(url, driver, filename?)
-        const rom = await fetchRom(url, driverName, romFile)
+        // We associate the ROM with effectiveDriver so MAME (running as effectiveDriver) can find it
+        const rom = await fetchRom(url, effectiveDriver, romFile)
         
         // TorrentZip check
         if (rom.data.length >= 48) {
@@ -425,6 +457,8 @@ function App() {
         addLog(`ROM not found: ${romFile}`, true)
       }
     }
+
+    const driverName = machineName
 
     // 2. Auxiliary ROMs for Apple II family (apple2, apple2p, apple2e*)
     // MAME needs sc01a.bin (votrax), 341-0027-a.p5 (a2diskiing), 341-0028-a.rom (d2fdc)
@@ -466,13 +500,17 @@ function App() {
   function getEmulatorForMachine(machineName: string): string | null {
     // apple2gs* → apple2gs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
-    // apple2c* → mameapple2e (mameapple2e.wasm now available in emularity-engine)
+    // apple2ep* (Platinum) → mameapple2e (per official config)
+    if (machineName.startsWith('apple2ep')) return 'mameapple2e'
+    // apple2c* → mameapple2e (per official config)
     if (machineName.startsWith('apple2c')) return 'mameapple2e'
-    // apple2e* variants → apple2e (all Apple IIe variants share the apple2e WASM)
+    // apple2ee* (Enhanced) → apple2e (dedicated WASM)
+    if (machineName.startsWith('apple2ee')) return 'apple2e'
+    // fallback apple2e* → apple2e
     if (machineName.startsWith('apple2e')) return 'apple2e'
     // apple2woz* → apple2e (uses apple2e.wasm)
     if (machineName.startsWith('apple2woz')) return 'apple2e'
-    // apple2p*, apple2*, apple2jp* → mameapple2 (apple2, apple2p, apple2jp all share mameapple2.wasm)
+    // apple2p*, apple2*, apple2jp* → mameapple2 (unified engine)
     if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
     // apple3* → apple3
     if (machineName.startsWith('apple3')) return 'apple3'
@@ -531,7 +569,9 @@ function App() {
       slots.forEach(slot => {
         let fullPath = slot.name
         if (pathPrefix) {
-          fullPath = slot.name.startsWith(':') ? `${pathPrefix}${slot.name}` : `${pathPrefix}:${slot.name}`
+          fullPath = (pathPrefix.endsWith(':') || slot.name.startsWith(':'))
+            ? `${pathPrefix}${slot.name}`.replace(/:+/g, ':')
+            : `${pathPrefix}:${slot.name}`
         }
         
         const selectedValue = slotValues[fullPath]
@@ -545,7 +585,7 @@ function App() {
               counts[brief] = (counts[brief] || 0) + count
             })
           }
-          const nextPath = `${fullPath}:${selectedValue}`
+          const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
           if (Array.isArray(option.slots)) {
             collectMedia(option.slots, nextPath)
           }
@@ -603,13 +643,18 @@ function App() {
       return
     }
 
+    // Use emulator-appropriate resolution
+    const resolution = DEFAULT_RESOLUTIONS[emulator] ?? '640x480'
+    // Resolve MAME driver name (e.g. mac128k → mac)
+    const mameDriver = DRIVER_MAP[machine.name] ?? wasmInfo.driver
+
     // Step 1: fetch ROMs
     setLaunchState('fetching-rom')
     setStatusText('Fetching ROM...')
 
     let romFiles: RomFile[] = []
     try {
-      romFiles = await fetchAllRoms(machine.name)
+      romFiles = await fetchAllRoms(machine.name, mameDriver)
     } catch (e) {
       addLog(`ROM fetch failed: ${e}`, true)
     }
@@ -618,11 +663,6 @@ function App() {
     setLaunchState('loading-wasm')
     const wasmUrl = `/wasm/${wasmInfo.wasm}`
     addLog(`Using /wasm/${wasmInfo.wasm} (emulator: ${emulator}, driver: ${wasmInfo.driver})`, false)
-
-    // Use emulator-appropriate resolution
-    const resolution = DEFAULT_RESOLUTIONS[emulator] ?? '640x480'
-    // Resolve MAME driver name (e.g. mac128k → mac)
-    const mameDriver = DRIVER_MAP[machine.name] ?? wasmInfo.driver
 
     // 3. Prepare media files
     const finalMedia = mediaParam ?? mediaFiles
@@ -645,12 +685,41 @@ function App() {
     // 4. Build MAME args
     const finalSlots = slotsParam ?? slotValues
     
+    // Build a rompath that includes all fetched ZIPs so MAME can find regional files
+    const romPaths = romFiles.map(rf => `/roms/${rf.name}`)
+    romPaths.push('/roms')
+    const romPathArg = romPaths.join(';')
+
+    // Separate generic slots from special parameters like ramsize and media drives
+    const filteredSlots: Record<string, string> = {}
+    let ramsizeArg: string | null = null
+
+    // We need to traverse the machine config to know which "slots" are actually slots
+    const isMediaSlot = (path: string) => {
+      // If the path ends with a numeric subslot (like :0, :1, :2, :3) it's a media drive.
+      // Also catch anything ending in :[digit]
+      return /:[0-9]+$/.test(path)
+    }
+
+    for (const [path, value] of Object.entries(finalSlots)) {
+      if (path === 'ramsize') {
+        ramsizeArg = value
+        continue
+      }
+      // If it's a media drive slot (like sl6:0), don't pass as a slot argument
+      // MAME usually handles these via -flop1, etc.
+      if (isMediaSlot(path)) continue
+      
+      filteredSlots[path] = value
+    }
+
     const args = buildMameArgs(mameDriver, {
-      slots: finalSlots,
+      slots: filteredSlots,
       extraArgs: [
         '-verbose',
+        ...(ramsizeArg ? ['-ramsize', ramsizeArg] : []),
         '-resolution', resolution,
-        '-rompath', '/roms',
+        '-rompath', romPathArg,
         ...(mediaList.map(m => [`-${m.type}`, `/media/${m.name}`]).flat())
       ]
     })
@@ -1162,13 +1231,15 @@ function App() {
                               return sList.map((slot, idx) => {
                                 let fullPath = slot.name
                                 if (pathPrefix) {
-                                  fullPath = slot.name.startsWith(':') ? `${pathPrefix}${slot.name}` : `${pathPrefix}:${slot.name}`
+                                  fullPath = (pathPrefix.endsWith(':') || slot.name.startsWith(':'))
+                                    ? `${pathPrefix}${slot.name}`.replace(/:+/g, ':')
+                                    : `${pathPrefix}:${slot.name}`
                                 }
                                 
                                 const selectedValue = slotValues[fullPath] || ''
                                 const selectedOption = slot.options?.find(o => o.value === selectedValue)
                                 
-                                const nextPath = `${fullPath}:${selectedValue}`
+                                const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
                                 
                                 return (
                                   <React.Fragment key={`${fullPath}-${depth}-${idx}`}>
