@@ -49,6 +49,10 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
   - Mac Duo: macpd210/230/250/270c/280/280c
   - Mac Classic: macclasc, macclas2, maccclas
 - ✅ Canvas centering fix — no flash at page bottom during boot
+- ✅ **Refresh-on-Launch Strategy** — Solves global scope pollution by forcing a full page reload when switching/restarting machines.
+- ✅ **URL State Persistence** — `?m=...&d=...&launch=1` ensures selection and auto-start survive page reloads.
+- ✅ **Tree Auto-Expansion** — Restored machine selection automatically expands the sidebar tree to its location.
+- ✅ **Slot Restoration** — Machine configuration and slot defaults are correctly reloaded after a page refresh.
 - ✅ Launcher scripts: AmpleWeb.bat & AmpleWeb.sh (auto-install + auto-open browser)
 
 ### What Doesn't Work Yet
@@ -468,3 +472,40 @@ Updated `DRIVER_ROM_MAP` to ensure a 1:1 relationship between machine drivers an
 1. If any new machine shows a "NOT FOUND" error, identify the missing file using the browser log.
 2. Add a new task to `universal_rom_fix.js` to inject the source of that file into the machine's standalone ZIP.
 3. Run the script and `git add -f` the resulting ZIP.
+
+---
+
+## Session: 2026-05-01 — Emulator Lifecycle & UI Stability
+
+### 🎯 Objective
+Fix persistent crashes when switching machines and improve the UX of the reload-based restart strategy.
+
+### ✅ Key Changes
+
+#### 1. Refresh-on-Launch Implementation
+**Problem**: MAME's WASM runtime pollutes the global `window` object and JS heap, causing `TypeError: Browser.mainLoop.scheduler is not a function` when attempting to start a second emulator session without a full page reload.
+**Solution**: 
+- Implemented a "Full Refresh" strategy in `handleLaunch`. 
+- If a `wasmModule` is already active, the app redirects to the same URL with `launch=1` appended.
+- Added a mount-time `useEffect` (the `init` effect) that detects `launch=1`, clears the flag from the URL, and immediately triggers `doLaunch`.
+
+#### 2. URL State Persistence
+To support the refresh strategy, machine selection is now synced to the URL query parameters (`?m=<machine_id>&d=<description>`).
+- **Sync**: `useEffect` watches `selectedMachine` and updates the URL via `window.history.replaceState`.
+- **Restore**: On mount, the app reads these parameters and restores the machine selection state before the first render.
+
+#### 3. UX & UI Polish
+- **Tree Auto-Expansion**: Added a recursive search in the `init` effect to find the path from the root to the selected machine. All ancestor nodes are added to `expandedNodes` so the machine is visible in the sidebar upon reload.
+- **Slot Restoration**: Fixed a bug where machine configuration (slots) would be empty after a refresh. `init` now explicitly calls `dataManager.loadMachine` and initializes `slotValues` before triggering the auto-launch.
+- **Switching Fix**: Optimized `doSelectMachine` to *keep* the old `wasmModule` reference when selecting a new machine. This ensures that the "Launch" button correctly detects the need for a refresh when the user switches models.
+
+#### 4. WASM Loader & Media Handling
+- **Module Injection**: Fixed a race condition in `wasm_loader.ts` where `window.Module` was being cleared at the wrong time.
+- **Type Safety**: Fixed a `ReferenceError` by correctly importing the `MediaFile` type in `App.tsx`.
+- **Atomic Launch**: Refactored `handleLaunch` into `doLaunch(machine, slots)` to allow the initialization effect to trigger a launch with specific parameters without waiting for async state updates.
+
+### 📋 Status Update
+- **Machine Switching**: ✅ Rock solid (via auto-refresh).
+- **Restart Button**: ✅ Fixed (via auto-refresh).
+- **Slot Management**: ✅ Persists through restarts.
+- **Sidebar UX**: ✅ Selection auto-reveals on load.
