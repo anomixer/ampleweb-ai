@@ -445,12 +445,12 @@ function App() {
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
     // apple2c* → mameapple2e (mameapple2e.wasm now available in emularity-engine)
     if (machineName.startsWith('apple2c')) return 'mameapple2e'
-    // apple2p*, apple2*, apple2jp* → mameapple2 (apple2, apple2p, apple2jp all share mameapple2.wasm)
-    if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
-    // apple2woz* → apple2e (uses apple2e.wasm)
-    if (machineName.startsWith('apple2woz')) return 'apple2e'
     // apple2e* variants → apple2e (all Apple IIe variants share the apple2e WASM)
     if (machineName.startsWith('apple2e')) return 'apple2e'
+    // apple2woz* → apple2e (uses apple2e.wasm)
+    if (machineName.startsWith('apple2woz')) return 'apple2e'
+    // apple2p*, apple2*, apple2jp* → mameapple2 (apple2, apple2p, apple2jp all share mameapple2.wasm)
+    if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
     // apple3* → apple3
     if (machineName.startsWith('apple3')) return 'apple3'
     // maciici* → maciici (dedicated WASM)
@@ -488,7 +488,11 @@ function App() {
    * 3. load the correct WASM (per-emulator)
    * 4. preRun writes ZIPs to VFS → MAME auto-starts
    */
-  const doLaunch = useCallback(async (machine: { name: string; description: string }, slotsParam?: Record<string, string>) => {
+  const doLaunch = useCallback(async (
+    machine: { name: string; description: string }, 
+    slotsParam?: Record<string, string>,
+    mediaParam?: Record<string, File | null>
+  ) => {
     setWasmModule(null)
     setErrorText(null)
     setLogs([])
@@ -557,6 +561,8 @@ function App() {
 
     // 4. Build MAME args
     const finalSlots = slotsParam ?? slotValues
+    const finalMedia = mediaParam ?? mediaFiles
+    
     const args = buildMameArgs(machine.name, {
       slots: finalSlots,
       extraArgs: [
@@ -649,41 +655,85 @@ function App() {
         const config = await dataManager.loadMachine(machineToLaunch.name)
         setMachineConfig(config)
         let slots: Record<string, string> = {}
+        
+        // 1. Load defaults
         if (config) {
           config.slots.forEach(slot => {
             const defaultOpt = slot.options.find(o => o.default)
             if (defaultOpt) slots[slot.name] = defaultOpt.value
           })
-          setSlotValues(slots)
         }
+
+        // 2. Override with URL params if present
+        const slotsParam = params.get('s')
+        if (slotsParam) {
+          try {
+            const pairs = slotsParam.split(',')
+            pairs.forEach(p => {
+              const [k, v] = p.split(':')
+              if (k && v) slots[k] = v
+            })
+          } catch (e) {
+            console.warn('Failed to parse slots from URL', e)
+          }
+        }
+        
+        setSlotValues(slots)
         setSelectedMachine(machineToLaunch)
         
-        // Trigger launch logic
+        // 2. Auto-expand tree to show selected machine
+        const path: string[] = []
+        const findPath = (nodes: ModelEntry[], target: string, ancestors: string[]): boolean => {
+          for (const node of nodes) {
+            const id = `${node.description}${node.value ?? ''}`
+            const isMatch = node.value?.trim() === target.trim()
+            const hasChildren = !!(node.children && node.children.length > 0)
+
+            if (isMatch && !hasChildren) {
+              path.push(...ancestors)
+              return true
+            }
+            
+            if (hasChildren) {
+              if (findPath(node.children!, target, [...ancestors, id])) {
+                return true
+              }
+              // If we didn't find it in children but the parent matches, we can fall back to it
+              if (isMatch) {
+                path.push(...ancestors)
+                return true
+              }
+            }
+          }
+          return false
+        }
+        
+        if (findPath(data, m, [])) {
+          setExpandedNodes(prev => new Set([...prev, ...path]))
+        }
+
+        // 3. Restore media from IndexedDB
+        let restoredMedia: Record<string, File | null> = {}
+        const mediaParam = params.get('media')
+        if (mediaParam) {
+          const pairs = mediaParam.split(',')
+          for (const p of pairs) {
+            const [id, name] = p.split(':')
+            if (id && name) {
+              const file = await dataManager.loadMedia(id)
+              if (file) restoredMedia[id] = file
+            }
+          }
+          setMediaFiles(restoredMedia)
+        }
+
+        // 4. Trigger launch logic
         if (params.get('launch') === '1' && !hasAutoLaunched.current) {
           hasAutoLaunched.current = true
           const newUrl = new URL(window.location.href)
           newUrl.searchParams.delete('launch')
           window.history.replaceState({}, '', newUrl.toString())
-          doLaunch(machineToLaunch, slots)
-        }
-
-        // Auto-expand tree to show selected machine
-        const path: string[] = []
-        const find = (nodes: ModelEntry[], target: string, ancestors: string[]): boolean => {
-          for (const node of nodes) {
-            const id = node.description + node.value
-            if (node.value === target) {
-              path.push(...ancestors)
-              return true
-            }
-            if (node.children && find(node.children, target, [...ancestors, id])) {
-              return true
-            }
-          }
-          return false
-        }
-        if (find(data, m, [])) {
-          setExpandedNodes(prev => new Set([...prev, ...path]))
+          doLaunch(machineToLaunch, slots, restoredMedia)
         }
       }
     }
@@ -703,9 +753,26 @@ function App() {
       const url = new URL(window.location.href)
       url.searchParams.set('m', selectedMachine.name)
       url.searchParams.set('d', selectedMachine.description)
+      
+      // Sync slots
+      const slotStrings = Object.entries(slotValues)
+        .filter(([_, v]) => !!v)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(',')
+      if (slotStrings) url.searchParams.set('s', slotStrings)
+      else url.searchParams.delete('s')
+
+      // Sync media filenames
+      const mediaStrings = Object.entries(mediaFiles)
+        .filter(([_, f]) => !!f)
+        .map(([k, f]) => `${k}:${f!.name}`)
+        .join(',')
+      if (mediaStrings) url.searchParams.set('media', mediaStrings)
+      else url.searchParams.delete('media')
+
       window.history.replaceState({}, '', url.toString())
     }
-  }, [selectedMachine])
+  }, [selectedMachine, slotValues, mediaFiles])
 
   /**
    * Test launch — no ROMs, just load the WASM runtime.
@@ -1058,9 +1125,25 @@ function App() {
                                   <span className="media-filename">
                                     {mediaFiles[mediaId]?.name || 'Empty'}
                                   </span>
-                                  <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById(`file-${mediaId}`)?.click()}>
+                                  <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById(`file-${mediaId}`)?.click()} title="Select File">
                                     📁
                                   </button>
+                                  {mediaFiles[mediaId] && (
+                                    <button 
+                                      className="btn btn-ghost btn-icon" 
+                                      onClick={() => {
+                                        setMediaFiles(prev => {
+                                          const next = { ...prev }
+                                          delete next[mediaId]
+                                          return next
+                                        })
+                                        dataManager.clearMedia(mediaId)
+                                      }}
+                                      title="Eject"
+                                    >
+                                      ⏏️
+                                    </button>
+                                  )}
                                   <input 
                                     type="file" 
                                     id={`file-${mediaId}`} 
@@ -1068,6 +1151,11 @@ function App() {
                                     onChange={(e) => {
                                       const file = e.target.files?.[0] || null
                                       setMediaFiles(prev => ({ ...prev, [mediaId]: file }))
+                                      if (file) {
+                                        dataManager.saveMedia(mediaId, file)
+                                      } else {
+                                        dataManager.clearMedia(mediaId)
+                                      }
                                     }}
                                   />
                                 </div>
@@ -1325,7 +1413,7 @@ function MachineTree({
     <ul className="machine-tree">
       {models.map(m => (
         <TreeItem
-          key={m.description + m.value}
+          key={`${m.description}${m.value ?? ''}`}
           entry={m}
           expanded={expanded}
           selected={selected}
@@ -1365,7 +1453,7 @@ function TreeItem({
   depth: number
 }) {
   const hasChildren = !!(entry.children && entry.children.length > 0)
-  const id = entry.description + entry.value
+  const id = `${entry.description}${entry.value ?? ''}`
 
   if (filter && !matchesFilter(entry, filter)) return null
 
@@ -1397,7 +1485,7 @@ function TreeItem({
         <ul className="tree-children">
           {entry.children!.map(child => (
             <TreeItem
-              key={child.description + child.value}
+              key={`${child.description}${child.value ?? ''}`}
               entry={child}
               expanded={expanded}
               selected={selected}

@@ -72,6 +72,66 @@ export class DataManager {
   private roms: RomEntry[] = []
   private machineCache = new Map<string, MachineConfig>()
   private softwareCache = new Map<string, SoftwareList>()
+  private db: IDBDatabase | null = null
+
+  private async openDB(): Promise<IDBDatabase> {
+    if (this.db) return this.db
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('AmpleWebMedia', 1)
+      request.onupgradeneeded = () => {
+        const db = request.result
+        if (!db.objectStoreNames.contains('media')) {
+          db.createObjectStore('media', { keyPath: 'id' })
+        }
+      }
+      request.onsuccess = () => {
+        this.db = request.result
+        resolve(this.db)
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async saveMedia(slotId: string, file: File): Promise<void> {
+    const db = await this.openDB()
+    const data = await file.arrayBuffer()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('media', 'readwrite')
+      const store = tx.objectStore('media')
+      store.put({ id: slotId, name: file.name, data })
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  }
+
+  async loadMedia(slotId: string): Promise<File | null> {
+    const db = await this.openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('media', 'readonly')
+      const store = tx.objectStore('media')
+      const request = store.get(slotId)
+      request.onsuccess = () => {
+        const item = request.result
+        if (item) {
+          resolve(new File([item.data], item.name))
+        } else {
+          resolve(null)
+        }
+      }
+      request.onerror = () => resolve(null)
+    })
+  }
+
+  async clearMedia(slotId: string): Promise<void> {
+    const db = await this.openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('media', 'readwrite')
+      const store = tx.objectStore('media')
+      store.delete(slotId)
+      tx.oncomplete = () => resolve()
+    })
+  }
+
 
   async loadModels(): Promise<ModelEntry[]> {
     if (this.models.length > 0) return this.models
