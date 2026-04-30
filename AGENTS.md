@@ -409,3 +409,51 @@ These machines have **NO emularity WASM** and will show "No emulator support" er
 1. 測試各 emulator 能否正常啟動 — apple2e, apple3, apple2gs 已確認正常
 2. 測試 mac, c64, coco, trs80, st, mc10 啟動是否正常
 3. 為沒有 WASM 的 emulator 顯示更清晰的 "unsupported" 提示
+
+---
+
+## Session: 2026-05-01 — Standalone ROM Strategy & Universal ROM Fix
+
+### 🎯 Objective
+Solve the persistent "NOT FOUND" ROM errors for Apple IIc, IIe, IIgs, and Mac variants by implementing a fully independent, flattened ROM structure.
+
+### ✅ Key Changes
+
+#### 1. Standalone ROM Strategy
+**Problem**: MAME WASM cores often fail to resolve ROMs located in subdirectories or within parent/clone ZIP relationships (the "tried in ..." error).
+**Solution**: Every machine variant listed in `DRIVER_ROM_MAP` now has its **own unique ZIP file** that contains all necessary files in a **completely flat structure** (no subdirectories).
+
+#### 2. `universal_rom_fix.js` — Enhanced Automation Tool
+Developed a robust Node.js script to automate the creation of these standalone ROMs:
+- **Multi-Source Injection**: Automatically merges content from multiple ZIPs (e.g., `apple2ee.zip` = `apple2e.zip` + `a2diskiing.zip` + `votrsc01a.zip`).
+- **Deep Flattening**: Extracts all files from subdirectories and moves them to the root of the ZIP.
+- **IO Robustness**: Implemented a **retry loop** (up to 3 attempts) for the compression step to overcome Windows file locking issues (Defender/Search Indexing).
+- **VFS Simplicity**: By writing a single, complete ZIP to the WASM VFS (e.g., `/roms/apple2c0.zip`), MAME finds all BIOS and device ROMs instantly.
+
+#### 3. `src/App.tsx` — Driver Mapping Overhaul
+Updated `DRIVER_ROM_MAP` to ensure a 1:1 relationship between machine drivers and ZIP filenames:
+- **Apple IIe**: `apple2ee`, `apple2eeuk`, etc. -> `apple2ee.zip`, `apple2eeuk.zip`
+- **Apple IIc**: `apple2c0`, `apple2c3`, `apple2c4`, `apple2cp` -> `apple2c0.zip`, etc.
+- **Apple IIgs**: `apple2gsr0`, `apple2gsr1` -> `apple2gsr0.zip`, etc.
+- **Mac**: `mac512k`, `maciihmu`, `maciivi`, etc. -> Dedicated standalone ZIPs.
+- **C64/CoCo**: Flattened `c1541.zip` and `coco_fdc.zip` into their respective machine ZIPs.
+
+### 🔧 Tools Developed
+- `scratch/find_apple2c_roms_v2.js`: ZIP scanner to verify which archives contain specific missing ROM files.
+- `scratch/universal_rom_fix.js`: The primary engine for building the standalone ROM library.
+
+### 📋 Status Update
+
+| Machine Family | Status | Fix Details |
+|----------------|--------|-------------|
+| **Apple IIe Variants** | ✅ Stable | Injected Disk II & Votrax into all variant ZIPs. |
+| **Apple IIc Variants** | ✅ Stable | Flattened parent `apple2c.zip` content into clones. |
+| **Apple IIgs Variants** | ✅ Stable | Consolidated multi-part GS ROMs. |
+| **Mac Variants** | ✅ Stable | Stabilized 10+ Mac II and LC variants with standalone packs. |
+| **Commodore 64** | ✅ Stable | Merged `c1541` drive ROMs into `c64.zip` and `c64c.zip`. |
+| **TRS-80 / CoCo** | ✅ Stable | Flattened FDC and Disk ROMs into main system ZIPs. |
+
+### 💡 Tips for next Session
+1. If any new machine shows a "NOT FOUND" error, identify the missing file using the browser log.
+2. Add a new task to `universal_rom_fix.js` to inject the source of that file into the machine's standalone ZIP.
+3. Run the script and `git add -f` the resulting ZIP.
