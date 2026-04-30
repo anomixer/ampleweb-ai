@@ -177,6 +177,11 @@ export function loadMameWasm(
           try {
             for (const rom of romFiles) {
               const dest = `${romPath}/${rom.name}`
+              // Create intermediate directories for subdirectory paths (e.g., /roms/votrax/sc01a.bin)
+              const dir = dest.substring(0, dest.lastIndexOf('/'))
+              if (dir && dir !== romPath) {
+                try { FS.mkdir(dir) } catch { /* exists */ }
+              }
               FS.writeFile(dest, rom.data)
               const sizeKB = (rom.data.length / 1024).toFixed(0)
               console.log('[WasmLoader] Wrote', dest, `(${sizeKB} KB)`)

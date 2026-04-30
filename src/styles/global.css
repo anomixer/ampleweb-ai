@@ -722,3 +722,75 @@ body {
 .log-line.log-err {
   color: var(--red);
 }
+
+/* ─── Settings Panel ─── */
+.settings-panel {
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.settings-section {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-label {
+  font-weight: 500;
+  color: var(--text1);
+  font-size: 11px;
+}
+
+.settings-textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text0);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 6px 8px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.settings-textarea:focus {
+  border-color: var(--accent);
+}
+.settings-textarea::placeholder {
+  color: var(--text3);
+}
+
+.settings-hint {
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+.settings-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-toggle-wrap input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.settings-toggle-track {
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  background: var(--bg4);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.settings-toggle-wrap input[type="checkbox"]:checked + .settings-toggle-track {
+  background: var(--accent);
+}

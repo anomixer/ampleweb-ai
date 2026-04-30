@@ -24,7 +24,7 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 
 | Emulator | WASM Size | Supported Machines | Status |
 |----------|-----------|-------------------|--------|
-| Apple II (mameapple2.wasm) | 26 MB | apple2, apple2p, apple2woz | ✅ Working |
+| Apple II (mameapple2.wasm) | 26 MB | apple2, apple2p, apple2woz | ✅ Working (BAD_DUMP on a2.chr, ignore) |
 | Apple IIe | 27 MB | apple2e, apple2ee, apple2ep, apple2c, apple2cp, etc. | ✅ Working |
 | Apple IIgs | 27 MB | apple2gs, apple2gsr0, apple2gsr1 | ✅ Working |
 | Apple III | 26 MB | apple3 | ✅ Working |
@@ -39,7 +39,7 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 
 ## Unsupported Machines
 
-55+ Mac variants and other machines have **NO emularity WASM support**: macii, maciix, macquadra, maclc, macportable, macpb, macpd, macclasc, macclas2, maccclas, mactv, Franklin ACE, Agat, Chinese Education Computers, and more. These will show "No emulator support" when selected.
+55+ Mac variants (macii, maciix, macquadra, maclc, macportable, macpb, macpd, macclasc, macclas2, maccclas, mactv) and other machines have **NO emularity WASM support**: Franklin ACE, Agat, Chinese Education Computers, Atari ST, Apple II clones. These will show "No emulator support" when selected.
 
 ## Getting Started
 

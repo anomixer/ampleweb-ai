@@ -39,11 +39,24 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ **trs80 (trs80l2)** — boots and runs correctly
 - ✅ **mc10** — boots and runs correctly
 - ✅ Config area right panel is resizable
+- ✅ **apple2c / apple2c0 / apple2c3 / apple2cp** — boots and runs correctly (via mameapple2e.wasm from emularity-engine)
+- ✅ **apple2p** — boots and runs correctly (via mameapple2.wasm, needs aux ROMs: votrax.zip, a2diskiing.zip, d2fdc.zip)
+- ✅ **55+ Mac variants** — now supported via mac.wasm (full MAME Mac build from emularity-engine)
+  - Mac II family: macii, maciihmu, mac2fdhd, maciix, maciifx, maciicx, maciisi, maciivx, maciivi
+  - Mac Quadra: macqd605/610/650/700/800/900/950
+  - Mac LC/Performa: maclc/2/3/3p/475/520/550/575/580, macct610/650, mactv
+  - Mac Portable: macprtb, macpb100/140/145/145b/160/165/165c/170/180/180c
+  - Mac Duo: macpd210/230/250/270c/280/280c
+  - Mac Classic: macclasc, macclas2, maccclas
+- ✅ Canvas centering fix — no flash at page bottom during boot
+- ✅ Launcher scripts: AmpleWeb.bat & AmpleWeb.sh (auto-install + auto-open browser)
 
 ### What Doesn't Work Yet
-- ❌ 55+ Mac variants have NO emularity WASM (macii, maciix, macquadra, maclc, macportable, macpb, macpd, macclasc, macclas2, maccclas, mactv, etc.) — shows "No emulator support" error
-- ❌ Atari ST — no emularity WASM available (st.wasm is Stadium Hero arcade, not Atari ST)
+- ❌ **apple2jp** — needs `a2jp.chr` + `341-0047.f8` — not available
+- ❌ **Atari ST** — no emularity WASM available (st.wasm is Stadium Hero arcade, not Atari ST)
 - ❌ Franklin ACE, Agat, Chinese Education Computers — no emularity WASM
+- ❌ Apple II clones (laser128, superga2, tk2000) — no emularity WASM
+- ❌ Mac Quadra/LC/Portable/Duo/Classic — no dedicated boot ROMs available (need unique 1MB chips)
 - ❌ Dynamic slot/media file selectors (floppies, hard drives) not implemented
 - ❌ ROM download engine not implemented
 - ❌ IndexedDB integration for disk image storage not implemented
@@ -111,6 +124,13 @@ Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.7
 - [x] **Session 7**: Fix `fetchAllRoms` — look up ROM from map instead of driver name
 - [x] **Session 7**: Add `DRIVER_MAP` — machine name → MAME driver name (e.g. mac128k → mac)
 - [x] **Session 7**: Fix per-emulator resolutions (was hardcoded 640x480)
+- [x] **Session 8**: Fix apple2p aux ROM loading (votrax, a2diskiing, d2fdc)
+- [x] **Session 8**: Mark apple2 and apple2jp as unsupported (undumpable ROMs)
+- [x] **Session 9**: Implement ROM download engine with multi-server failover
+  - `src/core/rom_downloader.ts` — download engine, IndexedDB caching
+  - `src/core/store.ts` — romSettings (downloadServers + autoDownload) persisted to localStorage
+  - `fetchAllRoms` updated: tries local ROM first, then downloads from servers
+  - Settings panel in sidebar (⚙️ button) for configuring download servers
 - [ ] **TODO**: Test each emulator and verify correct boot
 - [ ] **TODO**: Verify Mac canvas renders correctly (thin line was resolution mismatch)
 

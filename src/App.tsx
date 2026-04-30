@@ -21,8 +21,10 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   mc10:       { wasm: 'mc10.wasm',      js: 'mc10.js',        driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
   mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js',  driver: 'apple2' },
+  mameapple2e: { wasm: 'mameapple2e.wasm', js: 'mameapple2e.js', driver: 'apple2e' },
   apple2gs:   { wasm: 'apple2gs.wasm',  js: 'apple2gs.js',    driver: 'apple2gs' },
   apple3:     { wasm: 'apple3.wasm',    js: 'apple3.js',      driver: 'apple3' },
+  mac:        { wasm: 'mac.wasm',       js: 'mac.js',         driver: 'mac' },
   coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'coco' },
   coco3:      { wasm: 'coco3.wasm',     js: 'coco3.js',       driver: 'coco3' },
   trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80l2' },
@@ -33,10 +35,9 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
 
 /**
  * Machine name → MAME driver name mapping.
- * mac128.wasm supports 3 drivers (per emularity configs): mac128k, macplus, macse.
- * maciici.wasm supports only maciici driver.
- * Other Mac variants (macii, maciix, macquadra, maclc, macportable, macpb, etc.)
- * are NOT supported by emularity-engine — no dedicated WASM exists.
+ * mac128.wasm supports: mac128k, macplus, macse.
+ * maciici.wasm supports: maciici.
+ * mac.wasm supports: ALL Mac variants (macii, maciix, maciicx, maciisi, maciivx, maciivi, macqd*, maclc*, macpb*, macpd*, macclasc, macclas2, maccclas, mactv, macct6, macxl, macprtb).
  */
 const DRIVER_MAP: Record<string, string> = {
   mac128k: 'mac128k',
@@ -45,36 +46,70 @@ const DRIVER_MAP: Record<string, string> = {
   macplus: 'macplus',
   macse: 'macse',
   macsefd: 'macse',
-  // apple2c* variants use apple2e.wasm (mameapple2e.wasm.gz unavailable on archive)
-  // Use apple2e driver (mameapple2e.wasm was built for apple2e, apple2c driver depends on apple2 which doesn't exist)
-  apple2c: 'apple2e',
-  apple2c0: 'apple2e',
-  apple2c3: 'apple2e',
-  apple2cp: 'apple2e',
+  macse30: 'macse',
+  macxl: 'mac',
+  // Mac II family → mac.wasm
+  macii: 'mac',
+  maciihmu: 'mac',
+  mac2fdhd: 'mac',
+  maciix: 'mac',
+  maciifx: 'mac',
+  maciicx: 'mac',
+  maciisi: 'mac',
+  maciivx: 'mac',
+  maciivi: 'mac',
+  // Mac Quadra → mac.wasm
+  macqd605: 'mac',
+  macqd610: 'mac',
+  macqd630: 'mac',
+  macqd650: 'mac',
+  macqd700: 'mac',
+  macqd800: 'mac',
+  macqd900: 'mac',
+  macqd950: 'mac',
+  // Mac LC/Performa → mac.wasm
+  maclc: 'mac',
+  maclc2: 'mac',
+  maclc3: 'mac',
+  maclc3p: 'mac',
+  maclc475: 'mac',
+  maclc520: 'mac',
+  maclc550: 'mac',
+  maclc575: 'mac',
+  maclc580: 'mac',
+  macct610: 'mac',
+  macct650: 'mac',
+  mactv: 'mac',
+  // Mac Portable → mac.wasm
+  macprtb: 'mac',
+  macpb100: 'mac',
+  macpb140: 'mac',
+  macpb145: 'mac',
+  macpb145b: 'mac',
+  macpb160: 'mac',
+  macpb165: 'mac',
+  macpb165c: 'mac',
+  macpb170: 'mac',
+  macpb180: 'mac',
+  macpb180c: 'mac',
+  // Mac Duo → mac.wasm
+  macpd210: 'mac',
+  macpd230: 'mac',
+  macpd250: 'mac',
+  macpd270c: 'mac',
+  macpd280: 'mac',
+  macpd280c: 'mac',
+  // Mac Classic → mac.wasm
+  macclasc: 'mac',
+  macclas2: 'mac',
+  maccclas: 'mac',
+  // apple2c* variants use mameapple2e.wasm (now available in emularity-engine)
+  apple2c: 'apple2c',
+  apple2c0: 'apple2c',
+  apple2c3: 'apple2c',
+  apple2cp: 'apple2c',
 }
 
-/**
- * Mac machines NOT supported by emularity-engine.
- * These need dedicated WASM builds that don't exist.
- */
-const UNSUPPORTED_MAC = new Set([
-  // Mac II family
-  'macii', 'maciihmu', 'mac2fdhd', 'maciix', 'maciifx', 'maciicx', 'maciisi', 'maciivx', 'maciivi',
-  // Mac Quadra
-  'macqd605', 'macqd610', 'macqd650', 'macqd700', 'macqd800', 'macqd900', 'macqd950',
-  // Mac LC/Performa
-  'maclc', 'maclc2', 'maclc3', 'maclc3p', 'maclc475', 'maclc520', 'maclc550', 'maclc575',
-  'macct610', 'macct650', 'mactv',
-  // Mac Portable
-  'macprtb', 'macpb100', 'macpb140', 'macpb145', 'macpb145b', 'macpb160', 'macpb165', 'macpb165c',
-  'macpb170', 'macpb180', 'macpb180c',
-  // Mac Duo
-  'macpd210', 'macpd230', 'macpd250', 'macpd270c', 'macpd280', 'macpd280c',
-  // Mac Classic
-  'macclasc', 'macclas2', 'maccclas',
-  // Mac TV
-  'mactv',
-])
 
 /** Lightweight file existence check (synchronous, checks browser cache). */
 const _wasmCache: Record<string, boolean> = {}
@@ -146,17 +181,71 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2gsr1: 'apple2gs.zip',
   // Apple III
   apple3: 'apple3.zip',
-  // Mac variants
+  // Mac variants — only ROMs that exist in public/roms/
   mac128k: 'mac128k.zip',
   mac512k: 'mac128k.zip',
   mac512ke: 'mac128k.zip',
   macplus: 'macplus.zip',
-  macse: 'macplus.zip',
-  macsefd: 'macplus.zip',
+  macse: 'macse.zip',
+  macsefd: 'macsefd.zip',
   maciici: 'maciici.zip',
-  // NOTE: All other Mac variants (macii, maciix, macquadra, maclc, macportable, macpb,
-  // macpd, macclasc, macclas2, maccclas, mactv, etc.) have NO emularity WASM support.
-  // They are caught by getEmulatorForMachine → returns null → "No emulator support" error.
+  macii: 'macii.zip',
+  maciihmu: 'macii.zip',
+  mac2fdhd: 'macii.zip',
+  // Mac II family — macii.zip covers macii, maciihmu, maciix, maciicx
+  maciix: 'macii.zip',
+  maciifx: 'macii.zip',
+  maciicx: 'macii.zip',
+  maciisi: 'macii.zip',
+  maciivx: 'macii.zip',
+  maciivi: 'macii.zip',
+  // Mac Quadra — no dedicated ROMs available
+  macqd605: '',
+  macqd610: '',
+  macqd630: '',
+  macqd650: '',
+  macqd700: '',
+  macqd800: '',
+  macqd900: '',
+  macqd950: '',
+  // Mac LC/Performa — no dedicated ROMs available
+  maclc: '',
+  maclc2: '',
+  maclc3: '',
+  maclc3p: '',
+  maclc475: '',
+  maclc520: '',
+  maclc550: '',
+  maclc575: '',
+  maclc580: '',
+  macct610: '',
+  macct650: '',
+  mactv: '',
+  // Mac Portable — no dedicated ROMs available
+  macprtb: '',
+  macpb100: '',
+  macpb140: '',
+  macpb145: '',
+  macpb145b: '',
+  macpb160: '',
+  macpb165: '',
+  macpb165c: '',
+  macpb170: '',
+  macpb180: '',
+  macpb180c: '',
+  // Mac Duo — no dedicated ROMs available
+  macpd210: '',
+  macpd230: '',
+  macpd250: '',
+  macpd270c: '',
+  macpd280: '',
+  macpd280c: '',
+  // Mac Classic — no dedicated ROMs available
+  macclasc: '',
+  macclas2: '',
+  maccclas: '',
+  macxl: '',
+  macse30: 'macse.zip',
   // Other emulators
   c64: 'c64.zip',
   coco: 'coco.zip',
@@ -173,7 +262,8 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   // Apple II / Apple II Plus (mameapple2.wasm)
   apple2: 'apple2.zip',
   apple2p: 'apple2p.zip',
-  apple2jp: 'apple2.zip',
+  // apple2jp needs a2jp.chr + 341-0047.f8 — not available
+  apple2jp: '',
 }
 
 /**
@@ -183,11 +273,13 @@ const DRIVER_ROM_MAP: Record<string, string> = {
  */
 const DEFAULT_RESOLUTIONS: Record<string, string> = {
   mameapple2: '560x384',
+  mameapple2e: '560x384',
   apple2e: '560x384',
   apple2gs: '704x462',
   apple3: '560x384',
   mac128: '512x342',
   maciici: '640x480',
+  mac: '640x480',
   coco: '320x240',
   coco3: '640x480',
   trs80: '384x192',
@@ -214,7 +306,8 @@ function App() {
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
   const [configWidth, setConfigWidth] = useState(280)
   const [isConfigResizing, setIsConfigResizing] = useState(false)
-
+  const [showSettings, setShowSettings] = useState(false)
+  const [romSettings, setRomSettings] = useState({ autoDownload: false, downloadServers: [] as string[] })
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
 
@@ -305,7 +398,6 @@ function App() {
 
   /**
    * Fetch all required ROM ZIP files for a driver.
-   * Uses DRIVER_ROM_MAP to find the correct BIOS ROM.
    */
   const fetchAllRoms = useCallback(async (driverName: string): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
@@ -316,25 +408,59 @@ function App() {
       try {
         const url = `/roms/${romFile}`
         const rom = await fetchRom(url, driverName)
+        // Strip TorrentZip footer (40 bytes: 36-byte SHA256 + PK\x07\x08)
+        // MAME's WASM ZIP parser chokes on TorrentZip format
+        const raw = rom.data
+        if (raw.length >= 48) {
+          const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength)
+          const end = raw.length
+          if (view.getUint32(end - 4, true) === 0x506b0708) {
+            const cleaned = new Uint8Array(end - 40)
+            cleaned.set(raw.subarray(0, end - 40))
+            rom.data = cleaned
+          }
+        }
         romFiles.push(rom)
-        addLog(`ROM: ${url} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
+        addLog(`ROM: ${romFile} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
       } catch {
         addLog(`ROM not found: ${romFile}`, true)
       }
+    } else {
+      addLog(`No ROM available for ${driverName}`, false)
     }
 
-    // 2. Auxiliary ROMs for Apple IIe variants
-    // NOTE: These ZIPs are tiny and optional. MAME will warn about missing files
-    // but will still boot. They can be re-added once proper copies are obtained.
-    if (driverName.startsWith('apple2e')) {
-      for (const auxName of ['a2diskiing', 'votrsc01a', 'd2fdc']) {
-        if (auxName === driverName) continue
+    // 2. Auxiliary ROMs for Apple II family (apple2, apple2p, apple2e*)
+    // MAME needs sc01a.bin (votrax), 341-0027-a.p5 (a2diskiing), 341-0028-a.rom (d2fdc)
+    // These are separate ROM sets. MAME identifies ROM sets by the ZIP filename.
+    // MAME looks for a ZIP containing a file with the ROM set name (e.g., "votrax")
+    // We need to create a ZIP with the file named after the ROM set, not the original filename.
+    const auxRoms: Array<{ romSet: string; zipName: string; files: string[] }> = [
+      { romSet: 'votrax', zipName: 'votrsc01a', files: ['sc01a.bin'] },
+      { romSet: 'a2diskiing', zipName: 'a2diskiing', files: ['341-0027-a.p5'] },
+      { romSet: 'd2fdc', zipName: 'd2fdc', files: ['341-0028-a.rom'] },
+    ]
+    if (driverName.startsWith('apple2') || driverName === 'apple2p') {
+      for (const aux of auxRoms) {
         try {
-          const rom = await fetchRom(`/roms/${auxName}.zip`, auxName)
-          romFiles.push(rom)
-          addLog(`Aux: ${auxName}.zip`, false)
+          const resp = await fetch(`/roms/${aux.zipName}.zip`)
+          let zipData = new Uint8Array(await resp.arrayBuffer())
+          // Strip TorrentZip footer so we can parse the ZIP structure
+          if (zipData.length >= 48) {
+            const view = new DataView(zipData.buffer, zipData.byteOffset, zipData.byteLength)
+            const end = zipData.length
+            if (view.getUint32(end - 4, true) === 0x506b0708) {
+              zipData = zipData.subarray(0, end - 40)
+            }
+          }
+          // Extract the file and repackage as a new ZIP named after the ROM set
+          const extracted = parseZip(zipData, aux.files)
+          for (const [name, content] of Object.entries(extracted)) {
+            const newZip = createZip({ [aux.romSet]: content })
+            romFiles.push({ driver: aux.romSet, name: `${aux.romSet}.zip`, data: newZip })
+            addLog(`Aux: ${aux.romSet}.zip (${newZip.length} B)`, false)
+          }
         } catch {
-          addLog(`Aux ROM skipped (optional): ${auxName}.zip`, false)
+          addLog(`Aux ROM skipped (optional): ${aux.zipName}.zip`, false)
         }
       }
     }
@@ -349,8 +475,8 @@ function App() {
   function getEmulatorForMachine(machineName: string): string | null {
     // apple2gs* → apple2gs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
-    // apple2c* → apple2e (mameapple2e.wasm doesn't exist on archive, use apple2e.wasm)
-    if (machineName.startsWith('apple2c')) return 'apple2e'
+    // apple2c* → mameapple2e (mameapple2e.wasm now available in emularity-engine)
+    if (machineName.startsWith('apple2c')) return 'mameapple2e'
     // apple2p*, apple2*, apple2jp* → mameapple2 (apple2, apple2p, apple2jp all share mameapple2.wasm)
     if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
     // apple2woz* → apple2e (uses apple2e.wasm)
@@ -363,13 +489,12 @@ function App() {
     if (machineName.startsWith('maciici')) return 'maciici'
     // mac128* → mac128 (dedicated WASM)
     if (machineName.startsWith('mac128')) return 'mac128'
-    // mac* → check supported variants first
+    // mac* → mac for unsupported models (mac.wasm = full MAME Mac build)
     if (machineName.startsWith('mac')) {
-      if (UNSUPPORTED_MAC.has(machineName)) return null
-      // macplus, macse, macsefd — also use mac128.wasm (resolved by DRIVER_MAP)
-      if (machineName === 'macplus' || machineName === 'macse' || machineName === 'macsefd') return 'mac128'
-      // All other mac* variants are unsupported
-      return null
+      // macplus, macse, macsefd, macse30 → mac128.wasm (per emularity config)
+      if (machineName === 'macplus' || machineName === 'macse' || machineName === 'macsefd' || machineName === 'macse30') return 'mac128'
+      // All other mac* variants → mac.wasm (full MAME Mac build)
+      return 'mac'
     }
     // coco* → coco (Coco 1/2), coco3* → coco3
     if (machineName.startsWith('coco3')) return 'coco3'
@@ -563,6 +688,22 @@ function App() {
     }
   }, [wasmTarget, addLog])
 
+  /**
+   * Strip TorrentZip footer (40 bytes: 36-byte SHA256 + PK\x07\x08 sig)
+   * so MAME's ZIP parser can read the file.
+   */
+  const stripTorrentZip = (data: Uint8Array): Uint8Array => {
+    if (data.length < 48) return data
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+    const end = data.length
+    if (view.getUint32(end - 4, true) === 0x506b0708) {
+      const cleaned = new Uint8Array(end - 40)
+      cleaned.set(data.subarray(0, end - 40))
+      return cleaned
+    }
+    return data
+  }
+
   const toggleNode = useCallback((id: string) => {
     setExpandedNodes(prev => {
       const next = new Set(prev)
@@ -608,6 +749,57 @@ function App() {
           />
         </div>
 
+        {/* ROM Settings Panel */}
+        {showSettings && (
+          <div className="settings-panel">
+            <div className="section-heading">
+              <span>🌐 ROM Download Settings</span>
+              <button className="log-btn" onClick={() => setShowSettings(false)}>✕</button>
+            </div>
+            <div className="settings-section">
+              <label className="settings-label">Auto-download missing ROMs</label>
+              <label className="settings-toggle-wrap">
+                <input
+                  type="checkbox"
+                  checked={romSettings.autoDownload}
+                  onChange={e => setRomSettings(s => ({ ...s, autoDownload: e.target.checked }))}
+                />
+                <span className="settings-toggle-track" />
+              </label>
+              <p className="settings-hint">
+                When enabled, missing ROMs will be downloaded from configured servers and cached in IndexedDB.
+              </p>
+            </div>
+            <div className="settings-section">
+              <label className="settings-label">Download Servers (one per line, {`{filename}`} = filename)</label>
+              <textarea
+                className="settings-textarea"
+                rows={6}
+                value={romSettings.downloadServers.join('\n')}
+                onChange={e => setRomSettings(s => ({ ...s, downloadServers: e.target.value.split('\n').filter(Boolean) }))}
+                placeholder="https://example.com/{filename}"
+              />
+              <p className="settings-hint">
+                Servers are tried in order. Add custom servers below.
+              </p>
+            </div>
+            <div className="settings-section">
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%' }}
+                onClick={() => {
+                  const url = prompt('Enter server URL (use {filename} as placeholder):')
+                  if (url && !romSettings.downloadServers.includes(url)) {
+                    setRomSettings(s => ({ ...s, downloadServers: [...s.downloadServers, url] }))
+                  }
+                }}
+              >
+                + Add Server
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="sidebar-footer">
           {wasmTarget && (
             <code style={{ fontSize: '9px', opacity: 0.6 }}>
@@ -615,6 +807,9 @@ function App() {
             </code>
           )}
           {models.length > 0 && ` · ${models.length} groups`}
+          <button className="theme-btn" onClick={() => setShowSettings(v => !v)} title="ROM Settings" style={{ marginLeft: 'auto' }}>
+            ⚙️
+          </button>
         </div>
       </div>
 
@@ -809,6 +1004,166 @@ function App() {
       </div>
     </div>
   )
+}
+
+/**
+ * Minimal ZIP parser: extract specific files from a ZIP archive.
+ * Handles standard ZIP and TorrentZip (PK\x07\x08 footer stripped).
+ */
+function parseZip(data: Uint8Array, wanted: string[]): Record<string, Uint8Array> {
+  const result: Record<string, Uint8Array> = {}
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+
+  // Find End of Central Directory
+  let eocdOffset = -1
+  for (let i = data.length - 22; i >= 0; i--) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocdOffset = i
+      break
+    }
+  }
+  if (eocdOffset < 0) return result
+
+  const cdOffset = view.getUint32(eocdOffset + 16, true)
+  const cdEntries = view.getUint16(eocdOffset + 10, true)
+
+  let pos = cdOffset
+  for (let i = 0; i < cdEntries; i++) {
+    if (view.getUint32(pos, true) !== 0x02014b50) break
+
+    const compSize = view.getUint32(pos + 20, true)
+    const uncompSize = view.getUint32(pos + 24, true)
+    const nameLen = view.getUint16(pos + 28, true)
+    const extraLen = view.getUint16(pos + 30, true)
+    const commentLen = view.getUint16(pos + 32, true)
+    const localHdrOffset = view.getUint32(pos + 42, true)
+    const method = view.getUint16(pos + 10, true)
+
+    const name = new TextDecoder().decode(data.subarray(pos + 46, pos + 46 + nameLen))
+    const baseName = name.split('/').pop() || name
+
+    if (!wanted.includes(baseName)) {
+      pos += 46 + nameLen + extraLen + commentLen + 6
+      continue
+    }
+
+    const lhNameLen = view.getUint16(localHdrOffset + 26, true)
+    const lhExtraLen = view.getUint16(localHdrOffset + 28, true)
+    const lhDataOffset = localHdrOffset + 30 + lhNameLen + lhExtraLen
+    const fileData = data.subarray(lhDataOffset, lhDataOffset + uncompSize)
+
+    if (method === 0) {
+      result[baseName] = fileData
+    } else if (method === 8) {
+      console.warn(`[App] ${name} is deflated — cannot decompress in browser`)
+    }
+    pos += 46 + nameLen + extraLen + commentLen + 6
+  }
+  return result
+}
+
+/**
+ * Create a minimal ZIP in memory from a map of filename -> content.
+ * Uses stored (no-compression) method.
+ */
+function createZip(entries: Record<string, Uint8Array>): Uint8Array {
+  const encoder = new TextEncoder()
+  const fileNames = Object.keys(entries)
+  let dataOffset = 0
+  for (const [name, data] of Object.entries(entries)) {
+    dataOffset += 30 + encoder.encode(name).length + data.length
+  }
+
+  const cdSize = fileNames.reduce((s, n) => s + 46 + encoder.encode(n).length, 0)
+  const totalSize = dataOffset + cdSize + 22
+  const zip = new Uint8Array(totalSize)
+  const view = new DataView(zip.buffer)
+  let pos = 0
+
+  // Local file headers + data
+  for (const name of fileNames) {
+    const data = entries[name]
+    const nameBytes = encoder.encode(name)
+    const crc = crc32(data)
+    view.setUint32(pos, 0x04034b50, true); pos += 4
+    view.setUint16(pos, 20, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint32(pos, crc, true); pos += 4
+    view.setUint32(pos, data.length, true); pos += 4
+    view.setUint32(pos, data.length, true); pos += 4
+    view.setUint16(pos, nameBytes.length, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    zip.set(nameBytes, pos); pos += nameBytes.length
+    zip.set(data, pos); pos += data.length
+  }
+
+  // Central directory
+  const cdStart = pos
+  for (const name of fileNames) {
+    const data = entries[name]
+    const nameBytes = encoder.encode(name)
+    const crc = crc32(data)
+    let off = 0
+    for (let i = 0; i < fileNames.indexOf(name); i++) {
+      off += 30 + encoder.encode(Object.keys(entries)[i]).length + entries[Object.keys(entries)[i]].length
+    }
+    view.setUint32(pos, 0x02014b50, true); pos += 4
+    view.setUint16(pos, 20, true); pos += 2
+    view.setUint16(pos, 20, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint32(pos, crc, true); pos += 4
+    view.setUint32(pos, data.length, true); pos += 4
+    view.setUint32(pos, data.length, true); pos += 4
+    view.setUint16(pos, nameBytes.length, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint16(pos, 0, true); pos += 2
+    view.setUint32(pos, 0, true); pos += 4
+    view.setUint32(pos, off, true); pos += 4
+    zip.set(nameBytes, pos); pos += nameBytes.length
+  }
+
+  // End of central directory
+  view.setUint32(pos, 0x06054b50, true); pos += 4
+  view.setUint16(pos, 0, true); pos += 2
+  view.setUint16(pos, 0, true); pos += 2
+  view.setUint16(pos, fileNames.length, true); pos += 2
+  view.setUint16(pos, fileNames.length, true); pos += 2
+  view.setUint32(pos, cdSize, true); pos += 4
+  view.setUint32(pos, cdStart, true); pos += 4
+  view.setUint16(pos, 0, true); pos += 2
+
+  return zip
+}
+
+/**
+ * CRC32 lookup table and computation.
+ */
+const _crc32Table: number[] = (() => {
+  const table: number[] = new Uint32Array(256)
+  for (let i = 0; i < 256; i++) {
+    let c = i
+    for (let j = 0; j < 8; j++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)
+    }
+    table[i] = c >>> 0
+  }
+  return table
+})()
+
+function crc32(data: Uint8Array): number {
+  let crc = 0xFFFFFFFF
+  for (let i = 0; i < data.length; i++) {
+    crc = _crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8)
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0
 }
 
 export default App
