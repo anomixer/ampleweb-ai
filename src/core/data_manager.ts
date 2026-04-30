@@ -17,6 +17,7 @@ export interface SlotOption {
   devname?: string
   media?: Record<string, number>
   disabled?: boolean
+  slots?: Slot[]
 }
 
 export interface Slot {
@@ -25,14 +26,9 @@ export interface Slot {
   options: SlotOption[]
 }
 
-export interface DeviceSlot {
-  name: string
-  options: SlotOption[]
-}
-
 export interface Device {
   name: string
-  slots: DeviceSlot[]
+  slots: Slot[]
 }
 
 export interface SoftwareFilter {
@@ -256,10 +252,41 @@ export class DataManager {
       description: dict['description'] as string || '',
       media: (dict['media'] as Record<string, number>) || {},
       resolution: (dict['resolution'] as [number, number]) || [0, 0],
-      slots: (dict['slots'] as Slot[]) || [],
-      devices: dict['devices'] as Device[] | undefined,
+      slots: this.parseSlots(dict['slots']),
+      devices: this.parseDevices(dict['devices']),
       software: dict['software'] as (string | SoftwareFilter)[] | undefined,
     }
+  }
+
+  private parseDevices(raw: any): Device[] {
+    if (!Array.isArray(raw)) return []
+    return raw.map(d => ({
+      name: d.name || '',
+      slots: this.parseSlots(d.slots)
+    }))
+  }
+
+  private parseSlots(raw: any): Slot[] {
+    if (!Array.isArray(raw)) return []
+    return raw.map(s => ({
+      name: s.name || '',
+      description: s.description || '',
+      options: this.parseOptions(s.options)
+    }))
+  }
+
+  private parseOptions(raw: any): SlotOption[] {
+    if (!Array.isArray(raw)) return []
+    return raw.map(o => ({
+      value: o.value === undefined ? '' : String(o.value),
+      description: o.description || '',
+      default: !!o.default,
+      intValue: o.intValue,
+      devname: o.devname,
+      media: o.media,
+      disabled: !!o.disabled,
+      slots: o.slots ? this.parseSlots(o.slots) : undefined
+    }))
   }
 
   private parseSoftwareXml(text: string): SoftwareList {

@@ -263,7 +263,7 @@ export function loadMameWasm(
 
     // Clear global Module reference to avoid conflicts
     delete (window as any).Module
-    ;(window as any).Module = Module
+      ; (window as any).Module = Module
 
     // ── load mame.js bootstrap ──
     const existing = document.getElementById('mame-js-script')
@@ -314,10 +314,6 @@ export async function fetchRom(
 export function buildMameArgs(
   driver: string,
   options: {
-    floppy?: string[]
-    hardDrive?: string[]
-    cassette?: string
-    ramSize?: string
     slots?: Record<string, string>
     extraArgs?: string[]
     video?: 'soft' | 'bgfx' | 'opengl' | 'none'
@@ -328,15 +324,6 @@ export function buildMameArgs(
   } = {}
 ): string[] {
   const args: string[] = [driver]
-
-  if (options.floppy?.length) {
-    options.floppy.forEach((f, i) => { if (f) args.push(`-flop${i + 1}`, f) })
-  }
-  if (options.hardDrive?.length) {
-    options.hardDrive.forEach((h, i) => { if (h) args.push(`-hard${i + 1}`, h) })
-  }
-  if (options.cassette) args.push('-cass', options.cassette)
-  if (options.ramSize) args.push('-ramsize', options.ramSize)
 
   if (options.slots) {
     for (const [slot, value] of Object.entries(options.slots)) {

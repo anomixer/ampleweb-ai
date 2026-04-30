@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { dataManager, type ModelEntry, type MachineConfig } from './core/data_manager'
 import {
   loadMameWasm,
@@ -347,6 +347,33 @@ function App() {
     })
   }, [])
 
+  const fillSlotDefaults = useCallback((slots: Slot[], currentValues: Record<string, string>, devices?: Device[], parentPath = '') => {
+    const next = { ...currentValues }
+    const walk = (sList: Slot[], pathPrefix = '') => {
+      if (!Array.isArray(sList)) return
+      sList.forEach(s => {
+        let fullPath = s.name
+        if (pathPrefix) {
+          fullPath = s.name.startsWith(':') ? `${pathPrefix}${s.name}` : `${pathPrefix}:${s.name}`
+        }
+        
+        let val = next[fullPath]
+        const option = s.options?.find(o => o.value === val) || s.options?.find(o => o.default)
+        if (option) {
+          next[fullPath] = option.value
+          const nextPrefix = `${fullPath}:${option.value}`
+          if (Array.isArray(option.slots)) walk(option.slots, nextPrefix)
+          if (option.devname && devices) {
+            const dev = devices.find(d => d.name === option.devname)
+            if (dev && Array.isArray(dev.slots)) walk(dev.slots, nextPrefix)
+          }
+        }
+      })
+    }
+    walk(slots, parentPath)
+    return next
+  }, [])
+
   const doSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
     setSelectedMachine(machine)
     setErrorText(null)
@@ -355,14 +382,10 @@ function App() {
     const config = await dataManager.loadMachine(machine.name)
     setMachineConfig(config)
     if (config) {
-      const defaults: Record<string, string> = {}
-      config.slots.forEach(slot => {
-        const defaultOpt = slot.options.find(o => o.default)
-        if (defaultOpt) defaults[slot.name] = defaultOpt.value
-      })
+      const defaults = fillSlotDefaults(config.slots, {}, config.devices)
       setSlotValues(defaults)
     }
-  }, [])
+  }, [fillSlotDefaults])
 
   const handleSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
     doSelectMachine(machine)
@@ -482,6 +505,65 @@ function App() {
   }
 
   /**
+   * Calculate effective media drives based on current machine config and slot selections.
+   */
+  const getEffectiveMedia = useCallback(() => {
+    if (!machineConfig) return {}
+    
+    const counts: Record<string, number> = {}
+    const typeMap: Record<string, string> = {
+      'floppy_5_25': 'flop',
+      'floppy_3_5': 'flop',
+      'hard': 'hard',
+      'cdrom': 'cdrom',
+      'cass': 'cass',
+      'cassette': 'cass'
+    }
+
+    // Include root media
+    Object.entries(machineConfig.media).forEach(([mameType, count]) => {
+      const brief = typeMap[mameType] || mameType
+      counts[brief] = (counts[brief] || 0) + count
+    })
+
+    const collectMedia = (slots: Slot[], pathPrefix = '') => {
+      if (!Array.isArray(slots)) return
+      slots.forEach(slot => {
+        let fullPath = slot.name
+        if (pathPrefix) {
+          fullPath = slot.name.startsWith(':') ? `${pathPrefix}${slot.name}` : `${pathPrefix}:${slot.name}`
+        }
+        
+        const selectedValue = slotValues[fullPath]
+        if (!selectedValue) return
+        
+        const option = slot.options?.find(o => o.value === selectedValue)
+        if (option) {
+          if (option.media) {
+            Object.entries(option.media).forEach(([mameType, count]) => {
+              const brief = typeMap[mameType] || mameType
+              counts[brief] = (counts[brief] || 0) + count
+            })
+          }
+          const nextPath = `${fullPath}:${selectedValue}`
+          if (Array.isArray(option.slots)) {
+            collectMedia(option.slots, nextPath)
+          }
+          if (option.devname && machineConfig.devices) {
+            const dev = machineConfig.devices.find(d => d.name === option.devname)
+            if (dev && Array.isArray(dev.slots)) {
+              collectMedia(dev.slots, nextPath)
+            }
+          }
+        }
+      })
+    }
+    
+    collectMedia(machineConfig.slots)
+    return counts
+  }, [machineConfig, slotValues])
+
+  /**
    * Main launch sequence:
    * 1. determine emulator type from machine
    * 2. fetch ROM ZIP files
@@ -543,8 +625,9 @@ function App() {
     const mameDriver = DRIVER_MAP[machine.name] ?? wasmInfo.driver
 
     // 3. Prepare media files
+    const finalMedia = mediaParam ?? mediaFiles
     const mediaList: MediaFile[] = []
-    for (const [id, file] of Object.entries(mediaFiles)) {
+    for (const [id, file] of Object.entries(finalMedia)) {
       if (file) {
         try {
           const data = await readFileAsArrayBuffer(file)
@@ -561,9 +644,8 @@ function App() {
 
     // 4. Build MAME args
     const finalSlots = slotsParam ?? slotValues
-    const finalMedia = mediaParam ?? mediaFiles
     
-    const args = buildMameArgs(machine.name, {
+    const args = buildMameArgs(mameDriver, {
       slots: finalSlots,
       extraArgs: [
         '-verbose',
@@ -655,30 +737,20 @@ function App() {
         const config = await dataManager.loadMachine(machineToLaunch.name)
         setMachineConfig(config)
         let slots: Record<string, string> = {}
-        
-        // 1. Load defaults
-        if (config) {
-          config.slots.forEach(slot => {
-            const defaultOpt = slot.options.find(o => o.default)
-            if (defaultOpt) slots[slot.name] = defaultOpt.value
-          })
-        }
-
-        // 2. Override with URL params if present
         const slotsParam = params.get('s')
         if (slotsParam) {
           try {
-            const pairs = slotsParam.split(',')
-            pairs.forEach(p => {
+            slotsParam.split(',').forEach(p => {
               const [k, v] = p.split(':')
               if (k && v) slots[k] = v
             })
-          } catch (e) {
-            console.warn('Failed to parse slots from URL', e)
-          }
+          } catch {}
         }
-        
-        setSlotValues(slots)
+
+        if (config) {
+          slots = fillSlotDefaults(config.slots, slots, config.devices)
+          setSlotValues(slots)
+        }
         setSelectedMachine(machineToLaunch)
         
         // 2. Auto-expand tree to show selected machine
@@ -1082,28 +1154,57 @@ function App() {
                 <div className="tab-content">
                   {configTab === 'slots' && (
                     <div className="section no-border">
-                      {machineConfig && machineConfig.slots.length > 0 ? (
+                      {machineConfig ? (
                         <div className="slot-grid">
-                          {machineConfig.slots.map(slot => (
-                            <div key={slot.name} className="slot-row">
-                              <label className="slot-label" title={slot.name}>
-                                {slot.description}
-                              </label>
-                              <select
-                                className="slot-select"
-                                value={slotValues[slot.name] ?? ''}
-                                onChange={e =>
-                                  setSlotValues(prev => ({ ...prev, [slot.name]: e.target.value }))
+                          {(() => {
+                            const renderSlots = (sList: Slot[], depth = 0, pathPrefix = '') => {
+                              if (!Array.isArray(sList)) return null
+                              return sList.map((slot, idx) => {
+                                let fullPath = slot.name
+                                if (pathPrefix) {
+                                  fullPath = slot.name.startsWith(':') ? `${pathPrefix}${slot.name}` : `${pathPrefix}:${slot.name}`
                                 }
-                              >
-                                {slot.options.map((opt, i) => (
-                                  <option key={i} value={opt.value} disabled={opt.disabled}>
-                                    {opt.description}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          ))}
+                                
+                                const selectedValue = slotValues[fullPath] || ''
+                                const selectedOption = slot.options?.find(o => o.value === selectedValue)
+                                
+                                const nextPath = `${fullPath}:${selectedValue}`
+                                
+                                return (
+                                  <React.Fragment key={`${fullPath}-${depth}-${idx}`}>
+                                    <div className="slot-row" style={{ paddingLeft: depth * 16 }}>
+                                      <label className="slot-label" title={fullPath}>
+                                        {depth > 0 ? '↳ ' : ''}{slot.description}
+                                      </label>
+                                      <select
+                                        className="slot-select"
+                                        value={selectedValue}
+                                        onChange={e => {
+                                          const newVal = e.target.value
+                                          setSlotValues(prev => {
+                                            const next = { ...prev, [fullPath]: newVal }
+                                            return fillSlotDefaults(machineConfig!.slots, next, machineConfig!.devices)
+                                          })
+                                        }}
+                                      >
+                                        {slot.options?.map((opt, i) => (
+                                          <option key={i} value={opt.value} disabled={opt.disabled}>
+                                            {opt.description}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    {Array.isArray(selectedOption?.slots) && renderSlots(selectedOption.slots, depth + 1, nextPath)}
+                                    {selectedOption?.devname && machineConfig?.devices && (() => {
+                                      const dev = machineConfig.devices.find(d => d.name === selectedOption.devname)
+                                      return dev && Array.isArray(dev.slots) && renderSlots(dev.slots, depth + 1, nextPath)
+                                    })()}
+                                  </React.Fragment>
+                                )
+                              })
+                            }
+                            return renderSlots(machineConfig.slots)
+                          })()}
                         </div>
                       ) : (
                         <p className="empty-hint">No slots available for this machine.</p>
@@ -1114,7 +1215,7 @@ function App() {
                   {configTab === 'media' && (
                     <div className="section no-border">
                       <div className="media-grid">
-                        {machineConfig && Object.entries(machineConfig.media).map(([type, count]) => (
+                        {machineConfig && Object.entries(getEffectiveMedia()).map(([type, count]) => (
                           Array.from({ length: count }).map((_, i) => {
                             const mediaId = `${type}${i + 1}`
                             const label = `${type.toUpperCase()} ${i + 1}`
