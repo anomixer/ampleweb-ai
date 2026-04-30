@@ -407,8 +407,19 @@ These machines have **NO emularity WASM** and will show "No emulator support" er
 
 ### 💡 給下一個 Session 的提示
 1. 測試各 emulator 能否正常啟動 — apple2e, apple3, apple2gs 已確認正常
-2. 測試 mac, c64, coco, trs80, st, mc10 啟動是否正常
-3. 為沒有 WASM 的 emulator 顯示更清晰的 "unsupported" 提示
+2. ### Standalone ROM Strategy & Peripheral Injection
+To ensure MAME WASM can boot without complex parent/clone or device dependency resolution, we use a **Standalone ROM Strategy**:
+1. **Flattening**: Every machine variant (e.g., `apple2c0`, `macplus`) has a dedicated ZIP in `public/roms/`.
+2. **Peripheral Injection**: Essential peripheral ROMs are injected into the root of every machine ZIP within the family.
+   - **Mac family**: Injects `mackbd_m0110.zip`, `mackbd_m0110a.zip`, `adbmodem.zip`, `egret.zip`, and `nb_mdc824.zip` into every Mac ZIP. This covers keyboard, ADB, and display card dependencies.
+   - **Apple II family**: Injects `a2diskiing.zip` and `votrsc01a.zip` for disk and speech support.
+   - **C64 family**: Injects `c1541.zip` for drive support.
+3. **Automation**: The `universal_rom_fix.js` script handles the extraction, flattening, and compression with a 3-attempt retry logic to handle Windows file locking.
+4. **WASM Glue Restoration**: Corrected `LinkError` issues by extracting original JS glue files from official `.gz` sources to ensure matching WASM import interfaces.
+
+This approach eliminates "NOT FOUND" errors for essential sub-devices.
+3. 測試 mac, c64, coco, trs80, st, mc10 啟動是否正常
+4. 為沒有 WASM 的 emulator 顯示更清晰的 "unsupported" 提示
 
 ---
 

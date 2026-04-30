@@ -233,7 +233,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macclas2: 'macclas2.zip',
   maccclas: 'maccclas.zip',
   mactv: 'mactv.zip',
-  macse30: 'macse.zip',
+  macse30: 'macse30.zip',
   // Other emulators
   c64c: 'c64c.zip',
   c64: 'c64.zip',
@@ -473,12 +473,13 @@ function App() {
     if (machineName.startsWith('apple3')) return 'apple3'
     // maciici* → maciici (dedicated WASM)
     if (machineName.startsWith('maciici')) return 'maciici'
-    // mac128* → mac128 (dedicated WASM)
-    if (machineName.startsWith('mac128')) return 'mac128'
+    // mac128*, mac512* → mac128 (dedicated WASM)
+    if (machineName.startsWith('mac128') || machineName.startsWith('mac512')) return 'mac128'
     // mac* → mac for unsupported models (mac.wasm = full MAME Mac build)
     if (machineName.startsWith('mac')) {
-      // macplus, macse, macsefd, macse30 → mac128.wasm (per emularity config)
-      if (machineName === 'macplus' || machineName === 'macse' || machineName === 'macsefd' || machineName === 'macse30') return 'mac128'
+      // macplus, macse, macsefd → mac128.wasm (per emularity config)
+      // macse30 uses 68030 and belongs to mac.wasm
+      if (machineName.startsWith('macplus') || machineName === 'macse' || machineName === 'macsefd') return 'mac128'
       // All other mac* variants → mac.wasm (full MAME Mac build)
       return 'mac'
     }
