@@ -38,6 +38,16 @@ export interface RomFile {
   data: Uint8Array
 }
 
+/** Media file: filename + bytes + type (for args) */
+export interface MediaFile {
+  /** Filename e.g. "os7.dsk" */
+  name: string
+  /** Raw bytes */
+  data: Uint8Array
+  /** MAME media type e.g. "flop1", "hard1" */
+  type: string
+}
+
 export interface WasmLoaderOptions {
   /** MAME args (driver + flags), -rompath is added automatically */
   driverArgs?: string[]
@@ -47,6 +57,10 @@ export interface WasmLoaderOptions {
   romPath?: string
   /** Explicit JS bootstrap URL. If set, wasmUrl is used only for the .wasm file. */
   jsUrl?: string
+  /** Media files to mount into VFS */
+  mediaFiles?: MediaFile[]
+  /** WASM virtual FS root for Media (default /media) */
+  mediaPath?: string
   onReady?: (module: MameWasmModule) => void
   onProgress?: (loaded: number, total: number) => void
   onError?: (error: string) => void
@@ -64,7 +78,9 @@ export function loadMameWasm(
     const {
       driverArgs = [],
       romFiles = [],
+      mediaFiles = [],
       romPath = '/roms',
+      mediaPath = '/media',
       onReady,
       onProgress,
       onError,
@@ -195,6 +211,22 @@ export function loadMameWasm(
 
           // Resume MAME startup
           Module.removeRunDependency('rom-write')
+        }
+
+        if (mediaFiles.length > 0) {
+          Module.addRunDependency('media-write')
+          try {
+            FS.mkdir(mediaPath)
+            for (const media of mediaFiles) {
+              const dest = `${mediaPath}/${media.name}`
+              FS.writeFile(dest, media.data)
+              console.log('[WasmLoader] Wrote media', dest)
+              onLog?.(`[FS] ${dest} mounted`, false)
+            }
+          } catch (e: any) {
+            console.error('[WasmLoader] Media write failed:', e)
+          }
+          Module.removeRunDependency('media-write')
         }
       }],
 

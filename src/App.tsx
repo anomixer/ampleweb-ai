@@ -46,64 +46,64 @@ const DRIVER_MAP: Record<string, string> = {
   macplus: 'macplus',
   macse: 'macse',
   macsefd: 'macse',
-  macse30: 'macse',
+  macse30: 'macse30',
   macxl: 'mac',
   // Mac II family → mac.wasm
-  macii: 'mac',
-  maciihmu: 'mac',
-  mac2fdhd: 'mac',
-  maciix: 'mac',
-  maciifx: 'mac',
-  maciicx: 'mac',
-  maciisi: 'mac',
-  maciivx: 'mac',
-  maciivi: 'mac',
+  macii: 'macii',
+  maciihmu: 'macii',
+  mac2fdhd: 'macii',
+  maciix: 'maciix',
+  maciifx: 'maciifx',
+  maciicx: 'macii',
+  maciisi: 'maciisi',
+  maciivx: 'maciivx',
+  maciivi: 'maciivi',
   // Mac Quadra → mac.wasm
-  macqd605: 'mac',
-  macqd610: 'mac',
-  macqd630: 'mac',
-  macqd650: 'mac',
-  macqd700: 'mac',
-  macqd800: 'mac',
-  macqd900: 'mac',
-  macqd950: 'mac',
+  macqd605: 'macqd605',
+  macqd610: 'macqd610',
+  macqd630: 'macqd630',
+  macqd650: 'macqd650',
+  macqd700: 'macqd700',
+  macqd800: 'macqd800',
+  macqd900: 'macqd900',
+  macqd950: 'macqd950',
   // Mac LC/Performa → mac.wasm
-  maclc: 'mac',
-  maclc2: 'mac',
-  maclc3: 'mac',
-  maclc3p: 'mac',
-  maclc475: 'mac',
-  maclc520: 'mac',
-  maclc550: 'mac',
-  maclc575: 'mac',
-  maclc580: 'mac',
-  macct610: 'mac',
-  macct650: 'mac',
-  mactv: 'mac',
+  maclc: 'maclc',
+  maclc2: 'maclc2',
+  maclc3: 'maclc3',
+  maclc3p: 'maclc3',
+  maclc475: 'maclc',
+  maclc520: 'maclc520',
+  maclc550: 'maclc520',
+  maclc575: 'maclc520',
+  maclc580: 'maclc520',
+  macct610: 'macqd610',
+  macct650: 'macqd650',
+  mactv: 'mactv',
   // Mac Portable → mac.wasm
-  macprtb: 'mac',
-  macpb100: 'mac',
-  macpb140: 'mac',
-  macpb145: 'mac',
-  macpb145b: 'mac',
-  macpb160: 'mac',
-  macpb165: 'mac',
-  macpb165c: 'mac',
-  macpb170: 'mac',
-  macpb180: 'mac',
-  macpb180c: 'mac',
+  macprtb: 'macprtb',
+  macpb100: 'macpb100',
+  macpb140: 'macpb140',
+  macpb145: 'macpb140',
+  macpb145b: 'macpb140',
+  macpb160: 'macpb160',
+  macpb165: 'macpb160',
+  macpb165c: 'macpb160',
+  macpb170: 'macpb140',
+  macpb180: 'macpb160',
+  macpb180c: 'macpb180c',
   // Mac Duo → mac.wasm
-  macpd210: 'mac',
-  macpd230: 'mac',
-  macpd250: 'mac',
-  macpd270c: 'mac',
-  macpd280: 'mac',
-  macpd280c: 'mac',
+  macpd210: 'macpd210',
+  macpd230: 'macpd210',
+  macpd250: 'macpd210',
+  macpd270c: 'macpd270c',
+  macpd280: 'macpd280',
+  macpd280c: 'macpd280',
   // Mac Classic → mac.wasm
-  macclasc: 'mac',
-  macclas2: 'mac',
-  maccclas: 'mac',
-  // apple2c* variants use mameapple2e.wasm (now available in emularity-engine)
+  macclasc: 'macclasc',
+  macclas2: 'macclas2',
+  maccclas: 'maccclas',
+  // apple2c* variants
   apple2c: 'apple2c',
   apple2c0: 'apple2c',
   apple2c3: 'apple2c',
@@ -127,12 +127,19 @@ function _wasmExists(filename: string): boolean {
 /**
  * Get the WASM info for an emulator type, falling back to available targets.
  */
-function getWasmForEmulator(emulator: string): { wasm: string; js: string; driver: string } | null {
-  // Direct match
+function getWasmForEmulator(emulator: string, machineName: string): { wasm: string; js: string; driver: string } | null {
+  // 1. Try dedicated machine-specific WASM (highest priority)
+  const dedicatedName = machineName.toLowerCase()
+  if (_wasmExists(`${dedicatedName}.wasm`)) {
+    console.log(`[App] Using dedicated machine WASM: ${dedicatedName}.wasm`)
+    return { wasm: `${dedicatedName}.wasm`, js: `${dedicatedName}.js`, driver: machineName }
+  }
+
+  // 2. Direct match from EMULATOR_WASM_MAP
   const info = EMULATOR_WASM_MAP[emulator]
   if (info && _wasmExists(info.wasm)) return info
 
-  // Fallback: try to find any available WASM
+  // 3. Fallback: try to find any available WASM (for debugging/emergency)
   for (const [emu, wasmInfo] of Object.entries(EMULATOR_WASM_MAP)) {
     if (_wasmExists(wasmInfo.wasm)) {
       console.warn(`[App] ${emulator} WASM not available, falling back to ${emu} (${wasmInfo.driver})`)
@@ -140,7 +147,7 @@ function getWasmForEmulator(emulator: string): { wasm: string; js: string; drive
     }
   }
 
-  console.warn(`[App] No WASM file available for ${emulator}`)
+  console.warn(`[App] No WASM file available for ${emulator} (tried machine: ${machineName})`)
   return null
 }
 
@@ -172,16 +179,21 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2ees: 'apple2e.zip',
   // Apple IIc variants
   apple2c: 'apple2c.zip',
-  apple2c0: 'apple2c.zip',
-  apple2c3: 'apple2c.zip',
-  apple2cp: 'apple2c.zip',
+  apple2c0: 'apple2c0.zip',
+  apple2c1: 'apple2c.zip',
+  apple2c2: 'apple2c.zip',
+  apple2c3: 'apple2c3.zip',
+  apple2c4: 'apple2c4.zip',
+  apple2cp: 'apple2cp.zip',
+  apple2cm: 'apple2c.zip',
+  apple2che: 'apple2c.zip',
   // Apple IIgs
   apple2gs: 'apple2gs.zip',
   apple2gsr0: 'apple2gs.zip',
   apple2gsr1: 'apple2gs.zip',
   // Apple III
   apple3: 'apple3.zip',
-  // Mac variants — only ROMs that exist in public/roms/
+  // Mac variants
   mac128k: 'mac128k.zip',
   mac512k: 'mac128k.zip',
   mac512ke: 'mac128k.zip',
@@ -191,79 +203,56 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   maciici: 'maciici.zip',
   macii: 'macii.zip',
   maciihmu: 'macii.zip',
-  mac2fdhd: 'macii.zip',
-  // Mac II family — macii.zip covers macii, maciihmu, maciix, maciicx
+  mac2fdhd: 'mac2fdhd.zip',
   maciix: 'macii.zip',
-  maciifx: 'macii.zip',
+  maciifx: 'maciifx.zip',
   maciicx: 'macii.zip',
-  maciisi: 'macii.zip',
-  maciivx: 'macii.zip',
-  maciivi: 'macii.zip',
-  // Mac Quadra — no dedicated ROMs available
-  macqd605: '',
-  macqd610: '',
-  macqd630: '',
-  macqd650: '',
-  macqd700: '',
-  macqd800: '',
-  macqd900: '',
-  macqd950: '',
-  // Mac LC/Performa — no dedicated ROMs available
-  maclc: '',
-  maclc2: '',
-  maclc3: '',
-  maclc3p: '',
-  maclc475: '',
-  maclc520: '',
-  maclc550: '',
-  maclc575: '',
-  maclc580: '',
-  macct610: '',
-  macct650: '',
-  mactv: '',
-  // Mac Portable — no dedicated ROMs available
-  macprtb: '',
-  macpb100: '',
-  macpb140: '',
-  macpb145: '',
-  macpb145b: '',
-  macpb160: '',
-  macpb165: '',
-  macpb165c: '',
-  macpb170: '',
-  macpb180: '',
-  macpb180c: '',
-  // Mac Duo — no dedicated ROMs available
-  macpd210: '',
-  macpd230: '',
-  macpd250: '',
-  macpd270c: '',
-  macpd280: '',
-  macpd280c: '',
-  // Mac Classic — no dedicated ROMs available
-  macclasc: '',
-  macclas2: '',
-  maccclas: '',
-  macxl: '',
+  maciisi: 'maciisi.zip',
+  maciivx: 'maciivx.zip',
+  maciivi: 'maciivx.zip',
+  macqd605: 'macqd605.zip',
+  macqd610: 'macqd610.zip',
+  macqd630: 'macqd630.zip',
+  macqd650: 'macqd650.zip',
+  macqd700: 'macqd700.zip',
+  macqd800: 'macqd800.zip',
+  macqd900: 'macqd900.zip',
+  macqd950: 'macqd950.zip',
+  maclc: 'maclc.zip',
+  maclc2: 'maclc2.zip',
+  maclc3: 'maclc3.zip',
+  maclc3p: 'maclc3.zip',
+  maclc520: 'maclc520.zip',
+  macpb100: 'macpb100.zip',
+  macpb140: 'macpb140.zip',
+  macpb160: 'macpb160.zip',
+  macpb180c: 'macpb180c.zip',
+  macpd210: 'macpd210.zip',
+  macpd270c: 'macpd270c.zip',
+  macpd280: 'macpd280.zip',
+  macclasc: 'macclasc.zip',
+  macclas2: 'macclas2.zip',
+  maccclas: 'maccclas.zip',
+  mactv: 'mactv.zip',
   macse30: 'macse.zip',
   // Other emulators
+  c64c: 'c64c.zip',
   c64: 'c64.zip',
   coco: 'coco.zip',
   cocoh: 'coco.zip',
   coco2b: 'coco.zip',
   coco2bh: 'coco.zip',
   coco3: 'coco3.zip',
-  coco3p: 'coco3.zip',
-  coco3h: 'coco3.zip',
+  coco3p: 'coco3p.zip',
+  coco3h: 'coco3h.zip',
   trs80: 'trs80.zip',
-  trs80l2: 'trs80.zip',
+  trs80l2: 'trs80l2.zip',
   mc10: 'mc10.zip',
-  // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST ROMs.
-  // Apple II / Apple II Plus (mameapple2.wasm)
   apple2: 'apple2.zip',
-  apple2p: 'apple2p.zip',
-  // apple2jp needs a2jp.chr + 341-0047.f8 — not available
-  apple2jp: '',
+  apple2p: 'apple2.zip',
+  apple2jp: 'apple2.zip',
+  // Special: IIgs needs files from apple2c set too (e.g. disk II ROMs)
+  apple2gs_shared: 'apple2gs.zip;apple2c.zip',
 }
 
 /**
@@ -309,6 +298,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [romSettings, setRomSettings] = useState({ autoDownload: false, downloadServers: [] as string[] })
   const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const [configTab, setConfigTab] = useState<'slots' | 'media' | 'logs'>('slots')
+  const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
   const logEndRef = useRef<HTMLDivElement>(null)
 
   // Detect available WASM on mount (legacy display only)
@@ -404,16 +395,20 @@ function App() {
 
     // 1. Main machine ROM — look up from DRIVER_ROM_MAP
     const romFile = DRIVER_ROM_MAP[driverName]
-    if (romFile) {
+    const rawMapValue = DRIVER_ROM_MAP[driverName] || (driverName.startsWith('apple2gs') ? DRIVER_ROM_MAP['apple2gs_shared'] : null)
+    const romFilesToFetch = rawMapValue ? rawMapValue.split(';') : [driverName + '.zip']
+
+    for (const romFile of romFilesToFetch) {
       try {
         const url = `/roms/${romFile}`
-        const rom = await fetchRom(url, driverName)
-        // Strip TorrentZip footer (40 bytes: 36-byte SHA256 + PK\x07\x08)
-        // MAME's WASM ZIP parser chokes on TorrentZip format
-        const raw = rom.data
-        if (raw.length >= 48) {
-          const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength)
+        // fetchRom(url, driver, filename?)
+        const rom = await fetchRom(url, driverName, romFile)
+        
+        // TorrentZip check
+        if (rom.data.length >= 48) {
+          const raw = rom.data
           const end = raw.length
+          const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength)
           if (view.getUint32(end - 4, true) === 0x506b0708) {
             const cleaned = new Uint8Array(end - 40)
             cleaned.set(raw.subarray(0, end - 40))
@@ -425,8 +420,6 @@ function App() {
       } catch {
         addLog(`ROM not found: ${romFile}`, true)
       }
-    } else {
-      addLog(`No ROM available for ${driverName}`, false)
     }
 
     // 2. Auxiliary ROMs for Apple II family (apple2, apple2p, apple2e*)
@@ -443,21 +436,15 @@ function App() {
       for (const aux of auxRoms) {
         try {
           const resp = await fetch(`/roms/${aux.zipName}.zip`)
-          let zipData = new Uint8Array(await resp.arrayBuffer())
-          // Strip TorrentZip footer so we can parse the ZIP structure
-          if (zipData.length >= 48) {
-            const view = new DataView(zipData.buffer, zipData.byteOffset, zipData.byteLength)
-            const end = zipData.length
-            if (view.getUint32(end - 4, true) === 0x506b0708) {
-              zipData = zipData.subarray(0, end - 40)
-            }
-          }
-          // Extract the file and repackage as a new ZIP named after the ROM set
-          const extracted = parseZip(zipData, aux.files)
-          for (const [name, content] of Object.entries(extracted)) {
-            const newZip = createZip({ [aux.romSet]: content })
-            romFiles.push({ driver: aux.romSet, name: `${aux.romSet}.zip`, data: newZip })
-            addLog(`Aux: ${aux.romSet}.zip (${newZip.length} B)`, false)
+          if (resp.ok) {
+            const data = new Uint8Array(await resp.arrayBuffer())
+            // Directly push the ZIP with the expected MAME name (romSet)
+            romFiles.push({ 
+              driver: aux.romSet, 
+              name: `${aux.romSet}.zip`, 
+              data 
+            })
+            addLog(`Aux: ${aux.romSet}.zip added`, false)
           }
         } catch {
           addLog(`Aux ROM skipped (optional): ${aux.zipName}.zip`, false)
@@ -536,11 +523,11 @@ function App() {
       return
     }
 
-    const wasmInfo = getWasmForEmulator(emulator)
+    const wasmInfo = getWasmForEmulator(emulator, selectedMachine.name)
     if (!wasmInfo) {
-      setErrorText(`No WASM file available for ${emulator}.\nPlace ${emulator}.wasm in public/wasm/`)
+      setErrorText(`No WASM file available for ${emulator}.\nPlace ${emulator}.wasm or ${selectedMachine.name}.wasm in public/wasm/`)
       setLaunchState('error')
-      addLog(`Error: no WASM for ${emulator}`, true)
+      addLog(`Error: no WASM for ${emulator} / ${selectedMachine.name}`, true)
       return
     }
 
@@ -565,12 +552,33 @@ function App() {
     // Resolve MAME driver name (e.g. mac128k → mac)
     const mameDriver = DRIVER_MAP[selectedMachine.name] ?? wasmInfo.driver
 
-    const extraArgs = ['-verbose', '-resolution', resolution]
+    // 3. Prepare media files
+    const mediaList: MediaFile[] = []
+    for (const [id, file] of Object.entries(mediaFiles)) {
+      if (file) {
+        try {
+          const data = await readFileAsArrayBuffer(file)
+          mediaList.push({
+            name: file.name,
+            data,
+            type: id, // e.g. "flop1"
+          })
+        } catch (e) {
+          console.error(`Failed to read media file ${file.name}:`, e)
+        }
+      }
+    }
 
-    const args = buildMameArgs(mameDriver, {
-      video: 'soft',
-      window: true,
-      extraArgs,
+    // 4. Build MAME args
+    const slots: Record<string, string> = { ...slotValues }
+    const args = buildMameArgs(selectedMachine.name, {
+      slots,
+      extraArgs: [
+        '-verbose',
+        '-resolution', DEFAULT_RESOLUTIONS[emulator] ?? '640x480',
+        '-rompath', '/roms',
+        ...(mediaList.map(m => [`-${m.type}`, `/media/${m.name}`]).flat())
+      ]
     })
     addLog(`args: ${args.join(' ')}`, false)
 
@@ -578,6 +586,7 @@ function App() {
       const mod = await loadMameWasm(wasmUrl, {
         driverArgs: args,
         romFiles,
+        mediaFiles: mediaList,
         romPath: '/roms',
         jsUrl: `/wasm/${wasmInfo.js}`,
         onProgress: (loaded, total) => {
@@ -861,7 +870,6 @@ function App() {
             <div className="content-row">
               {/* Left: emulator canvas */}
               <div className="emulator-area">
-                {/* Emulator canvas area */}
                 <div className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}>
                   <div
                     ref={canvasContainerRef}
@@ -876,7 +884,12 @@ function App() {
 
                   {launchState !== 'running' && (
                     <div className="emulator-placeholder">
-                      {launchState === 'idle' && <p>Press Launch to start emulation</p>}
+                      {launchState === 'idle' && (
+                        <div className="welcome-inner">
+                          <div className="welcome-badge">MAME {selectedMachine.name}</div>
+                          <p>Press Launch to start emulation</p>
+                        </div>
+                      )}
                       {isLoading && (
                         <div className="loading-indicator">
                           <div className="spinner" />
@@ -884,107 +897,139 @@ function App() {
                         </div>
                       )}
                       {launchState === 'error' && (
-                        <p className="placeholder-error">Emulation failed — check log for details</p>
+                        <div className="error-state">
+                          <span className="error-icon">❌</span>
+                          <p>Emulation failed</p>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setConfigTab('logs')}>View Log</button>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Config resize handle */}
-              <div
-                className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
-                onMouseDown={() => setIsConfigResizing(true)}
-                style={{ alignSelf: 'stretch' }}
-              />
-
-              {/* Right: slot config + launch */}
+              {/* Config area */}
               <div className="config-area" style={{ width: configWidth }}>
-                {/* Slot configuration */}
-                {machineConfig && machineConfig.slots.length > 0 && (
-                  <div className="section">
-                    <div className="section-heading">
-                      <span>⚙️ Configuration</span>
-                      <span className="section-count">{machineConfig.slots.length} slots</span>
-                    </div>
-                    <div className="slot-grid">
-                      {machineConfig.slots.map(slot => (
-                        <div key={slot.name} className="slot-row">
-                          <label className="slot-label" title={slot.name}>
-                            {slot.description}
-                          </label>
-                          <select
-                            className="slot-select"
-                            value={slotValues[slot.name] ?? ''}
-                            onChange={e =>
-                              setSlotValues(prev => ({ ...prev, [slot.name]: e.target.value }))
-                            }
-                          >
-                            {slot.options.map((opt, i) => (
-                              <option key={i} value={opt.value} disabled={opt.disabled}>
-                                {opt.description}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Launch buttons */}
-                <div className="launch-row">
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleLaunch}
-                    disabled={isLoading}
-                    id="btn-launch"
+                <div className="tab-header">
+                  <button 
+                    className={`tab-btn ${configTab === 'slots' ? 'active' : ''}`}
+                    onClick={() => setConfigTab('slots')}
                   >
-                    {isLoading ? '⏳ Loading...' : wasmModule ? '🔄 Restart' : '🚀 Launch'}
+                    Slots
                   </button>
-
-                  {!wasmModule && !isLoading && (
-                    <button
-                      className="btn btn-secondary"
-                      onClick={handleTestLaunch}
-                      id="btn-test"
-                    >
-                      🔬 Test WASM
-                    </button>
-                  )}
-
-                  <button
-                    className={`btn btn-ghost ${showLogs ? 'active' : ''}`}
-                    onClick={() => setShowLogs(v => !v)}
-                    id="btn-toggle-logs"
+                  <button 
+                    className={`tab-btn ${configTab === 'media' ? 'active' : ''}`}
+                    onClick={() => setConfigTab('media')}
                   >
-                    {showLogs ? '📋 Hide Log' : '📋 Show Log'}
+                    Media
+                  </button>
+                  <button 
+                    className={`tab-btn ${configTab === 'logs' ? 'active' : ''}`}
+                    onClick={() => setConfigTab('logs')}
+                  >
+                    Logs
                   </button>
                 </div>
 
-                {/* MAME console log */}
-                {showLogs && (
-                  <div className="log-panel">
-                    <div className="log-header">
-                      <span>📋 MAME Console</span>
-                      <div className="log-actions">
-                        <button className="log-btn" onClick={() => setLogs([])}>Clear</button>
-                        <button className="log-btn" onClick={() => setShowLogs(false)}>✕</button>
+                <div className="tab-content">
+                  {configTab === 'slots' && (
+                    <div className="section no-border">
+                      {machineConfig && machineConfig.slots.length > 0 ? (
+                        <div className="slot-grid">
+                          {machineConfig.slots.map(slot => (
+                            <div key={slot.name} className="slot-row">
+                              <label className="slot-label" title={slot.name}>
+                                {slot.description}
+                              </label>
+                              <select
+                                className="slot-select"
+                                value={slotValues[slot.name] ?? ''}
+                                onChange={e =>
+                                  setSlotValues(prev => ({ ...prev, [slot.name]: e.target.value }))
+                                }
+                              >
+                                {slot.options.map((opt, i) => (
+                                  <option key={i} value={opt.value} disabled={opt.disabled}>
+                                    {opt.description}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="empty-hint">No slots available for this machine.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {configTab === 'media' && (
+                    <div className="section no-border">
+                      <div className="media-grid">
+                        {machineConfig && Object.entries(machineConfig.media).map(([type, count]) => (
+                          Array.from({ length: count }).map((_, i) => {
+                            const mediaId = `${type}${i + 1}`
+                            const label = `${type.toUpperCase()} ${i + 1}`
+                            return (
+                              <div key={mediaId} className="media-row">
+                                <label className="media-label">{label}</label>
+                                <div className="media-input-wrap">
+                                  <span className="media-filename">
+                                    {mediaFiles[mediaId]?.name || 'Empty'}
+                                  </span>
+                                  <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById(`file-${mediaId}`)?.click()}>
+                                    📁
+                                  </button>
+                                  <input 
+                                    type="file" 
+                                    id={`file-${mediaId}`} 
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0] || null
+                                      setMediaFiles(prev => ({ ...prev, [mediaId]: file }))
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })
+                        ))}
+                        {!machineConfig || Object.keys(machineConfig.media).length === 0 ? (
+                          <p className="empty-hint">No media drives available.</p>
+                        ) : null}
                       </div>
                     </div>
-                    <div className="log-body">
-                      {logs.length === 0 && (
-                        <span className="log-empty">No log output yet.</span>
-                      )}
-                      {logs.map((l, i) => (
-                        <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
-                          {l.text}
-                        </div>
-                      ))}
-                      <div ref={logEndRef} />
+                  )}
+
+                  {configTab === 'logs' && (
+                    <div className="log-panel-inline">
+                      <div className="log-body">
+                        {logs.length === 0 && (
+                          <span className="log-empty">No log output yet.</span>
+                        )}
+                        {logs.map((l, i) => (
+                          <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
+                            {l.text}
+                          </div>
+                        ))}
+                        <div ref={logEndRef} />
+                      </div>
+                      <div className="log-footer">
+                        <button className="log-btn" onClick={() => setLogs([])}>Clear Log</button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <div className="launch-footer">
+                  <button
+                    className="btn btn-primary btn-large"
+                    onClick={handleLaunch}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? '⏳' : wasmModule ? '🔄' : '🚀'} {isLoading ? 'Loading...' : wasmModule ? 'Restart' : 'Launch'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1164,6 +1209,16 @@ function crc32(data: Uint8Array): number {
     crc = _crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8)
   }
   return (crc ^ 0xFFFFFFFF) >>> 0
+}
+
+/** Read File as Uint8Array */
+async function readFileAsArrayBuffer(file: File): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer))
+    reader.onerror = reject
+    reader.readAsArrayBuffer(file)
+  })
 }
 
 export default App

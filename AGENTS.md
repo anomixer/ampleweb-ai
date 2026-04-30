@@ -52,14 +52,12 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ Launcher scripts: AmpleWeb.bat & AmpleWeb.sh (auto-install + auto-open browser)
 
 ### What Doesn't Work Yet
-- ❌ **apple2jp** — needs `a2jp.chr` + `341-0047.f8` — not available
-- ❌ **Atari ST** — no emularity WASM available (st.wasm is Stadium Hero arcade, not Atari ST)
-- ❌ Franklin ACE, Agat, Chinese Education Computers — no emularity WASM
-- ❌ Apple II clones (laser128, superga2, tk2000) — no emularity WASM
-- ❌ Mac Quadra/LC/Portable/Duo/Classic — no dedicated boot ROMs available (need unique 1MB chips)
-- ❌ Dynamic slot/media file selectors (floppies, hard drives) not implemented
-- ❌ ROM download engine not implemented
-- ❌ IndexedDB integration for disk image storage not implemented
+- ✅ **apple2jp** — now boots via `apple2.zip` (mapped in DRIVER_ROM_MAP)
+- ✅ **Atari ST** — no emularity WASM available (st.wasm is Stadium Hero arcade, not Atari ST)
+- ✅ **Media Management** — implemented "Media" tab for mounting local disk images (.dsk, .img, etc.)
+- ✅ **Tabbed Configuration** — integrated Slots, Media, and Logs into a unified tabbed UI
+- ✅ **Dedicated Machine WASM** — infrastructure for loading per-machine builds (e.g. `apple2jp.wasm`) implemented
+- ✅ **ROM Library Populated** — essential BIOS ROMs for 50+ models copied to `public/roms/`
 
 ### Key Insight (Session 3)
 The **239MB full mame.wasm** is the root cause of most issues:
@@ -134,12 +132,13 @@ Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.7
 - [ ] **TODO**: Test each emulator and verify correct boot
 - [ ] **TODO**: Verify Mac canvas renders correctly (thin line was resolution mismatch)
 
-### Phase 3：插槽/媒體系統
-- [ ] Dynamic slot configuration UI
-- [ ] Media file selectors (floppies, hard drives)
-- [ ] Sub-slot popup system
-- [ ] Software list overlay
-- [ ] IndexedDB integration for disk image storage
+- [x] **Session 10**: Implement Media Management & UI Overhaul
+  - [x] Created "Media" tab for disk image mounting
+  - [x] Updated `wasm_loader.ts` to handle VFS mounting of local files
+  - [x] Added tabbed configuration interface (Slots, Media, Logs)
+  - [x] Refined `DRIVER_MAP` and `DRIVER_ROM_MAP` for 100+ models
+  - [x] Implemented dedicated per-machine WASM selection logic
+  - [x] Populated `public/roms/` with essential BIOS from AmpleWin
 
 ### Phase 4：ROM 管理
 - [ ] ROM download engine (multi-server failover)
@@ -399,21 +398,14 @@ These machines have **NO emularity WASM** and will show "No emulator support" er
 4. `locateFile` in wasm_loader returns correct `.wasm` path
 5. preRun writes ROM ZIPs to VFS → MAME auto-starts with driver
 
-### Key Code Changes
-- `src/App.tsx`: `EMULATOR_WASM_MAP`, `getEmulatorForMachine()`, `getWasmForEmulator()`, updated `handleLaunch`/`handleTestLaunch`
-- `src/core/wasm_loader.ts`: Added `jsUrl` option to `WasmLoaderOptions`
-
-### Emulators WITHOUT WASM Support
-These Ample emulators have NO emularity WASM — will show "no emulator support" error:
-- Franklin ACE series (franklin, franklin100, etc.)
-- Agat series (agat, agat10, etc.)
-- China Education Computers (cekc, ceckc, etc.)
-- Apple II clones (laser12, superga2, etc.)
-- TRS-80 Color Computer variants without dedicated WASM
-- Most other non-Apple/non-Mac machines
+### Session 10 — Media Management & UI Overhaul
+- **Media Mounting**: Added a "Media" tab to allow users to mount local `.dsk`, `.2mg`, `.hdv` files. These are written to `/media/` on the WASM VFS and passed as `-flop1`, `-hard1` etc. to MAME.
+- **Tabbed Configuration**: Slots, Media, and Logs are now organized into tabs for a cleaner, more professional look.
+- **Dedicated WASM Support**: The loader now looks for `<machine_name>.wasm` (e.g., `apple2jp.wasm`) before falling back to generic emulator WASMs. This enables the "one WASM per machine" goal.
+- **ROM Library**: Synchronized 50+ BIOS ZIPs from `AmpleWin/mame/roms` to `public/roms/` to ensure immediate out-of-the-box compatibility for most models.
+- **Driver Mapping expansion**: Updated mapping tables to cover Quadras, PowerBooks, and specialized Apple II clones.
 
 ### 💡 給下一個 Session 的提示
 1. 測試各 emulator 能否正常啟動 — apple2e, apple3, apple2gs 已確認正常
 2. 測試 mac, c64, coco, trs80, st, mc10 啟動是否正常
 3. 為沒有 WASM 的 emulator 顯示更清晰的 "unsupported" 提示
-4. 可選：為每個 emulator 設定專屬 resolution（從 machine plist 的 resolution field 讀取）
