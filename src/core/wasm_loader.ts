@@ -261,6 +261,8 @@ export function loadMameWasm(
       },
     }
 
+    // Clear global Module reference to avoid conflicts
+    delete (window as any).Module
     ;(window as any).Module = Module
 
     // ── load mame.js bootstrap ──
@@ -269,7 +271,8 @@ export function loadMameWasm(
 
     const script = document.createElement('script')
     script.id = 'mame-js-script'
-    script.src = jsUrl
+    // Add cache-buster to ensure fresh execution
+    script.src = `${jsUrl}${jsUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
     script.onload = () => {
       console.log('[WasmLoader] mame.js loaded.')
       // Wait for MAME to finish callMain before resolving

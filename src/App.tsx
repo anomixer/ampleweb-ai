@@ -125,29 +125,12 @@ function _wasmExists(filename: string): boolean {
 }
 
 /**
- * Get the WASM info for an emulator type, falling back to available targets.
+ * Get the WASM info for an emulator type, falling back to available.
  */
-function getWasmForEmulator(emulator: string, machineName: string): { wasm: string; js: string; driver: string } | null {
-  // 1. Try dedicated machine-specific WASM (highest priority)
-  const dedicatedName = machineName.toLowerCase()
-  if (_wasmExists(`${dedicatedName}.wasm`)) {
-    console.log(`[App] Using dedicated machine WASM: ${dedicatedName}.wasm`)
-    return { wasm: `${dedicatedName}.wasm`, js: `${dedicatedName}.js`, driver: machineName }
-  }
-
-  // 2. Direct match from EMULATOR_WASM_MAP
+function getWasmForEmulator(emulator: string, _machineName: string): { wasm: string; js: string; driver: string } | null {
+  // Direct match from EMULATOR_WASM_MAP
   const info = EMULATOR_WASM_MAP[emulator]
-  if (info && _wasmExists(info.wasm)) return info
-
-  // 3. Fallback: try to find any available WASM (for debugging/emergency)
-  for (const [emu, wasmInfo] of Object.entries(EMULATOR_WASM_MAP)) {
-    if (_wasmExists(wasmInfo.wasm)) {
-      console.warn(`[App] ${emulator} WASM not available, falling back to ${emu} (${wasmInfo.driver})`)
-      return wasmInfo
-    }
-  }
-
-  console.warn(`[App] No WASM file available for ${emulator} (tried machine: ${machineName})`)
+  if (info) return info
   return null
 }
 
@@ -292,7 +275,7 @@ function App() {
   const [search, setSearch] = useState('')
   const [sidebarWidth, setSidebarWidth] = useState(280)
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
-  const [configWidth, setConfigWidth] = useState(280)
+  const [configWidth, setConfigWidth] = useState(450)
   const [isConfigResizing, setIsConfigResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [romSettings, setRomSettings] = useState({ autoDownload: false, downloadServers: [] as string[] })
@@ -345,7 +328,7 @@ function App() {
     const onMove = (e: MouseEvent) => {
       // config width from right edge of viewport
       const rightEdge = window.innerWidth - e.clientX
-      const w = Math.max(200, Math.min(500, rightEdge))
+      const w = Math.max(200, Math.min(800, rightEdge))
       setConfigWidth(w)
     }
     const onUp = () => setIsConfigResizing(false)
@@ -513,6 +496,11 @@ function App() {
     setLogs([])
     setWasmProgress(0)
     setShowLogs(true)
+
+    // Clear old canvas if it exists
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.innerHTML = ''
+    }
 
     // Step 0: determine emulator type
     const emulator = getEmulatorForMachine(selectedMachine.name)
@@ -908,8 +896,14 @@ function App() {
                 </div>
               </div>
 
+              {/* ── Config Resize Handle ── */}
+              <div
+                className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
+                onMouseDown={() => setIsConfigResizing(true)}
+              />
+
               {/* Config area */}
-              <div className="config-area" style={{ width: configWidth }}>
+              <div className="config-area" style={{ width: configWidth ?? 450 }}>
                 <div className="tab-header">
                   <button 
                     className={`tab-btn ${configTab === 'slots' ? 'active' : ''}`}
