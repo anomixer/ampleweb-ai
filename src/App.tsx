@@ -6,6 +6,7 @@ import {
   fetchRom,
   type MameWasmModule,
   type RomFile,
+  type MediaFile,
 } from './core/wasm_loader'
 import { useStore } from './core/store'
 
@@ -283,6 +284,7 @@ function App() {
   const [configTab, setConfigTab] = useState<'slots' | 'media' | 'logs'>('slots')
   const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
   const logEndRef = useRef<HTMLDivElement>(null)
+  const hasAutoLaunched = useRef(false)
 
   // Detect available WASM on mount (legacy display only)
   const [wasmTarget] = useState(() => {
@@ -292,15 +294,9 @@ function App() {
     return 'none'
   })
 
-  useEffect(() => {
-    dataManager.loadModels().then(setModels)
-  }, [])
 
-  useEffect(() => {
-    if (showLogs) {
-      logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [logs, showLogs])
+
+
 
   // ── Sidebar resize ──
   useEffect(() => {
@@ -351,9 +347,8 @@ function App() {
     })
   }, [])
 
-  const handleSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
+  const doSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
     setSelectedMachine(machine)
-    setWasmModule(null)
     setErrorText(null)
     setStatusText('')
     setLaunchState('idle')
@@ -368,6 +363,10 @@ function App() {
       setSlotValues(defaults)
     }
   }, [])
+
+  const handleSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
+    doSelectMachine(machine)
+  }, [doSelectMachine])
 
   /**
    * Fetch all required ROM ZIP files for a driver.
@@ -489,8 +488,7 @@ function App() {
    * 3. load the correct WASM (per-emulator)
    * 4. preRun writes ZIPs to VFS → MAME auto-starts
    */
-  const handleLaunch = useCallback(async () => {
-    if (!selectedMachine) return
+  const doLaunch = useCallback(async (machine: { name: string; description: string }, slotsParam?: Record<string, string>) => {
     setWasmModule(null)
     setErrorText(null)
     setLogs([])
@@ -503,19 +501,19 @@ function App() {
     }
 
     // Step 0: determine emulator type
-    const emulator = getEmulatorForMachine(selectedMachine.name)
+    const emulator = getEmulatorForMachine(machine.name)
     if (!emulator) {
-      setErrorText(`No emulator support for machine: ${selectedMachine.name}`)
+      setErrorText(`No emulator support for machine: ${machine.name}`)
       setLaunchState('error')
-      addLog(`Error: no emulator for ${selectedMachine.name}`, true)
+      addLog(`Error: no emulator for ${machine.name}`, true)
       return
     }
 
-    const wasmInfo = getWasmForEmulator(emulator, selectedMachine.name)
+    const wasmInfo = getWasmForEmulator(emulator, machine.name)
     if (!wasmInfo) {
-      setErrorText(`No WASM file available for ${emulator}.\nPlace ${emulator}.wasm or ${selectedMachine.name}.wasm in public/wasm/`)
+      setErrorText(`No WASM file available for ${emulator}.\nPlace ${emulator}.wasm or ${machine.name}.wasm in public/wasm/`)
       setLaunchState('error')
-      addLog(`Error: no WASM for ${emulator} / ${selectedMachine.name}`, true)
+      addLog(`Error: no WASM for ${emulator} / ${machine.name}`, true)
       return
     }
 
@@ -525,7 +523,7 @@ function App() {
 
     let romFiles: RomFile[] = []
     try {
-      romFiles = await fetchAllRoms(selectedMachine.name)
+      romFiles = await fetchAllRoms(machine.name)
     } catch (e) {
       addLog(`ROM fetch failed: ${e}`, true)
     }
@@ -538,7 +536,7 @@ function App() {
     // Use emulator-appropriate resolution
     const resolution = DEFAULT_RESOLUTIONS[emulator] ?? '640x480'
     // Resolve MAME driver name (e.g. mac128k → mac)
-    const mameDriver = DRIVER_MAP[selectedMachine.name] ?? wasmInfo.driver
+    const mameDriver = DRIVER_MAP[machine.name] ?? wasmInfo.driver
 
     // 3. Prepare media files
     const mediaList: MediaFile[] = []
@@ -558,12 +556,12 @@ function App() {
     }
 
     // 4. Build MAME args
-    const slots: Record<string, string> = { ...slotValues }
-    const args = buildMameArgs(selectedMachine.name, {
-      slots,
+    const finalSlots = slotsParam ?? slotValues
+    const args = buildMameArgs(machine.name, {
+      slots: finalSlots,
       extraArgs: [
         '-verbose',
-        '-resolution', DEFAULT_RESOLUTIONS[emulator] ?? '640x480',
+        '-resolution', resolution,
         '-rompath', '/roms',
         ...(mediaList.map(m => [`-${m.type}`, `/media/${m.name}`]).flat())
       ]
@@ -585,7 +583,6 @@ function App() {
           }
         },
         onError: (err) => {
-          // Improve error message for missing WASM
           let msg = err
           if (err.includes('Failed to fetch') || err.includes('404')) {
             msg += `\nPlace the correct WASM in public/wasm/`
@@ -600,7 +597,6 @@ function App() {
           setLaunchState('running')
           setStatusText('')
 
-          // Move canvas into container (centered by flexbox)
           requestAnimationFrame(() => {
             const c = document.getElementById('canvas') as HTMLCanvasElement | null
             if (c && canvasContainerRef.current) {
@@ -618,7 +614,98 @@ function App() {
       setLaunchState('error')
       addLog(`Fatal: ${msg}`, true)
     }
-  }, [selectedMachine, wasmTarget, addLog, fetchAllRoms])
+  }, [wasmTarget, addLog, fetchAllRoms, mediaFiles, slotValues])
+
+  const handleLaunch = useCallback(async () => {
+    if (!selectedMachine) return
+
+    // If already running, refresh the whole page to ensure a clean state
+    if (wasmModule) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('m', selectedMachine.name)
+      url.searchParams.set('d', selectedMachine.description)
+      url.searchParams.set('launch', '1')
+      window.location.href = url.toString()
+      return
+    }
+
+    doLaunch(selectedMachine)
+  }, [selectedMachine, wasmModule, doLaunch])
+
+  useEffect(() => {
+    const init = async () => {
+      const data = await dataManager.loadModels()
+      setModels(data)
+      
+      // Restore selection from URL
+      const params = new URLSearchParams(window.location.search)
+      const m = params.get('m')
+      const d = params.get('d')
+      
+      let machineToLaunch: { name: string; description: string } | null = null
+      if (m && d) {
+        machineToLaunch = { name: m, description: d }
+        // Restore machine config and slots
+        const config = await dataManager.loadMachine(machineToLaunch.name)
+        setMachineConfig(config)
+        let slots: Record<string, string> = {}
+        if (config) {
+          config.slots.forEach(slot => {
+            const defaultOpt = slot.options.find(o => o.default)
+            if (defaultOpt) slots[slot.name] = defaultOpt.value
+          })
+          setSlotValues(slots)
+        }
+        setSelectedMachine(machineToLaunch)
+        
+        // Trigger launch logic
+        if (params.get('launch') === '1' && !hasAutoLaunched.current) {
+          hasAutoLaunched.current = true
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('launch')
+          window.history.replaceState({}, '', newUrl.toString())
+          doLaunch(machineToLaunch, slots)
+        }
+
+        // Auto-expand tree to show selected machine
+        const path: string[] = []
+        const find = (nodes: ModelEntry[], target: string, ancestors: string[]): boolean => {
+          for (const node of nodes) {
+            const id = node.description + node.value
+            if (node.value === target) {
+              path.push(...ancestors)
+              return true
+            }
+            if (node.children && find(node.children, target, [...ancestors, id])) {
+              return true
+            }
+          }
+          return false
+        }
+        if (find(data, m, [])) {
+          setExpandedNodes(prev => new Set([...prev, ...path]))
+        }
+      }
+    }
+    init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Mount only
+
+  useEffect(() => {
+    if (showLogs) {
+      logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs, showLogs])
+
+  // Sync selection to URL (without reloading)
+  useEffect(() => {
+    if (selectedMachine) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('m', selectedMachine.name)
+      url.searchParams.set('d', selectedMachine.description)
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [selectedMachine])
 
   /**
    * Test launch — no ROMs, just load the WASM runtime.
@@ -715,7 +802,7 @@ function App() {
   return (
     <div className={`app ${theme}`}>
       {/* ── Left Sidebar ── */}
-      <div className="sidebar" style={{ width: sidebarWidth }}>
+      <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
         <div className="sidebar-header">
           <div className="sidebar-title">
             <span className="sidebar-logo">🍎</span>
