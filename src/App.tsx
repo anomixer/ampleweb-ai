@@ -16,6 +16,7 @@ import { useStore } from './core/store'
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
   // Dedicated emularity builds (each WASM = one emularity config)
+  apple2:     { wasm: 'mameapple2.wasm',   js: 'mameapple2.js',     driver: 'apple2' },
   apple2e:    { wasm: 'apple2e.wasm',   js: 'apple2e.js',     driver: 'apple2e' },
   mac128:     { wasm: 'mac128.wasm',    js: 'mac128.js',      driver: 'mac128k' },
   maciici:    { wasm: 'maciici.wasm',   js: 'maciici.js',     driver: 'maciici' },
@@ -28,12 +29,10 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   mac:        { wasm: 'mac.wasm',       js: 'mac.js',         driver: 'mac' },
   coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'coco' },
   coco3:      { wasm: 'coco3.wasm',     js: 'coco3.js',       driver: 'coco3' },
-  trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80l2' },
+  trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80' },
   // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
   // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
   c64:        { wasm: 'c64.wasm',       js: 'c64.js',         driver: 'c64' },
-  // Universal fallback (contains 40k+ drivers)
-  mame:       { wasm: 'mame.wasm',      js: 'mame.js',        driver: 'mame' },
 }
 
 /**
@@ -174,6 +173,14 @@ const DRIVER_MAP: Record<string, string> = {
   dragon32: 'dragon32',
   dragon64: 'dragon64',
   oric1: 'oric1',
+  // TRS-80 / CoCo / C64 / MC-10
+  trs80: 'trs80',
+  trs80l2: 'trs80l2',
+  coco: 'coco',
+  coco3: 'coco3',
+  c64: 'c64',
+  mc10: 'mc10',
+  apple1: 'apple1',
 }
 
 
@@ -302,6 +309,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   trs80: 'trs80.zip',
   trs80l2: 'trs80l2.zip',
   mc10: 'mc10.zip',
+  apple1: 'apple1.zip',
   // apple2 (original) and variants
   apple2: 'apple2.zip;a2diskii.zip',
   apple2p: 'apple2p.zip;a2diskii.zip',
@@ -579,6 +587,7 @@ function App() {
     if (machineName.startsWith('c64')) return 'c64'
     // mc10 → mc10
     if (machineName.startsWith('mc10')) return 'mc10'
+    if (machineName === 'apple1') return 'mametiny'
     // st* → no emularity WASM for Atari ST (st.wasm is Stadium Hero arcade)
     // if (machineName.startsWith('st')) return 'st'
     // fallback apple2e/c variants to dedicated WASMs
