@@ -17,6 +17,7 @@ import { useStore } from './core/store'
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
   // Dedicated emularity builds (each WASM = one emularity config)
   apple2e: { wasm: 'apple2e.wasm.gz', js: 'apple2e.js', driver: 'apple2e' },
+  apple2ee: { wasm: 'apple2e.wasm.gz', js: 'apple2e.js', driver: 'apple2ee' },
   mac128: { wasm: 'mac128.wasm.gz', js: 'mac128.js', driver: 'mac128k' },
   maciici: { wasm: 'maciici.wasm.gz', js: 'maciici.js', driver: 'maciici' },
   mc10: { wasm: 'mc10.wasm.gz', js: 'mc10.js', driver: 'mc10' },
@@ -107,12 +108,12 @@ const DRIVER_MAP: Record<string, string> = {
   macclas2: 'macclas2',
   maccclas: 'maccclas',
   // apple2e* variants (Platinum models use apple2e.wasm but use apple2e driver)
-  apple2ep: 'apple2e',
-  apple2epuk: 'apple2e',
-  apple2epde: 'apple2e',
-  apple2epfr: 'apple2e',
-  apple2epes: 'apple2e',
-  apple2epse: 'apple2e',
+  apple2ep: 'apple2ee',
+  apple2epuk: 'apple2eeuk',
+  apple2epde: 'apple2eede',
+  apple2epfr: 'apple2eefr',
+  apple2epes: 'apple2ees',
+  apple2epse: 'apple2eese',
   // apple2c* variants (also use apple2e.wasm)
   apple2c: 'apple2c',
   apple2c0: 'apple2c0',
@@ -234,12 +235,12 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2eese: 'apple2eese.zip',
   apple2eefr: 'apple2eefr.zip',
   apple2ees: 'apple2ees.zip',
-  apple2ep: 'apple2ep.zip',
-  apple2epuk: 'apple2epuk.zip',
-  apple2epde: 'apple2epde.zip',
-  apple2epfr: 'apple2epfr.zip',
-  apple2epes: 'apple2epes.zip',
-  apple2epse: 'apple2epse.zip',
+  apple2ep: 'apple2ee.zip;apple2ep.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2epuk: 'apple2eeuk.zip;apple2epuk.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2epde: 'apple2eede.zip;apple2epde.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2epfr: 'apple2eefr.zip;apple2epfr.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2epes: 'apple2ees.zip;apple2epes.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2epse: 'apple2eese.zip;apple2epse.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2euk: 'apple2euk.zip',
   apple2ede: 'apple2ede.zip',
   apple2ese: 'apple2ese.zip',
@@ -584,22 +585,27 @@ function App() {
    * Maps machine driver names to emulator WASM files.
    */
   function getEmulatorForMachine(machineName: string): string | null {
+    // 1. Highest priority: Enhanced IIe / Platinum variants
+    if (machineName.startsWith('apple2ep') || machineName.startsWith('apple2ee') || machineName.startsWith('apple2woz')) {
+      return 'apple2ee'
+    }
+
+    // 2. Original Apple 1 / 2 / 2+ / 2jp
     if (machineName === 'apple1') return 'mametiny'
-    if (machineName.startsWith('apple2p') || machineName.startsWith('apple2jp') || machineName === 'apple2') return 'mametiny'
-    if (machineName.startsWith('apple2ep')) return 'apple2e'
+    if (machineName === 'apple2' || machineName.startsWith('apple2p') || machineName.startsWith('apple2jp')) {
+      return 'mametiny'
+    }
 
-    // apple2gs* → apple2gs
+    // 3. Apple IIgs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
-    // apple2c* → mameapple2e (per official config)
-    if (machineName.startsWith('apple2c')) return 'mameapple2e'
-    // apple2ee* (Enhanced) → apple2e (dedicated WASM)
-    if (machineName.startsWith('apple2ee')) return 'apple2e'
-    // fallback apple2e* → apple2e
-    if (machineName.startsWith('apple2e')) return 'apple2e'
-    // apple2woz* → apple2e (uses apple2e.wasm)
-    if (machineName.startsWith('apple2woz')) return 'apple2e'
 
-    // other apple2* variants → mameapple2 (unified engine)
+    // 4. Apple IIc variants
+    if (machineName.startsWith('apple2c')) return 'mameapple2e'
+
+    // 5. Unenhanced Apple IIe fallback
+    if (machineName.startsWith('apple2e')) return 'apple2e'
+
+    // 6. Generic apple2* fallback
     if (machineName.startsWith('apple2')) return 'mameapple2'
 
     // apple3* → apple3

@@ -58,7 +58,8 @@ foreach ($rom in $roms) {
         Remove-Item -Recurse -Force $extractDir
         Remove-Item $szPath
         $count++
-    } else {
+    }
+    else {
         Write-Host " [NOT FOUND]" -ForegroundColor Yellow
     }
 }
