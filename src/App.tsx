@@ -110,10 +110,10 @@ const DRIVER_MAP: Record<string, string> = {
   // apple2e* variants (Platinum models use apple2e.wasm but use apple2e driver)
   apple2ep: 'apple2ee',
   apple2epuk: 'apple2eeuk',
-  apple2epde: 'apple2eede',
-  apple2epfr: 'apple2eefr',
-  apple2epes: 'apple2ees',
-  apple2epse: 'apple2eese',
+  apple2epde: 'apple2ee',
+  apple2epfr: 'apple2ee',
+  apple2epes: 'apple2ee',
+  apple2epse: 'apple2ee',
   // apple2c* variants (also use apple2e.wasm)
   apple2c: 'apple2c',
   apple2c0: 'apple2c0',
@@ -124,18 +124,18 @@ const DRIVER_MAP: Record<string, string> = {
   apple2cp: 'apple2cp',
   apple2cm: 'apple2cm',
   apple2che: 'apple2che',
-  // apple2ee* variants (Enhanced models use apple2e.wasm, might need redirection to apple2ee or apple2e)
+  // apple2ee* variants (Enhanced models fallback to apple2ee/uk)
   apple2ee: 'apple2ee',
   apple2eeuk: 'apple2eeuk',
-  apple2eede: 'apple2eede',
-  apple2eese: 'apple2eese',
-  apple2eefr: 'apple2eefr',
-  apple2ees: 'apple2ees',
-  // base variants
-  apple2euk: 'apple2e',
+  apple2eede: 'apple2ee',
+  apple2eese: 'apple2ee',
+  apple2eefr: 'apple2ee',
+  // base variants (Original fallback to apple2e)
+  apple2euk: 'apple2euk',
   apple2ede: 'apple2e',
   apple2ese: 'apple2e',
   apple2efr: 'apple2e',
+  apple2ees: 'apple2ees',
   // apple2 (original) and variants
   apple2: 'apple2',
   apple2p: 'apple2p',
@@ -147,6 +147,12 @@ const DRIVER_MAP: Record<string, string> = {
   hkc8800a: 'hkc8800a',
   prav82: 'prav82',
   prav8m: 'prav8m',
+  // CEC variants
+  cec2000: 'cec2000',
+  cece: 'cece',
+  cecg: 'cecg',
+  ceci: 'ceci',
+  cecm: 'cecm',
   // Education / Other Clones
   mprof3: 'mprof3',
   zijini: 'zijini',
@@ -229,22 +235,22 @@ interface LogLine {
 const DRIVER_ROM_MAP: Record<string, string> = {
   // Apple IIe variants
   apple2e: 'apple2e.zip',
-  apple2ee: 'apple2ee.zip',
-  apple2eeuk: 'apple2eeuk.zip',
-  apple2eede: 'apple2eede.zip',
-  apple2eese: 'apple2eese.zip',
-  apple2eefr: 'apple2eefr.zip',
-  apple2ees: 'apple2ees.zip',
+  apple2ee: 'apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2eeuk: 'apple2eeuk.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2eede: 'apple2eede.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2eese: 'apple2eese.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2eefr: 'apple2eefr.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2ees: 'apple2ees.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2ep: 'apple2ee.zip;apple2ep.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2epuk: 'apple2eeuk.zip;apple2epuk.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2epde: 'apple2eede.zip;apple2epde.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2epfr: 'apple2eefr.zip;apple2epfr.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2epes: 'apple2ees.zip;apple2epes.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   apple2epse: 'apple2eese.zip;apple2epse.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2euk: 'apple2euk.zip',
-  apple2ede: 'apple2ede.zip',
-  apple2ese: 'apple2ese.zip',
-  apple2efr: 'apple2efr.zip',
+  apple2euk: 'apple2euk.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2ede: 'apple2ede.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2ese: 'apple2ese.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  apple2efr: 'apple2efr.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   // Apple IIc variants
   apple2c: 'apple2c.zip',
   apple2c0: 'apple2c0.zip',
@@ -259,6 +265,12 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2gs: 'apple2gs.zip',
   apple2gsr0: 'apple2gsr0.zip',
   apple2gsr1: 'apple2gsr1.zip',
+  // CEC (China Education Computer) variants
+  cec2000: 'cec2000.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  cece: 'cece.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  cecg: 'cecg.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  ceci: 'ceci.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  cecm: 'cecm.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   // Apple III
   apple3: 'apple3.zip',
   // Mac variants
@@ -585,8 +597,11 @@ function App() {
    * Maps machine driver names to emulator WASM files.
    */
   function getEmulatorForMachine(machineName: string): string | null {
-    // 1. Highest priority: Enhanced IIe / Platinum variants
-    if (machineName.startsWith('apple2ep') || machineName.startsWith('apple2ee') || machineName.startsWith('apple2woz')) {
+    // 1. Highest priority: Enhanced IIe / Platinum / CEC variants
+    if (machineName.startsWith('apple2ep') || 
+        machineName.startsWith('apple2ee') || 
+        machineName.startsWith('apple2woz') ||
+        machineName.startsWith('cec')) {
       return 'apple2ee'
     }
 
