@@ -32,6 +32,8 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
   // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
   c64:        { wasm: 'c64.wasm',       js: 'c64.js',         driver: 'c64' },
+  // Universal fallback (contains 40k+ drivers)
+  mame:       { wasm: 'mame.wasm',      js: 'mame.js',        driver: 'mame' },
 }
 
 /**
@@ -137,6 +139,41 @@ const DRIVER_MAP: Record<string, string> = {
   apple2: 'apple2',
   apple2p: 'apple2p',
   apple2jp: 'apple2jp',
+  // Apple II Clones
+  albert: 'albert',
+  am100: 'am100',
+  basis108: 'basis108',
+  hkc8800a: 'hkc8800a',
+  prav82: 'prav82',
+  prav8m: 'prav8m',
+  // Education / Other Clones
+  mprof3: 'mprof3',
+  zijini: 'zijini',
+  ace100: 'ace100',
+  ace500: 'ace500',
+  ace1000: 'ace1000',
+  ace2200: 'ace2200',
+  laser128: 'laser128',
+  laser3k: 'laser3k',
+  laser2c: 'laser2c',
+  laser128o: 'laser128o',
+  las128ex: 'las128ex',
+  las128e2: 'las128e2',
+  agat7: 'agat7',
+  agat9: 'agat9',
+  cec2000: 'cec2000',
+  cece: 'cece',
+  cecg: 'cecg',
+  ceci: 'ceci',
+  cecm: 'cecm',
+  // BBC / Other 8-bit
+  bbcb: 'bbcb',
+  bbca: 'bbca',
+  bbcm: 'bbcm',
+  electron: 'electron',
+  dragon32: 'dragon32',
+  dragon64: 'dragon64',
+  oric1: 'oric1',
 }
 
 
@@ -269,6 +306,13 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2: 'apple2.zip;a2diskii.zip',
   apple2p: 'apple2p.zip;a2diskii.zip',
   apple2jp: 'apple2jp.zip;a2diskii.zip',
+  // Clones and other systems
+  laser128: 'laser128.zip',
+  ace100: 'ace100.zip',
+  bbcb: 'bbcb.zip',
+  electron: 'electron.zip',
+  dragon32: 'dragon32.zip',
+  oric1: 'oric1.zip',
   // Special: IIgs needs files from apple2c set too (e.g. disk II ROMs)
   apple2gs_shared: 'apple2gs.zip;apple2c.zip',
 }
@@ -537,9 +581,11 @@ function App() {
     if (machineName.startsWith('mc10')) return 'mc10'
     // st* → no emularity WASM for Atari ST (st.wasm is Stadium Hero arcade)
     // if (machineName.startsWith('st')) return 'st'
-    // apple1, apple2 → apple2e (fallback)
-    if (machineName.startsWith('apple')) return 'apple2e'
-    return null
+    // fallback apple2e/c variants to dedicated WASMs
+    if (machineName.startsWith('apple2e') || machineName.startsWith('apple2c')) return 'mameapple2e'
+    if (machineName.startsWith('apple2')) return 'mameapple2'
+    // Final fallback: use the universal MAME engine for everything else
+    return 'mame'
   }
 
   /**
