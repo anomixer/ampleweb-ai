@@ -158,6 +158,51 @@ export function loadMameWasm(
         return path
       },
 
+      /**
+       * Custom instantiation to support GZIP decompression on the fly.
+       */
+      instantiateWasm: (info: any, receiveInstance: any) => {
+        (async () => {
+          try {
+            console.log(`[WasmLoader] Fetching WASM from ${wasmUrl}...`)
+            const response = await fetch(wasmUrl)
+            if (!response.ok) throw new Error(`Fetch failed: ${response.status} ${response.statusText}`)
+
+            // Check if server already decompressed it (via Content-Encoding: gzip)
+            const contentEncoding = response.headers.get('Content-Encoding')
+            const isAlreadyDecompressed = contentEncoding === 'gzip'
+
+            let wasmBuffer: ArrayBuffer
+            if (wasmUrl.endsWith('.gz') && !isAlreadyDecompressed) {
+              console.log('[WasmLoader] Decompressing GZIP WASM via DecompressionStream...')
+              try {
+                const ds = new (window as any).DecompressionStream('gzip')
+                const decompressedStream = response.body!.pipeThrough(ds)
+                wasmBuffer = await new Response(decompressedStream).arrayBuffer()
+                console.log(`[WasmLoader] Decompression complete. Size: ${wasmBuffer.byteLength} bytes`)
+              } catch (decompressErr: any) {
+                console.error('[WasmLoader] Decompression failed:', decompressErr)
+                throw new Error(`Decompression failed: ${decompressErr.message}`)
+              }
+            } else {
+              if (isAlreadyDecompressed) {
+                console.log('[WasmLoader] WASM was already decompressed by the browser/server.')
+              }
+              wasmBuffer = await response.arrayBuffer()
+            }
+
+            console.log('[WasmLoader] Instantiating WASM...')
+            const result = await WebAssembly.instantiate(wasmBuffer, info)
+            console.log('[WasmLoader] WASM Instantiated successfully.')
+            receiveInstance(result.instance)
+          } catch (e: any) {
+            console.error('[WasmLoader] instantiateWasm failed:', e)
+            fail(`WASM instantiation failed: ${e.message}`)
+          }
+        })()
+        return {} // Return empty object to indicate async instantiation
+      },
+
       print: (text: string) => {
         console.log('[MAME]', text)
         onLog?.(text, false)

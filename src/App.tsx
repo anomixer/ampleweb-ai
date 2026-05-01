@@ -16,23 +16,24 @@ import { useStore } from './core/store'
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
   // Dedicated emularity builds (each WASM = one emularity config)
-  apple2:     { wasm: 'mameapple2.wasm',   js: 'mameapple2.js',     driver: 'apple2' },
-  apple2e:    { wasm: 'apple2e.wasm',   js: 'apple2e.js',     driver: 'apple2e' },
-  mac128:     { wasm: 'mac128.wasm',    js: 'mac128.js',      driver: 'mac128k' },
-  maciici:    { wasm: 'maciici.wasm',   js: 'maciici.js',     driver: 'maciici' },
-  mc10:       { wasm: 'mc10.wasm',      js: 'mc10.js',        driver: 'mc10' },
+  apple2e: { wasm: 'apple2e.wasm', js: 'apple2e.js', driver: 'apple2e' },
+  mac128: { wasm: 'mac128.wasm', js: 'mac128.js', driver: 'mac128k' },
+  maciici: { wasm: 'maciici.wasm', js: 'maciici.js', driver: 'maciici' },
+  mc10: { wasm: 'mc10.wasm', js: 'mc10.js', driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
-  mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js',  driver: 'apple2p' },
-  mameapple2e: { wasm: 'mameapple2e.wasm', js: 'mameapple2e.js', driver: 'apple2e' },
-  apple2gs:   { wasm: 'apple2gs.wasm',  js: 'apple2gs.js',    driver: 'apple2gs' },
-  apple3:     { wasm: 'apple3.wasm',    js: 'apple3.js',      driver: 'apple3' },
-  mac:        { wasm: 'mac.wasm',       js: 'mac.js',         driver: 'mac' },
-  coco:       { wasm: 'coco.wasm',      js: 'coco.js',        driver: 'coco' },
-  coco3:      { wasm: 'coco3.wasm',     js: 'coco3.js',       driver: 'coco3' },
-  trs80:      { wasm: 'trs80.wasm',     js: 'trs80.js',       driver: 'trs80' },
+  mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js', driver: 'apple2p' },
+  apple2gs: { wasm: 'apple2gs.wasm', js: 'apple2gs.js', driver: 'apple2gs' },
+  apple3: { wasm: 'apple3.wasm', js: 'apple3.js', driver: 'apple3' },
+  mac: { wasm: 'mac.wasm', js: 'mac.js', driver: 'mac' },
+  coco: { wasm: 'coco.wasm', js: 'coco.js', driver: 'coco' },
+  coco3: { wasm: 'coco3.wasm', js: 'coco3.js', driver: 'coco3' },
+  trs80: { wasm: 'trs80.wasm', js: 'trs80.js', driver: 'trs80' },
   // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
   // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
-  c64:        { wasm: 'c64.wasm',       js: 'c64.js',         driver: 'c64' },
+  c64: { wasm: 'c64.wasm', js: 'c64.js', driver: 'c64' },
+  // Universal and Tiny engines
+  mame: { wasm: 'mame.wasm.gz', js: 'mame.js', driver: 'apple2e' },
+  mametiny: { wasm: 'mametiny.wasm.gz', js: 'mametiny.js', driver: 'apple2' },
 }
 
 /**
@@ -105,14 +106,14 @@ const DRIVER_MAP: Record<string, string> = {
   macclasc: 'macclasc',
   macclas2: 'macclas2',
   maccclas: 'maccclas',
-  // apple2e* variants (Platinum models use mameapple2e.wasm but use apple2e driver)
+  // apple2e* variants (Platinum models use apple2e.wasm but use apple2e driver)
   apple2ep: 'apple2e',
   apple2epuk: 'apple2e',
   apple2epde: 'apple2e',
   apple2epfr: 'apple2e',
   apple2epes: 'apple2e',
   apple2epse: 'apple2e',
-  // apple2c* variants (also use mameapple2e.wasm)
+  // apple2c* variants (also use apple2e.wasm)
   apple2c: 'apple2c',
   apple2c0: 'apple2c0',
   apple2c1: 'apple2c1',
@@ -204,7 +205,11 @@ function getWasmForEmulator(emulator: string, machineName: string): { wasm: stri
   // Direct match from EMULATOR_WASM_MAP
   const info = EMULATOR_WASM_MAP[emulator]
   if (info) return info
-  if (machineName === 'apple2' || machineName === 'apple2p' || machineName === 'apple2jp') return EMULATOR_WASM_MAP['mameapple2']
+  // Fallback for early Apple machines if emulator lookup failed
+  if (machineName === 'apple1' || machineName === 'apple2' || machineName === 'apple2p' || machineName === 'apple2jp') {
+    return EMULATOR_WASM_MAP['mametiny'] || EMULATOR_WASM_MAP['mameapple2']
+  }
+  if (emulator === 'mameapple2e') return EMULATOR_WASM_MAP['apple2e']
   return null
 }
 
@@ -313,10 +318,19 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   // apple2 (original) and variants
   apple2: 'apple2.zip;a2diskii.zip',
   apple2p: 'apple2p.zip;a2diskii.zip',
-  apple2jp: 'apple2jp.zip;a2diskii.zip',
+  apple2jp: 'apple2.zip;a2diskii.zip',
   // Clones and other systems
-  laser128: 'laser128.zip',
-  ace100: 'ace100.zip',
+  albert: 'albert.zip;apple2.zip',
+  am100: 'am100.zip;apple2.zip',
+  basis108: 'basis108.zip;apple2.zip',
+  hkc8800a: 'hkc8800a.zip;apple2.zip',
+  prav82: 'prav82.zip;apple2.zip',
+  prav8m: 'prav8m.zip;apple2.zip',
+  mprof3: 'mprof3.zip;apple2e.zip',
+  ace100: 'ace100.zip;apple2.zip',
+  laser128: 'laser128.zip;apple2e.zip',
+  agat7: 'agat7.zip',
+  agat9: 'agat9.zip',
   bbcb: 'bbcb.zip',
   electron: 'electron.zip',
   dragon32: 'dragon32.zip',
@@ -344,6 +358,7 @@ const DEFAULT_RESOLUTIONS: Record<string, string> = {
   trs80: '384x192',
   c64: '384x272',
   mc10: '372x243',
+  mametiny: '560x384',
 }
 
 function App() {
@@ -443,7 +458,7 @@ function App() {
         if (pathPrefix) {
           fullPath = s.name.startsWith(':') ? `${pathPrefix}${s.name}` : `${pathPrefix}:${s.name}`
         }
-        
+
         let val = next[fullPath]
         const option = s.options?.find(o => o.value === val) || s.options?.find(o => o.default)
         if (option) {
@@ -481,7 +496,7 @@ function App() {
 
   const fetchAllRoms = useCallback(async (machineName: string, effectiveDriver: string): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
-    
+
     // 1. Main machine ROM — look up from DRIVER_ROM_MAP
     const rawMapValue = DRIVER_ROM_MAP[machineName] || (machineName.startsWith('apple2gs') ? DRIVER_ROM_MAP['apple2gs_shared'] : null)
     const romFilesToFetch = rawMapValue ? rawMapValue.split(';') : [machineName + '.zip']
@@ -491,7 +506,7 @@ function App() {
         const url = `/roms/${romFile}`
         // We associate the ROM with effectiveDriver so MAME (running as effectiveDriver) can find it
         const rom = await fetchRom(url, effectiveDriver, romFile)
-        
+
         // TorrentZip check
         if (rom.data.length >= 48) {
           const raw = rom.data
@@ -506,7 +521,26 @@ function App() {
         romFiles.push(rom)
         addLog(`ROM: ${romFile} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
       } catch {
-        addLog(`ROM not found: ${romFile}`, true)
+        // Fallback: try auto-download servers if configured
+        if (romSettings.autoDownload && romSettings.downloadServers.length > 0) {
+          let found = false
+          for (const server of romSettings.downloadServers) {
+            try {
+              const downloadUrl = server.replace('{filename}', romFile)
+              addLog(`Attempting download: ${downloadUrl}`, false)
+              const rom = await fetchRom(downloadUrl, effectiveDriver, romFile)
+              romFiles.push(rom)
+              addLog(`Downloaded: ${romFile} from ${server}`, false)
+              found = true
+              break
+            } catch {
+              continue
+            }
+          }
+          if (!found) addLog(`ROM not found: ${romFile}`, true)
+        } else {
+          addLog(`ROM not found: ${romFile}`, true)
+        }
       }
     }
 
@@ -529,10 +563,10 @@ function App() {
           if (resp.ok) {
             const data = new Uint8Array(await resp.arrayBuffer())
             // Directly push the ZIP with the expected MAME name (romSet)
-            romFiles.push({ 
-              driver: aux.romSet, 
-              name: `${aux.romSet}.zip`, 
-              data 
+            romFiles.push({
+              driver: aux.romSet,
+              name: `${aux.romSet}.zip`,
+              data
             })
             addLog(`Aux: ${aux.romSet}.zip added`, false)
           }
@@ -550,6 +584,9 @@ function App() {
    * Maps machine driver names to emulator WASM files.
    */
   function getEmulatorForMachine(machineName: string): string | null {
+    if (machineName === 'apple1') return 'mametiny'
+    if (machineName.startsWith('apple2p') || machineName.startsWith('apple2jp') || machineName === 'apple2') return 'mametiny'
+
     // apple2gs* → apple2gs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
     // apple2ep* (Platinum) → mameapple2e (per official config)
@@ -562,8 +599,10 @@ function App() {
     if (machineName.startsWith('apple2e')) return 'apple2e'
     // apple2woz* → apple2e (uses apple2e.wasm)
     if (machineName.startsWith('apple2woz')) return 'apple2e'
-    // apple2p*, apple2*, apple2jp* → mameapple2 (unified engine)
-    if (machineName.startsWith('apple2p') || machineName.startsWith('apple2') || machineName.startsWith('apple2jp')) return 'mameapple2'
+
+    // other apple2* variants → mameapple2 (unified engine)
+    if (machineName.startsWith('apple2')) return 'mameapple2'
+
     // apple3* → apple3
     if (machineName.startsWith('apple3')) return 'apple3'
     // maciici* → maciici (dedicated WASM)
@@ -587,7 +626,7 @@ function App() {
     if (machineName.startsWith('c64')) return 'c64'
     // mc10 → mc10
     if (machineName.startsWith('mc10')) return 'mc10'
-    if (machineName === 'apple1') return 'mametiny'
+
     // st* → no emularity WASM for Atari ST (st.wasm is Stadium Hero arcade)
     // if (machineName.startsWith('st')) return 'st'
     // fallback apple2e/c variants to dedicated WASMs
@@ -602,7 +641,7 @@ function App() {
    */
   const getEffectiveMedia = useCallback(() => {
     if (!machineConfig) return {}
-    
+
     const counts: Record<string, number> = {}
     const typeMap: Record<string, string> = {
       'floppy_5_25': 'flop',
@@ -628,10 +667,10 @@ function App() {
             ? `${pathPrefix}${slot.name}`.replace(/:+/g, ':')
             : `${pathPrefix}:${slot.name}`
         }
-        
+
         const selectedValue = slotValues[fullPath]
         if (!selectedValue) return
-        
+
         const option = slot.options?.find(o => o.value === selectedValue)
         if (option) {
           if (option.media) {
@@ -653,7 +692,7 @@ function App() {
         }
       })
     }
-    
+
     collectMedia(machineConfig.slots)
     return counts
   }, [machineConfig, slotValues])
@@ -666,7 +705,7 @@ function App() {
    * 4. preRun writes ZIPs to VFS → MAME auto-starts
    */
   const doLaunch = useCallback(async (
-    machine: { name: string; description: string }, 
+    machine: { name: string; description: string },
     slotsParam?: Record<string, string>,
     mediaParam?: Record<string, File | null>
   ) => {
@@ -739,7 +778,7 @@ function App() {
 
     // 4. Build MAME args
     const finalSlots = slotsParam ?? slotValues
-    
+
     // Build a rompath that includes all fetched ZIPs so MAME can find regional files
     const romPaths = romFiles.map(rf => `/roms/${rf.name}`)
     romPaths.push('/roms')
@@ -764,7 +803,7 @@ function App() {
       // If it's a media drive slot (like sl6:0), don't pass as a slot argument
       // MAME usually handles these via -flop1, etc.
       if (isMediaSlot(path)) continue
-      
+
       filteredSlots[path] = value
     }
 
@@ -848,12 +887,12 @@ function App() {
     const init = async () => {
       const data = await dataManager.loadModels()
       setModels(data)
-      
+
       // Restore selection from URL
       const params = new URLSearchParams(window.location.search)
       const m = params.get('m')
       const d = params.get('d')
-      
+
       let machineToLaunch: { name: string; description: string } | null = null
       if (m && d) {
         machineToLaunch = { name: m, description: d }
@@ -868,7 +907,7 @@ function App() {
               const [k, v] = p.split(':')
               if (k && v) slots[k] = v
             })
-          } catch {}
+          } catch { }
         }
 
         if (config) {
@@ -876,7 +915,7 @@ function App() {
           setSlotValues(slots)
         }
         setSelectedMachine(machineToLaunch)
-        
+
         // 2. Auto-expand tree to show selected machine
         const path: string[] = []
         const findPath = (nodes: ModelEntry[], target: string, ancestors: string[]): boolean => {
@@ -889,7 +928,7 @@ function App() {
               path.push(...ancestors)
               return true
             }
-            
+
             if (hasChildren) {
               if (findPath(node.children!, target, [...ancestors, id])) {
                 return true
@@ -903,7 +942,7 @@ function App() {
           }
           return false
         }
-        
+
         if (findPath(data, m, [])) {
           setExpandedNodes(prev => new Set([...prev, ...path]))
         }
@@ -949,7 +988,7 @@ function App() {
       const url = new URL(window.location.href)
       url.searchParams.set('m', selectedMachine.name)
       url.searchParams.set('d', selectedMachine.description)
-      
+
       // Sync slots
       const slotStrings = Object.entries(slotValues)
         .filter(([_, v]) => !!v)
@@ -1255,19 +1294,19 @@ function App() {
               {/* Config area */}
               <div className="config-area" style={{ width: configWidth ?? 450 }}>
                 <div className="tab-header">
-                  <button 
+                  <button
                     className={`tab-btn ${configTab === 'slots' ? 'active' : ''}`}
                     onClick={() => setConfigTab('slots')}
                   >
                     Slots
                   </button>
-                  <button 
+                  <button
                     className={`tab-btn ${configTab === 'media' ? 'active' : ''}`}
                     onClick={() => setConfigTab('media')}
                   >
                     Media
                   </button>
-                  <button 
+                  <button
                     className={`tab-btn ${configTab === 'logs' ? 'active' : ''}`}
                     onClick={() => setConfigTab('logs')}
                   >
@@ -1290,12 +1329,12 @@ function App() {
                                     ? `${pathPrefix}${slot.name}`.replace(/:+/g, ':')
                                     : `${pathPrefix}:${slot.name}`
                                 }
-                                
+
                                 const selectedValue = slotValues[fullPath] || ''
                                 const selectedOption = slot.options?.find(o => o.value === selectedValue)
-                                
+
                                 const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
-                                
+
                                 return (
                                   <React.Fragment key={`${fullPath}-${depth}-${idx}`}>
                                     <div className="slot-row" style={{ paddingLeft: depth * 16 }}>
@@ -1356,8 +1395,8 @@ function App() {
                                     📁
                                   </button>
                                   {mediaFiles[mediaId] && (
-                                    <button 
-                                      className="btn btn-ghost btn-icon" 
+                                    <button
+                                      className="btn btn-ghost btn-icon"
                                       onClick={() => {
                                         setMediaFiles(prev => {
                                           const next = { ...prev }
@@ -1371,9 +1410,9 @@ function App() {
                                       ⏏️
                                     </button>
                                   )}
-                                  <input 
-                                    type="file" 
-                                    id={`file-${mediaId}`} 
+                                  <input
+                                    type="file"
+                                    id={`file-${mediaId}`}
                                     style={{ display: 'none' }}
                                     onChange={(e) => {
                                       const file = e.target.files?.[0] || null
@@ -1697,12 +1736,14 @@ function TreeItem({
           if (entry.value) onSelect({ name: entry.value, description: entry.description })
         }}
       >
-        {hasChildren ? (
-          <span className="tree-arrow">{isExpanded ? '▾' : '▸'}</span>
-        ) : (
-          <span className="tree-dot">·</span>
-        )}
-        <span className="tree-label">{entry.description}</span>
+        <div className="tree-item-content">
+          {hasChildren ? (
+            <span className="tree-arrow">{isExpanded ? '▾' : '▸'}</span>
+          ) : (
+            <span className="tree-dot"></span>
+          )}
+          <span className="tree-label">{entry.description}</span>
+        </div>
         {entry.value && !hasChildren && (
           <code className="tree-id">{entry.value}</code>
         )}
