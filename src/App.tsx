@@ -16,21 +16,21 @@ import { useStore } from './core/store'
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
   // Dedicated emularity builds (each WASM = one emularity config)
-  apple2e: { wasm: 'apple2e.wasm', js: 'apple2e.js', driver: 'apple2e' },
-  mac128: { wasm: 'mac128.wasm', js: 'mac128.js', driver: 'mac128k' },
-  maciici: { wasm: 'maciici.wasm', js: 'maciici.js', driver: 'maciici' },
-  mc10: { wasm: 'mc10.wasm', js: 'mc10.js', driver: 'mc10' },
+  apple2e: { wasm: 'apple2e.wasm.gz', js: 'apple2e.js', driver: 'apple2e' },
+  mac128: { wasm: 'mac128.wasm.gz', js: 'mac128.js', driver: 'mac128k' },
+  maciici: { wasm: 'maciici.wasm.gz', js: 'maciici.js', driver: 'maciici' },
+  mc10: { wasm: 'mc10.wasm.gz', js: 'mc10.js', driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
-  mameapple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js', driver: 'apple2p' },
-  apple2gs: { wasm: 'apple2gs.wasm', js: 'apple2gs.js', driver: 'apple2gs' },
-  apple3: { wasm: 'apple3.wasm', js: 'apple3.js', driver: 'apple3' },
-  mac: { wasm: 'mac.wasm', js: 'mac.js', driver: 'mac' },
-  coco: { wasm: 'coco.wasm', js: 'coco.js', driver: 'coco' },
-  coco3: { wasm: 'coco3.wasm', js: 'coco3.js', driver: 'coco3' },
-  trs80: { wasm: 'trs80.wasm', js: 'trs80.js', driver: 'trs80' },
+  mameapple2: { wasm: 'mameapple2.wasm.gz', js: 'mameapple2.js', driver: 'apple2p' },
+  apple2gs: { wasm: 'apple2gs.wasm.gz', js: 'apple2gs.js', driver: 'apple2gs' },
+  apple3: { wasm: 'apple3.wasm.gz', js: 'apple3.js', driver: 'apple3' },
+  mac: { wasm: 'mac.wasm.gz', js: 'mac.js', driver: 'mac' },
+  coco: { wasm: 'coco.wasm.gz', js: 'coco.js', driver: 'coco' },
+  coco3: { wasm: 'coco3.wasm.gz', js: 'coco3.js', driver: 'coco3' },
+  trs80: { wasm: 'trs80.wasm.gz', js: 'trs80.js', driver: 'trs80' },
   // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
   // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
-  c64: { wasm: 'c64.wasm', js: 'c64.js', driver: 'c64' },
+  c64: { wasm: 'c64.wasm.gz', js: 'c64.js', driver: 'c64' },
   // Universal and Tiny engines
   mame: { wasm: 'mame.wasm.gz', js: 'mame.js', driver: 'apple2e' },
   mametiny: { wasm: 'mametiny.wasm.gz', js: 'mametiny.js', driver: 'apple2' },
@@ -228,36 +228,36 @@ interface LogLine {
 const DRIVER_ROM_MAP: Record<string, string> = {
   // Apple IIe variants
   apple2e: 'apple2e.zip',
-  apple2ee: 'apple2ee.zip;apple2e.zip',
-  apple2eeuk: 'apple2eeuk.zip;apple2e.zip',
-  apple2eede: 'apple2eede.zip;apple2e.zip',
-  apple2eese: 'apple2eese.zip;apple2e.zip',
-  apple2eefr: 'apple2eefr.zip;apple2e.zip',
-  apple2ees: 'apple2ees.zip;apple2e.zip',
-  apple2ep: 'apple2ep.zip;apple2e.zip',
-  apple2epuk: 'apple2epuk.zip;apple2e.zip',
-  apple2epde: 'apple2epde.zip;apple2e.zip',
-  apple2epfr: 'apple2epfr.zip;apple2e.zip',
-  apple2epes: 'apple2epes.zip;apple2e.zip',
-  apple2epse: 'apple2epse.zip;apple2e.zip',
-  apple2euk: 'apple2euk.zip;apple2e.zip',
-  apple2ede: 'apple2ede.zip;apple2e.zip',
-  apple2ese: 'apple2ese.zip;apple2e.zip',
-  apple2efr: 'apple2efr.zip;apple2e.zip',
+  apple2ee: 'apple2ee.zip',
+  apple2eeuk: 'apple2eeuk.zip',
+  apple2eede: 'apple2eede.zip',
+  apple2eese: 'apple2eese.zip',
+  apple2eefr: 'apple2eefr.zip',
+  apple2ees: 'apple2ees.zip',
+  apple2ep: 'apple2ep.zip',
+  apple2epuk: 'apple2epuk.zip',
+  apple2epde: 'apple2epde.zip',
+  apple2epfr: 'apple2epfr.zip',
+  apple2epes: 'apple2epes.zip',
+  apple2epse: 'apple2epse.zip',
+  apple2euk: 'apple2euk.zip',
+  apple2ede: 'apple2ede.zip',
+  apple2ese: 'apple2ese.zip',
+  apple2efr: 'apple2efr.zip',
   // Apple IIc variants
   apple2c: 'apple2c.zip',
-  apple2c0: 'apple2c0.zip;apple2c.zip',
-  apple2c1: 'apple2c1.zip;apple2c.zip',
-  apple2c2: 'apple2c2.zip;apple2c.zip',
-  apple2c3: 'apple2c3.zip;apple2c.zip',
-  apple2c4: 'apple2c4.zip;apple2c.zip',
-  apple2cp: 'apple2cp.zip;apple2c.zip',
-  apple2cm: 'apple2cm.zip;apple2c.zip',
-  apple2che: 'apple2che.zip;apple2c.zip',
+  apple2c0: 'apple2c0.zip',
+  apple2c1: 'apple2c1.zip',
+  apple2c2: 'apple2c2.zip',
+  apple2c3: 'apple2c3.zip',
+  apple2c4: 'apple2c4.zip',
+  apple2cp: 'apple2cp.zip',
+  apple2cm: 'apple2cm.zip',
+  apple2che: 'apple2che.zip',
   // Apple IIgs
   apple2gs: 'apple2gs.zip',
-  apple2gsr0: 'apple2gsr0.zip;apple2gs.zip',
-  apple2gsr1: 'apple2gsr1.zip;apple2gs.zip',
+  apple2gsr0: 'apple2gsr0.zip',
+  apple2gsr1: 'apple2gsr1.zip',
   // Apple III
   apple3: 'apple3.zip',
   // Mac variants
@@ -316,18 +316,18 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   mc10: 'mc10.zip',
   apple1: 'apple1.zip',
   // apple2 (original) and variants
-  apple2: 'apple2.zip;a2diskii.zip',
-  apple2p: 'apple2p.zip;a2diskii.zip',
-  apple2jp: 'apple2.zip;a2diskii.zip',
+  apple2: 'apple2.zip',
+  apple2p: 'apple2p.zip',
+  apple2jp: 'apple2jp.zip',
   // Clones and other systems
-  albert: 'albert.zip;apple2.zip',
-  am100: 'am100.zip;apple2.zip',
-  basis108: 'basis108.zip;apple2.zip',
-  hkc8800a: 'hkc8800a.zip;apple2.zip',
-  prav82: 'prav82.zip;apple2.zip',
-  prav8m: 'prav8m.zip;apple2.zip',
-  mprof3: 'mprof3.zip;apple2e.zip',
-  ace100: 'ace100.zip;apple2.zip',
+  albert: 'albert.zip',
+  am100: 'am100.zip',
+  basis108: 'basis108.zip',
+  hkc8800a: 'hkc8800a.zip',
+  prav82: 'prav82.zip',
+  prav8m: 'prav8m.zip',
+  mprof3: 'mprof3.zip',
+  ace100: 'ace100.zip',
   laser128: 'laser128.zip;apple2e.zip',
   agat7: 'agat7.zip',
   agat9: 'agat9.zip',
@@ -586,11 +586,10 @@ function App() {
   function getEmulatorForMachine(machineName: string): string | null {
     if (machineName === 'apple1') return 'mametiny'
     if (machineName.startsWith('apple2p') || machineName.startsWith('apple2jp') || machineName === 'apple2') return 'mametiny'
+    if (machineName.startsWith('apple2ep')) return 'apple2e'
 
     // apple2gs* → apple2gs
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
-    // apple2ep* (Platinum) → mameapple2e (per official config)
-    if (machineName.startsWith('apple2ep')) return 'mameapple2e'
     // apple2c* → mameapple2e (per official config)
     if (machineName.startsWith('apple2c')) return 'mameapple2e'
     // apple2ee* (Enhanced) → apple2e (dedicated WASM)
