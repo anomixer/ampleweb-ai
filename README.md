@@ -47,11 +47,26 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 npm install
 npm run dev
 ```
+or
+```cmd
+ampleweb.bat
+```
 
 ## ROM Requirements
 
-Each emulator needs its BIOS ROM ZIP in `public/roms/`. Currently only `apple2e.zip` is included.
+Each emulator needs its BIOS ROM ZIP in `public/roms/`.
+
+use download_rom.ps1 to download all merged set:
+
+https://mdk.cab/download/full/<romname>.7z
+and convert to zip
+
+tk3000 required to download too
+
 
 ## Architecture
 
 See `AGENTS.md` for detailed development log, architecture decisions, and session notes.
+
+
+
