@@ -447,8 +447,8 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   maclc3: 'maclc3.zip;egret.zip',
   maclc3p: 'maclc3p.zip;maclc3.zip;egret.zip',
   maclc475: 'maclc475.zip;macqd605.zip;cuda.zip',
-  maclc520: 'maclc520.zip;egret.zip',
-  maclc550: 'maclc550.zip;maclc520.zip;egret.zip',
+  maclc520: 'maclc520.zip;cuda.zip',
+  maclc550: 'maclc550.zip;maclc520.zip;cuda.zip',
   maclc575: 'maclc575.zip;macqd605.zip;cuda.zip',
   macpb100: 'macpb100.zip',
   macpb140: 'macpb140.zip',
@@ -460,12 +460,12 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macpb170: 'macpb170.zip;macpb140.zip',
   macpb180: 'macpb180.zip;macpb160.zip',
   macpb180c: 'macpb180c.zip',
-  macpd210: 'macpd210.zip',
-  macpd230: 'macpd230.zip;macpd210.zip',
-  macpd250: 'macpd250.zip;macpd210.zip',
-  macpd270c: 'macpd270c.zip',
-  macpd280: 'macpd280.zip',
-  macpd280c: 'macpd280c.zip;macpd280.zip',
+  macpd210: 'macpd210.zip;m68hc05pge.zip',
+  macpd230: 'macpd230.zip;macpd210.zip;m68hc05pge.zip',
+  macpd250: 'macpd250.zip;macpd210.zip;m68hc05pge.zip',
+  macpd270c: 'macpd270c.zip;m68hc05pge.zip',
+  macpd280: 'macpd280.zip;m68hc05pge.zip',
+  macpd280c: 'macpd280c.zip;macpd280.zip;m68hc05pge.zip',
   macplus: 'macplus.zip;mackbd_m0110.zip;mackbd_m0120.zip;mackbd_m0110a.zip',
   macprtb: 'macprtb.zip',
   macqd605: 'macqd605.zip;cuda.zip',
@@ -478,7 +478,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macse: 'macse.zip;adbmodem.zip',
   macse30: 'macse30.zip;mac2fdhd.zip;nb_mdc824.zip;adbmodem.zip',
   macsefd: 'macsefd.zip;adbmodem.zip',
-  mactv: 'mactv.zip;adbmodem.zip',
+  mactv: 'mactv.zip;adbmodem.zip;cuda.zip',
   maxxi: 'maxxi.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
   mc10: 'mc10.zip',
   megast: 'megast.zip;st.zip',
@@ -518,6 +518,9 @@ const DEFAULT_RESOLUTIONS: Record<string, string> = {
   mac128: '512x342',
   maciici: '640x480',
   mac: '640x480',
+  maclc: '512x384',
+  macqd: '640x480',
+  macpb: '640x400',
   coco: '320x240',
   coco3: '640x480',
   trs80: '384x192',
@@ -1865,10 +1868,18 @@ function TreeItem({
 
   const isExpanded = filter ? matchesFilter(entry, filter) : expanded.has(id)
   const isSelected = selected?.name === entry.value && !!entry.value
+  const itemRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isSelected && itemRef.current) {
+      itemRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [isSelected])
 
   return (
     <li>
       <div
+        ref={itemRef}
         className={`tree-item${isSelected ? ' selected' : ''}${hasChildren ? ' group' : ''}`}
         style={{ paddingLeft: `${8 + depth * 14}px` }}
         onClick={() => {
