@@ -63,6 +63,7 @@ AmpleWeb is a pure web-based version of AmpleWin / AmpleLinux — a MAME/MESS fr
 - ✅ **Tabbed Configuration** — integrated Slots, Media, and Logs into a unified tabbed UI
 - ✅ **Dedicated Machine WASM** — infrastructure for loading per-machine builds (e.g. `apple2jp.wasm`) implemented
 - ✅ **ROM Library Populated** — essential BIOS ROMs for 50+ models copied to `public/roms/`
+- ✅ **Dragon Data / CoCo 3 Clones** — fully functional with correct FDC mapping
 
 ### Key Insight (Session 3)
 The **239MB full mame.wasm** is the root cause of most issues:
@@ -123,6 +124,7 @@ Could not build MAME WASM under Linux — all Emscripten releases (2.0.24, 3.1.7
 - [x] **Session 11**: Implementation of "Standalone ROM Strategy" for reliable BIOS loading
 - [x] **Session 11**: Implementation of "Refresh-on-Launch" strategy for stability
 - [x] **Session 11**: Auto-expansion of machine tree on reload
+- [x] **Session 2026-05-02**: Stabilization of Dragon, CoCo, Mac, and BBC ROM dependencies
 - [ ] **TODO**: Performance tuning for GS and Mac II models
 - [ ] **TODO**: Verify keyboard mapping for BBC Micro and Oric-1
 
@@ -171,7 +173,41 @@ Fixed a logic error in engine selection where Apple II/II+ were cross-mapped or 
 | **Engine Size** | ✅ Optimized | 41MB for a hundred machines is highly efficient. |
 | **ROM Mapping** | ✅ Expanded | All common 8-bit clones now have mapped ROMs. |
 
+---
+
+## Session: 2026-05-02 — ROM Stabilization & Mapping Audit
+
+### 🎯 Objective
+Resolve persistent ROM "NOT FOUND" errors across multiple platforms (Commodore, Dragon, Macintosh, BBC) and clean up the internal mapping infrastructure for better stability and maintainability.
+
+### ✅ Key Changes
+
+#### 1. Driver & ROM Dependency Resolution
+- **Dragon Data Series**: Fixed `d64plus`, `dragon200`, `dragon200e`, and `tanodr64` by correctly mapping `dragon_fdc.zip` and `sdtandy_fdc.zip`.
+- **Commodore 64**: Resolved missing drive firmware by mapping `c1541.zip`.
+- **Atari ST**: Added `st_kbd.zip` to resolve keyboard initialization failures (though full ST emulation still requires a specialized WASM).
+- **BBC Micro**: Added `saa5050.zip` to Master and Master Compact models to fix Teletext display initialization.
+- **Macintosh PowerBook**: Fixed boot hangs for the 160/165/180 series by injecting `egret.zip` and `adbmodem.zip` dependencies.
+
+#### 2. Infrastructure Cleanup
+- **DRIVER_MAP Audit**: Performed a massive cleanup of `App.tsx` to remove duplicate keys and restore missing sub-variants.
+- **Unified Driver Mapping**: Ensured all clones correctly resolve to their parent MAME drivers while maintaining their unique identity in `DRIVER_ROM_MAP` for specific firmware requirements.
+- **Syntax Fixes**: Resolved Babel/Vite compilation errors caused by accidental duplicate braces and keys during rapid iterations.
+
+#### 3. Stability Improvements
+- Updated `getWasmForEmulator` logic to ensure fallback machines don't default to the wrong driver (avoiding the 'apple2e' fallback for non-Apple machines).
+- Verified 100+ machine configurations for correct ROM chaining.
+
+### 📋 Status Update
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| **Mac PowerBook** | ✅ Working | 160/165/180/180c series now boot correctly. |
+| **Dragon/CoCo Clones**| ✅ Working | Correct FDC firmware mapped for all variants. |
+| **BBC Master** | ✅ Working | Saa5050 dependency resolved. |
+| **Mapping Quality** | ✅ High | Cleaned up all duplicates and redundant entries. |
+
 ### 💡 Tips for next Session
-1. **Test BBC Micro**: Verify if `bbcb.zip` is correctly loaded and if the keyboard mapping works.
-2. **Atari ST Check**: See if Atari ST can be compiled into a specialized build or if it fits in the universal engine (needs 68000 support).
-3. **Performance Tuning**: Monitor performance on Apple IIgs; if slow, consider a dedicated high-perf build.
+1. **Macintosh Sound**: Investigate occasional sound crackling in Quadra/LC models.
+2. **Keyboard Layouts**: Add UI option to select between different international keyboard ROMs (e.g., German/French BBC).
+3. **Save States**: Explore WASM save-state persistence in IndexedDB.
