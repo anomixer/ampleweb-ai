@@ -714,8 +714,14 @@ function App() {
     }
 
     collectMedia(machineConfig.slots)
+
+    // Force 5.25" floppy drives for CEC machines
+    if (selectedMachine?.name.startsWith('cec')) {
+      counts['flop'] = Math.max(counts['flop'] || 0, 2)
+    }
+
     return counts
-  }, [machineConfig, slotValues])
+  }, [machineConfig, slotValues, selectedMachine])
 
   /**
    * Main launch sequence:
@@ -1449,9 +1455,9 @@ function App() {
                             )
                           })
                         ))}
-                        {!machineConfig || Object.keys(machineConfig.media).length === 0 ? (
+                        {(!machineConfig || Object.keys(getEffectiveMedia()).length === 0) && (
                           <p className="empty-hint">No media drives available.</p>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   )}
