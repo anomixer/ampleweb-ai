@@ -189,6 +189,9 @@ const DRIVER_MAP: Record<string, string> = {
   c64: 'c64',
   mc10: 'mc10',
   apple1: 'apple1',
+  apple2gs: 'apple2gsr1',
+  apple2gsr0: 'apple2gsr0',
+  apple2gsr1: 'apple2gsr1',
 }
 
 
@@ -263,8 +266,8 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2che: 'apple2che.zip',
   // Apple IIgs
   apple2gs: 'apple2gs.zip',
-  apple2gsr0: 'apple2gsr0.zip',
-  apple2gsr1: 'apple2gsr1.zip',
+  apple2gsr0: 'apple2gsr0.zip;apple2gs.zip',
+  apple2gsr1: 'apple2gsr1.zip;apple2gs.zip',
   // CEC (China Education Computer) variants
   cec2000: 'cec2000.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   cece: 'cece.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
@@ -598,10 +601,10 @@ function App() {
    */
   function getEmulatorForMachine(machineName: string): string | null {
     // 1. Highest priority: Enhanced IIe / Platinum / CEC variants
-    if (machineName.startsWith('apple2ep') || 
-        machineName.startsWith('apple2ee') || 
-        machineName.startsWith('apple2woz') ||
-        machineName.startsWith('cec')) {
+    if (machineName.startsWith('apple2ep') ||
+      machineName.startsWith('apple2ee') ||
+      machineName.startsWith('apple2woz') ||
+      machineName.startsWith('cec')) {
       return 'apple2ee'
     }
 
@@ -611,11 +614,11 @@ function App() {
       return 'mametiny'
     }
 
-    // 3. Apple IIgs
+    // 3. Apple IIgs (Try using universal mame engine)
     if (machineName.startsWith('apple2gs')) return 'apple2gs'
 
     // 4. Apple IIc variants
-    if (machineName.startsWith('apple2c')) return 'mameapple2e'
+    if (machineName.startsWith('apple2c')) return 'apple2e'
 
     // 5. Unenhanced Apple IIe fallback
     if (machineName.startsWith('apple2e')) return 'apple2e'
