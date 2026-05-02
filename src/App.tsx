@@ -22,7 +22,7 @@ const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: stri
   maciici: { wasm: 'maciici.wasm.gz', js: 'maciici.js', driver: 'maciici' },
   mc10: { wasm: 'mc10.wasm.gz', js: 'mc10.js', driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
-  mameapple2: { wasm: 'mameapple2.wasm.gz', js: 'mameapple2.js', driver: 'apple2p' },
+  apple2: { wasm: 'apple2.wasm.gz', js: 'apple2.js', driver: 'apple2p' },
   apple2gs: { wasm: 'apple2gs.wasm.gz', js: 'apple2gs.js', driver: 'apple2gs' },
   apple3: { wasm: 'apple3.wasm.gz', js: 'apple3.js', driver: 'apple3' },
   mac: { wasm: 'mac.wasm.gz', js: 'mac.js', driver: 'mac' },
@@ -166,6 +166,11 @@ const DRIVER_MAP: Record<string, string> = {
   laser128o: 'laser128o',
   las128ex: 'las128ex',
   las128e2: 'las128e2',
+  ace100: 'ace100',
+  ace1000: 'ace1000',
+  ace2200: 'ace2200',
+  ace500: 'ace500',
+  space84: 'space84',
   agat7: 'agat7',
   agat9: 'agat9',
   cec2000: 'cec2000',
@@ -217,9 +222,9 @@ function getWasmForEmulator(emulator: string, machineName: string): { wasm: stri
   if (info) return info
   // Fallback for early Apple machines if emulator lookup failed
   if (machineName === 'apple1' || machineName === 'apple2' || machineName === 'apple2p' || machineName === 'apple2jp') {
-    return EMULATOR_WASM_MAP['mametiny'] || EMULATOR_WASM_MAP['mameapple2']
+    return EMULATOR_WASM_MAP['mametiny'] || EMULATOR_WASM_MAP['apple2']
   }
-  if (emulator === 'mameapple2e') return EMULATOR_WASM_MAP['apple2e']
+  if (emulator === 'apple2e') return EMULATOR_WASM_MAP['apple2e']
   return null
 }
 
@@ -274,6 +279,12 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   cecg: 'cecg.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   ceci: 'ceci.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
   cecm: 'cecm.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
+  // Franklin Ace variants
+  ace100: 'ace100.zip;apple2p.zip;a2diskiing.zip;d2fdc.zip',
+  ace1000: 'ace1000.zip;apple2p.zip;a2diskiing.zip;d2fdc.zip',
+  ace2200: 'ace2200.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip',
+  ace500: 'ace500.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip',
+  space84: 'space84.zip;apple2.zip;a2diskiing.zip;d2fdc.zip',
   // Apple III
   apple3: 'apple3.zip',
   // Mac variants
@@ -361,8 +372,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
  * For MAME-wrapped builds, these are used as -resolution flags.
  */
 const DEFAULT_RESOLUTIONS: Record<string, string> = {
-  mameapple2: '560x384',
-  mameapple2e: '560x384',
+  apple2: '560x384',
   apple2e: '560x384',
   apple2gs: '704x462',
   apple3: '560x384',
@@ -624,7 +634,9 @@ function App() {
     if (machineName.startsWith('apple2e')) return 'apple2e'
 
     // 6. Generic apple2* fallback
-    if (machineName.startsWith('apple2')) return 'mameapple2'
+    if (machineName.startsWith('apple2') || 
+        machineName.startsWith('ace') || 
+        machineName === 'space84') return 'apple2'
 
     // apple3* → apple3
     if (machineName.startsWith('apple3')) return 'apple3'
@@ -653,8 +665,8 @@ function App() {
     // st* → no emularity WASM for Atari ST (st.wasm is Stadium Hero arcade)
     // if (machineName.startsWith('st')) return 'st'
     // fallback apple2e/c variants to dedicated WASMs
-    if (machineName.startsWith('apple2e') || machineName.startsWith('apple2c')) return 'mameapple2e'
-    if (machineName.startsWith('apple2')) return 'mameapple2'
+    if (machineName.startsWith('apple2e') || machineName.startsWith('apple2c')) return 'apple2e'
+    if (machineName.startsWith('apple2')) return 'apple2'
     // Final fallback: use the universal MAME engine for everything else
     return 'mame'
   }
