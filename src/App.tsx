@@ -16,25 +16,25 @@ import { useStore } from './core/store'
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
   // Dedicated emularity builds (each WASM = one emularity config)
-  apple2e: { wasm: 'apple2e.wasm.gz', js: 'apple2e.js', driver: 'apple2e' },
-  apple2ee: { wasm: 'apple2e.wasm.gz', js: 'apple2e.js', driver: 'apple2ee' },
-  mac128: { wasm: 'mac128.wasm.gz', js: 'mac128.js', driver: 'mac128k' },
-  maciici: { wasm: 'maciici.wasm.gz', js: 'maciici.js', driver: 'maciici' },
-  mc10: { wasm: 'mc10.wasm.gz', js: 'mc10.js', driver: 'mc10' },
+  apple2e: { wasm: 'apple2e.wasm', js: 'apple2e.js', driver: 'apple2e' },
+  apple2ee: { wasm: 'apple2e.wasm', js: 'apple2e.js', driver: 'apple2ee' },
+  mac128: { wasm: 'mac128.wasm', js: 'mac128.js', driver: 'mac128k' },
+  maciici: { wasm: 'maciici.wasm', js: 'maciici.js', driver: 'maciici' },
+  mc10: { wasm: 'mc10.wasm', js: 'mc10.js', driver: 'mc10' },
   // MAME-wrapped builds (full MAME with specific driver)
-  apple2: { wasm: 'apple2.wasm.gz', js: 'apple2.js', driver: 'apple2p' },
-  apple2gs: { wasm: 'apple2gs.wasm.gz', js: 'apple2gs.js', driver: 'apple2gs' },
-  apple3: { wasm: 'apple3.wasm.gz', js: 'apple3.js', driver: 'apple3' },
-  mac: { wasm: 'mac.wasm.gz', js: 'mac.js', driver: 'mac' },
-  coco: { wasm: 'coco.wasm.gz', js: 'coco.js', driver: 'coco' },
-  coco3: { wasm: 'coco3.wasm.gz', js: 'coco3.js', driver: 'coco3' },
-  trs80: { wasm: 'trs80.wasm.gz', js: 'trs80.js', driver: 'trs80' },
+  apple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js', driver: 'apple2p' },
+  apple2gs: { wasm: 'apple2gs.wasm', js: 'apple2gs.js', driver: 'apple2gs' },
+  apple3: { wasm: 'apple3.wasm', js: 'apple3.js', driver: 'apple3' },
+  mac: { wasm: 'mac.wasm', js: 'mac.js', driver: 'mac' },
+  coco: { wasm: 'coco.wasm', js: 'coco.js', driver: 'coco' },
+  coco3: { wasm: 'coco3.wasm', js: 'coco3.js', driver: 'coco3' },
+  trs80: { wasm: 'trs80.wasm', js: 'trs80.js', driver: 'trs80' },
   // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
   // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
-  c64: { wasm: 'c64.wasm.gz', js: 'c64.js', driver: 'c64' },
+  c64: { wasm: 'c64.wasm', js: 'c64.js', driver: 'c64' },
   // Universal and Tiny engines
   mame: { wasm: 'mame.wasm.gz', js: 'mame.js', driver: 'apple2e' },
-  mametiny: { wasm: 'mametiny.wasm.gz', js: 'mametiny.js', driver: 'apple2' },
+  mametiny: { wasm: 'mametiny.wasm', js: 'mametiny.js', driver: 'apple2' },
 }
 
 /**
@@ -140,6 +140,36 @@ const DRIVER_MAP: Record<string, string> = {
   apple2: 'apple2',
   apple2p: 'apple2p',
   apple2jp: 'apple2jp',
+  // Apple IIc
+  apple2c: 'apple2c',
+  apple2c0: 'apple2c0',
+  apple2c1: 'apple2c1',
+  apple2c2: 'apple2c2',
+  apple2c3: 'apple2c3',
+  apple2c4: 'apple2c4',
+  apple2cp: 'apple2cp',
+  apple2cm: 'apple2cm',
+  apple2che: 'apple2che',
+  apple2cde: 'apple2cde',
+  apple2cfr: 'apple2cfr',
+  apple2cse: 'apple2cse',
+  apple2cuk: 'apple2cuk',
+  apple2ede: 'apple2ede',
+  apple2ese: 'apple2ese',
+  apple2efr: 'apple2efr',
+  apple2euk: 'apple2euk',
+  apple2es: 'apple2es',
+  // Enhanced
+  apple2eefr: 'apple2eefr',
+  apple2eede: 'apple2eede',
+  apple2eese: 'apple2eese',
+  apple2eeuk: 'apple2eeuk',
+  apple2ees: 'apple2ees',
+  // Platinum
+  apple2epfr: 'apple2epfr',
+  apple2epde: 'apple2epde',
+  apple2epse: 'apple2epse',
+  apple2epuk: 'apple2epuk',
   // Apple II Clones
   albert: 'albert',
   am100: 'am100',
@@ -153,31 +183,31 @@ const DRIVER_MAP: Record<string, string> = {
   cecg: 'cecg',
   ceci: 'ceci',
   cecm: 'cecm',
-  // Education / Other Clones
-  mprof3: 'mprof3',
-  zijini: 'zijini',
+  // Franklin Ace variants
   ace100: 'ace100',
   ace500: 'ace500',
   ace1000: 'ace1000',
   ace2200: 'ace2200',
+  // Education / Other Clones
+  mprof3: 'mprof3',
+  zijini: 'zijini',
   laser128: 'laser128',
   laser3k: 'laser3k',
   laser2c: 'laser2c',
   laser128o: 'laser128o',
   las128ex: 'las128ex',
   las128e2: 'las128e2',
-  ace100: 'ace100',
-  ace1000: 'ace1000',
-  ace2200: 'ace2200',
-  ace500: 'ace500',
   space84: 'space84',
   agat7: 'agat7',
   agat9: 'agat9',
-  cec2000: 'cec2000',
-  cece: 'cece',
-  cecg: 'cecg',
-  ceci: 'ceci',
-  cecm: 'cecm',
+  // Atari ST
+  st: 'st',
+  megast: 'megast',
+  spectred: 'spectred',
+  // Oric
+  oric1: 'oric1',
+  orica: 'orica',
+  telstrat: 'telstrat',
   // BBC / Other 8-bit
   bbcb: 'bbcb',
   bbca: 'bbca',
@@ -194,10 +224,25 @@ const DRIVER_MAP: Record<string, string> = {
   c64: 'c64',
   mc10: 'mc10',
   apple1: 'apple1',
-  apple2gs: 'apple2gsr1',
+  apple2gs: 'apple2gs',
   apple2gsr0: 'apple2gsr0',
   apple2gsr1: 'apple2gsr1',
+  apple2gsr3: 'apple2gs',
+  apple3: 'apple3',
+  // More Clones
+  am64: 'am64',
+  craft2p: 'craft2p',
+  dodo: 'dodo',
+  elppa: 'elppa',
+  ivelultr: 'ivelultr',
+  maxxi: 'maxxi',
+  microeng: 'microeng',
+  uniap2en: 'uniap2en',
+  uniap2pt: 'uniap2pt',
+  prav8c: 'prav8c',
+  tk3000: 'tk3000',
 }
+
 
 
 /** Lightweight file existence check (synchronous, checks browser cache). */
@@ -241,128 +286,164 @@ interface LogLine {
  * MAME needs the correct BIOS ROM for each driver.
  */
 const DRIVER_ROM_MAP: Record<string, string> = {
-  // Apple IIe variants
-  apple2e: 'apple2e.zip',
-  apple2ee: 'apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2eeuk: 'apple2eeuk.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2eede: 'apple2eede.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2eese: 'apple2eese.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2eefr: 'apple2eefr.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2ees: 'apple2ees.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2ep: 'apple2ee.zip;apple2ep.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2epuk: 'apple2eeuk.zip;apple2epuk.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2epde: 'apple2eede.zip;apple2epde.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2epfr: 'apple2eefr.zip;apple2epfr.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2epes: 'apple2ees.zip;apple2epes.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2epse: 'apple2eese.zip;apple2epse.zip;apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2euk: 'apple2euk.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2ede: 'apple2ede.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2ese: 'apple2ese.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  apple2efr: 'apple2efr.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  // Apple IIc variants
-  apple2c: 'apple2c.zip',
-  apple2c0: 'apple2c0.zip',
-  apple2c1: 'apple2c1.zip',
-  apple2c2: 'apple2c2.zip',
-  apple2c3: 'apple2c3.zip',
-  apple2c4: 'apple2c4.zip',
-  apple2cp: 'apple2cp.zip',
-  apple2cm: 'apple2cm.zip',
-  apple2che: 'apple2che.zip',
-  // Apple IIgs
+  ace100: 'ace100.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  ace1000: 'ace1000.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  ace2200: 'ace2200.zip;apple2e.zip',
+  ace500: 'ace500.zip;apple2c.zip',
+  agat7: 'agat7.zip;agat7_flop.zip;d2fdc.zip',
+  agat9: 'agat9.zip;agat9_flop.zip;agat_fdc.zip;d2fdc.zip',
+  albert: 'albert.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  am100: 'am100.zip;apple2.zip;a2diskiing.zip;am100kbd.zip;d2fdc.zip;votrsc01a.zip',
+  am64: 'am64.zip;apple2.zip;a2diskiing.zip;a2tk10.zip;d2fdc.zip;votrsc01a.zip',
+  apple1: 'apple1.zip',
+  apple2: 'apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2c: 'apple2c.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2c0: 'apple2c0.zip;apple2c.zip',
+  apple2c3: 'apple2c3.zip;apple2c.zip',
+  apple2c4: 'apple2c4.zip;apple2c.zip',
+  apple2cp: 'apple2cp.zip;apple2c.zip',
+  apple2e: 'apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2ede: 'apple2ede.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2ee: 'apple2ee.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2eede: 'apple2eede.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2eefr: 'apple2eefr.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2ees: 'apple2ees.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2eese: 'apple2eese.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2eeuk: 'apple2eeuk.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2efr: 'apple2efr.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2ep: 'apple2ep.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2epde: 'apple2epde.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2epfr: 'apple2epfr.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2epse: 'apple2epse.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2epuk: 'apple2epuk.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2ese: 'apple2ese.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2euk: 'apple2euk.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
   apple2gs: 'apple2gs.zip',
   apple2gsr0: 'apple2gsr0.zip;apple2gs.zip',
   apple2gsr1: 'apple2gsr1.zip;apple2gs.zip',
-  // CEC (China Education Computer) variants
-  cec2000: 'cec2000.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  cece: 'cece.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  cecg: 'cecg.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  ceci: 'ceci.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  cecm: 'cecm.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrax.zip',
-  // Franklin Ace variants
-  ace100: 'ace100.zip;apple2p.zip;a2diskiing.zip;d2fdc.zip',
-  ace1000: 'ace1000.zip;apple2p.zip;a2diskiing.zip;d2fdc.zip',
-  ace2200: 'ace2200.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip',
-  ace500: 'ace500.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip',
-  space84: 'space84.zip;apple2.zip;a2diskiing.zip;d2fdc.zip',
-  // Apple III
+  apple2jp: 'apple2jp.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  apple2p: 'apple2p.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
   apple3: 'apple3.zip',
-  // Mac variants
-  mac128k: 'mac128k.zip',
-  mac512k: 'mac512k.zip;mac128k.zip',
-  mac512ke: 'mac512ke.zip;macplus.zip',
-  macplus: 'macplus.zip',
-  macse: 'macse.zip',
-  macsefd: 'macsefd.zip;macse.zip',
+  basis108: 'basis108.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  bbca: 'bbca.zip;bbcb.zip',
+  bbcb: 'bbcb.zip;bbc_acorn8271.zip;saa5050.zip',
+  bbcb_de: 'bbcb_de.zip;bbcb.zip;bbc_acorn8271.zip;saa5050.zip',
+  bbcb_no: 'bbcb_no.zip;bbcb.zip;bbc_acorn8271.zip;saa5050.zip',
+  bbcb_us: 'bbcb_us.zip;bbcb.zip;bbc_acorn8271.zip;saa5050.zip',
+  bbcbp: 'bbcbp.zip',
+  bbcbp128: 'bbcbp128.zip;bbcbp.zip',
+  bbcm: 'bbcm.zip',
+  bbcmc: 'bbcmc.zip',
+  bbcmt: 'bbcmt.zip;bbcm.zip;bbc_tube_65c102.zip;saa5050.zip',
+  c64: 'c64.zip',
+  c64c: 'c64c.zip;c64.zip',
+  cec2000: 'cec2000.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  cece: 'cece.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  cecg: 'cecg.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  ceci: 'ceci.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  cecm: 'cecm.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  coco: 'coco.zip',
+  coco2b: 'coco2b.zip;coco.zip',
+  coco2bh: 'coco2bh.zip;coco.zip',
+  coco3: 'coco3.zip;coco.zip',
+  coco3h: 'coco3h.zip;coco.zip',
+  coco3p: 'coco3p.zip;coco.zip',
+  cocoh: 'cocoh.zip;coco.zip',
+  craft2p: 'craft2p.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  d64plus: 'd64plus.zip;dragon32.zip',
+  dodo: 'dodo.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  dragon200: 'dragon200.zip;dragon32.zip',
+  dragon200e: 'dragon200e.zip;dragon32.zip',
+  dragon32: 'dragon32.zip',
+  dragon64: 'dragon64.zip;dragon32.zip',
+  electron: 'electron.zip;electron_plus1.zip;electron_plus3.zip',
+  elppa: 'elppa.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  hkc8800a: 'hkc8800a.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  ivelultr: 'ivelultr.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;ivelultrkb.zip;votrsc01a.zip',
+  las128e2: 'las128e2.zip;apple2c.zip',
+  las128ex: 'las128ex.zip;apple2c.zip',
+  laser128: 'laser128.zip;apple2c.zip',
+  laser128o: 'laser128o.zip;apple2c.zip',
+  laser2c: 'laser2c.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  laser3k: 'laser3k.zip',
+  mac128k: 'mac128k.zip;mackbd_m0110.zip;mackbd_m0120.zip',
+  mac2fdhd: 'mac2fdhd.zip;adbmodem.zip;nb_mdc824.zip',
+  mac512k: 'mac512k.zip;mac128k.zip;mackbd_m0110.zip;mackbd_m0120.zip',
+  mac512ke: 'mac512ke.zip;macplus.zip;mackbd_m0110.zip;mackbd_m0120.zip',
+  maccclas: 'maccclas.zip',
+  macclas2: 'macclas2.zip',
+  macclasc: 'macclasc.zip',
+  macct610: 'macct610.zip;macqd800.zip',
+  macct650: 'macct650.zip;macqd800.zip',
+  macii: 'macii.zip;adbmodem.zip;nb_mdc824.zip',
   maciici: 'maciici.zip',
-  macii: 'macii.zip',
-  maciihmu: 'maciihmu.zip',
-  maciix: 'maciix.zip',
+  maciicx: 'maciicx.zip;mac2fdhd.zip;adbmodem.zip;nb_mdc824.zip',
   maciifx: 'maciifx.zip',
-  maciicx: 'maciicx.zip',
+  maciihmu: 'maciihmu.zip;macii.zip;adbmodem.zip;nb_mdc824.zip',
   maciisi: 'maciisi.zip',
+  maciivi: 'maciivi.zip;maciivx.zip',
   maciivx: 'maciivx.zip',
-  maciivi: 'maciivi.zip',
-  macqd605: 'macqd605.zip;macqd700.zip',
-  macqd610: 'macqd610.zip;macqd700.zip',
-  macqd630: 'macqd630.zip;macqd700.zip',
-  macqd650: 'macqd650.zip;macqd700.zip',
-  macqd700: 'macqd700.zip',
-  macqd800: 'macqd800.zip;macqd700.zip',
-  macqd900: 'macqd900.zip;macqd700.zip',
-  macqd950: 'macqd950.zip;macqd700.zip',
+  maciix: 'maciix.zip;mac2fdhd.zip;adbmodem.zip;nb_mdc824.zip',
   maclc: 'maclc.zip',
   maclc2: 'maclc2.zip',
   maclc3: 'maclc3.zip',
-  maclc3p: 'maclc3p.zip',
+  maclc3p: 'maclc3p.zip;maclc3.zip',
+  maclc475: 'maclc475.zip;macqd605.zip',
   maclc520: 'maclc520.zip',
+  maclc550: 'maclc550.zip;maclc520.zip',
+  maclc575: 'maclc575.zip;macqd605.zip',
   macpb100: 'macpb100.zip',
-  macpb140: 'macpb140.zip;macpb100.zip',
-  macpb160: 'macpb160.zip;macpb100.zip',
-  macpb180c: 'macpb180c.zip;macpb100.zip',
-  macpd210: 'macpd210.zip;macpb100.zip',
-  macpd270c: 'macpd270c.zip;macpb100.zip',
-  macpd280: 'macpd280.zip;macpb100.zip',
-  macclasc: 'macclasc.zip',
-  macclas2: 'macclas2.zip;macclasc.zip',
-  maccclas: 'maccclas.zip;macclasc.zip',
+  macpb140: 'macpb140.zip',
+  macpb145: 'macpb145.zip;macpb140.zip',
+  macpb145b: 'macpb145b.zip;macpb140.zip',
+  macpb160: 'macpb160.zip',
+  macpb165: 'macpb165.zip;macpb160.zip',
+  macpb165c: 'macpb165c.zip;macpb180c.zip',
+  macpb170: 'macpb170.zip;macpb140.zip',
+  macpb180: 'macpb180.zip;macpb160.zip',
+  macpb180c: 'macpb180c.zip',
+  macpd210: 'macpd210.zip',
+  macpd230: 'macpd230.zip;macpd210.zip',
+  macpd250: 'macpd250.zip;macpd210.zip',
+  macpd270c: 'macpd270c.zip',
+  macpd280: 'macpd280.zip',
+  macpd280c: 'macpd280c.zip;macpd280.zip',
+  macplus: 'macplus.zip',
+  macprtb: 'macprtb.zip',
+  macqd605: 'macqd605.zip',
+  macqd610: 'macqd610.zip;macqd800.zip',
+  macqd650: 'macqd650.zip;macqd800.zip',
+  macqd700: 'macqd700.zip',
+  macqd800: 'macqd800.zip',
+  macqd900: 'macqd900.zip',
+  macqd950: 'macqd950.zip',
+  macse: 'macse.zip',
+  macse30: 'macse30.zip;mac2fdhd.zip',
+  macsefd: 'macsefd.zip',
   mactv: 'mactv.zip',
-  macse30: 'macse30.zip',
-  // Other emulators
-  c64c: 'c64c.zip;c64.zip',
-  c64: 'c64.zip',
-  coco: 'coco.zip',
-  cocoh: 'cocoh.zip;coco.zip',
-  coco2b: 'coco2b.zip;coco.zip',
-  coco2bh: 'coco2bh.zip;coco.zip',
-  coco3: 'coco3.zip',
-  coco3p: 'coco3p.zip;coco3.zip',
-  coco3h: 'coco3h.zip;coco3.zip',
+  maxxi: 'maxxi.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  mc10: 'mc10.zip',
+  megast: 'megast.zip;st.zip',
+  microeng: 'microeng.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  mprof3: 'mprof3.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  oric1: 'oric1.zip',
+  orica: 'orica.zip;oric1.zip',
+  prav82: 'prav82.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  prav8c: 'prav8c.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;prav8ckb.zip;votrsc01a.zip',
+  prav8d: 'prav8d.zip;oric1.zip',
+  prav8m: 'prav8m.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  space84: 'space84.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  spectred: 'spectred.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  st: 'st.zip',
+  tanodr64: 'tanodr64.zip;dragon32.zip',
+  telstrat: 'telstrat.zip;oric1.zip',
+  tk3000: 'tk3000.zip;apple2e.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
   trs80: 'trs80.zip',
   trs80l2: 'trs80l2.zip',
-  mc10: 'mc10.zip',
-  apple1: 'apple1.zip',
-  // apple2 (original) and variants
-  apple2: 'apple2.zip',
-  apple2p: 'apple2p.zip',
-  apple2jp: 'apple2jp.zip',
-  // Clones and other systems
-  albert: 'albert.zip',
-  am100: 'am100.zip',
-  basis108: 'basis108.zip',
-  hkc8800a: 'hkc8800a.zip',
-  prav82: 'prav82.zip',
-  prav8m: 'prav8m.zip',
-  mprof3: 'mprof3.zip',
-  ace100: 'ace100.zip',
-  laser128: 'laser128.zip;apple2e.zip',
-  agat7: 'agat7.zip',
-  agat9: 'agat9.zip',
-  bbcb: 'bbcb.zip',
-  electron: 'electron.zip',
-  dragon32: 'dragon32.zip',
-  oric1: 'oric1.zip',
-  // Special: IIgs needs files from apple2c set too (e.g. disk II ROMs)
+  uniap2en: 'uniap2en.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;uniap2ti.zip;votrsc01a.zip',
+  uniap2pt: 'uniap2pt.zip;apple2.zip;a2diskiing.zip;d2fdc.zip;uniap2ti.zip;votrsc01a.zip',
+  zijini: 'zijini.zip;a2diskiing.zip;d2fdc.zip;votrsc01a.zip',
+  // Special overrides
   apple2gs_shared: 'apple2gs.zip;apple2c.zip',
 }
 
@@ -610,65 +691,25 @@ function App() {
    * Maps machine driver names to emulator WASM files.
    */
   function getEmulatorForMachine(machineName: string): string | null {
-    // 1. Highest priority: Enhanced IIe / Platinum / CEC variants
-    if (machineName.startsWith('apple2ep') ||
-      machineName.startsWith('apple2ee') ||
-      machineName.startsWith('apple2woz') ||
-      machineName.startsWith('cec')) {
-      return 'apple2ee'
+    // We now use a unified MAME 0.287 engine ('mame.wasm') for all machines
+    // to ensure ROM mapping consistency across all 150+ variants.
+    const families = [
+      'apple', 'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', // Apple II / Clones
+      'mac', // Macintosh
+      'coco', 'trs80', 'dragon', 'mc10', // Tandy / TRS-80 / Dragon
+      'st', 'megast', 'spectred', // Atari ST
+      'bbc', 'electron', // Acorn
+      'c64', // Commodore
+      'oric', 'telstrat' // Oric
+    ];
+
+    const lowerName = machineName.toLowerCase();
+    if (families.some(family => lowerName.startsWith(family))) {
+      return 'mame';
     }
 
-    // 2. Original Apple 1 / 2 / 2+ / 2jp
-    if (machineName === 'apple1') return 'mametiny'
-    if (machineName === 'apple2' || machineName.startsWith('apple2p') || machineName.startsWith('apple2jp')) {
-      return 'mametiny'
-    }
-
-    // 3. Apple IIgs (Try using universal mame engine)
-    if (machineName.startsWith('apple2gs')) return 'apple2gs'
-
-    // 4. Apple IIc variants
-    if (machineName.startsWith('apple2c')) return 'apple2e'
-
-    // 5. Unenhanced Apple IIe fallback
-    if (machineName.startsWith('apple2e')) return 'apple2e'
-
-    // 6. Generic apple2* fallback
-    if (machineName.startsWith('apple2') || 
-        machineName.startsWith('ace') || 
-        machineName === 'space84') return 'apple2'
-
-    // apple3* → apple3
-    if (machineName.startsWith('apple3')) return 'apple3'
-    // maciici* → maciici (dedicated WASM)
-    if (machineName.startsWith('maciici')) return 'maciici'
-    // mac128*, mac512* → mac128 (dedicated WASM)
-    if (machineName.startsWith('mac128') || machineName.startsWith('mac512')) return 'mac128'
-    // mac* → mac for unsupported models (mac.wasm = full MAME Mac build)
-    if (machineName.startsWith('mac')) {
-      // macplus, macse, macsefd → mac128.wasm (per emularity config)
-      // macse30 uses 68030 and belongs to mac.wasm
-      if (machineName.startsWith('macplus') || machineName === 'macse' || machineName === 'macsefd') return 'mac128'
-      // All other mac* variants → mac.wasm (full MAME Mac build)
-      return 'mac'
-    }
-    // coco* → coco (Coco 1/2), coco3* → coco3
-    if (machineName.startsWith('coco3')) return 'coco3'
-    if (machineName.startsWith('coco')) return 'coco'
-    // trs80* → trs80
-    if (machineName.startsWith('trs80')) return 'trs80'
-    // c64* → c64
-    if (machineName.startsWith('c64')) return 'c64'
-    // mc10 → mc10
-    if (machineName.startsWith('mc10')) return 'mc10'
-
-    // st* → no emularity WASM for Atari ST (st.wasm is Stadium Hero arcade)
-    // if (machineName.startsWith('st')) return 'st'
-    // fallback apple2e/c variants to dedicated WASMs
-    if (machineName.startsWith('apple2e') || machineName.startsWith('apple2c')) return 'apple2e'
-    if (machineName.startsWith('apple2')) return 'apple2'
     // Final fallback: use the universal MAME engine for everything else
-    return 'mame'
+    return 'mame';
   }
 
   /**
