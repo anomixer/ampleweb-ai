@@ -823,7 +823,7 @@ body {
 
 .settings-hint {
   font-size: 10px;
-  color: var(--text2);
+  color: var(--text1);
   line-height: 1.4;
 }
 
@@ -1022,6 +1022,16 @@ body {
   border-radius: 99px;
   font-family: var(--mono);
   font-size: 12px;
+  font-weight: 600;
+}
+
+.progress-label.highlight {
+  color: var(--orange);
+}
+
+.progress-label.highlight-error,
+.loading-indicator p.highlight-error {
+  color: var(--red);
   font-weight: 600;
 }
 

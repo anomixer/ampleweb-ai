@@ -237,6 +237,12 @@ const DRIVER_MAP: Record<string, string> = {
 
 /** Machines known to have a very slow hardware initialization/boot process. */
 const SLOW_BOOT_MACHINES = [
+  'macpd210', 'macpd230', 'macpd250', 'macpd270c', 'macpd280', 'macpd280c', // PowerBook Duo
+  'macpb140', 'macpb145', 'macpb170' // Early PowerBooks
+]
+
+/** Machines known to have boot issues or are extremely unstable in MAME WASM. */
+const NOT_WORKING_MACHINES = [
   'macpb160', 'macpb165', 'macpb165c', 'macpb180', 'macpb180c'
 ];
 
@@ -1051,7 +1057,9 @@ function App() {
         onReady: (m) => {
           setWasmModule(m)
           setLaunchState('running')
-          if (SLOW_BOOT_MACHINES.includes(machine.name)) {
+          if (NOT_WORKING_MACHINES.includes(machine.name)) {
+            setStatusText('This machine may not work...')
+          } else if (SLOW_BOOT_MACHINES.includes(machine.name)) {
             setStatusText('This takes longer time to boot...')
             // Keep the message for 10 seconds then clear it
             setTimeout(() => setStatusText(''), 10000)
@@ -1442,7 +1450,7 @@ function App() {
                 <div className="progress-bar">
                   <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
                 </div>
-                <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''}`}>{statusText}</span>
+                <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
               </div>
             )}
 
@@ -1481,7 +1489,7 @@ function App() {
                       {isLoading && (
                         <div className="loading-indicator">
                           <div className="spinner" />
-                          <p className={statusText.includes('longer time') ? 'highlight' : ''}>{statusText}</p>
+                          <p className={`${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</p>
                         </div>
                       )}
                       {launchState === 'error' && (
