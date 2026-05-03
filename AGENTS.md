@@ -21,8 +21,18 @@
         - **Local Folder Mapping (/share)**: Since WASM MAME does not support the native `-shared_directory` flag (often used for Booti card USB emulation), we implemented recursive synchronization using the File System Access API. Mapped folders appear as `/share` in the VFS, allowing for dynamic hot-swapping via MAME's File Manager.
         - **Robust Permission Handling**: Moved directory re-authorization logic to the `handleLaunch` user-gesture context. This ensures that browsers correctly prompt for permission when restarting after a page refresh.
         - **Auto-Launch Reconnection Pause**: Implemented a safeguard where auto-launch (from URL params) will pause and prompt for a manual "Launch" if a mapped directory requires reconnection, preventing silent synchronization failures.
+    - **Comprehensive ROM Mapping & Dependency Fixes**:
+        - Resolved missing ROM errors for Macintosh LC (520/550/575/475), II (cx, FDHD, ci), and SE (30, FDHD) families by correcting parent ROM dependencies (e.g., adding `maclc.zip`, `macii.zip`, `macse.zip`).
+        - Fixed incorrect driver mapping for Mac IIci/IIcx/IIfx to ensure they are recognized as Macintosh systems rather than defaulting to Apple IIe.
+    - **Localized Driver Refinement (Apple IIe Family)**:
+        - Finalized international variant mappings for IIe/IIee/IIep (ES, FR, SE, DE, UK) to preserve correct localized boot logos and Enhanced/Platinum hardware features.
+        - Standardized UK variants to use the `apple2ee` core to match common ROM set availability.
+    - **Expanded Peripheral & Auxiliary ROM Support**:
+        - Added auto-injection for `a1cass` (Apple I Cassette), `a3fdc` (Disk III FDC), and `apple2e` (Enhanced Character ROM).
+        - Expanded auxiliary ROM loading to include the Macintosh family, enabling Apple IIe PDS cards to work within Mac emulations.
+        - Broadened `isApple2Family` detection to cover over 30+ additional clones and variant machine names.
     - **Power & State Management**:
-        - **Stop (Power Off) vs Restart**: Introduced a dedicated **Stop** button that performs a clean page reload without auto-launching, effectively "powering off" the virtual hardware. **Restart** performs a full power cycle (reload with auto-launch) to ensure MAME's global state is completely reset, which is necessary for stable WASM execution.
+        - Introduced a dedicated **Stop** button that performs a clean page reload without auto-launching, effectively "powering off" the virtual hardware. **Restart** performs a full power cycle (reload with auto-launch) to ensure MAME's global state is completely reset, which is necessary for stable WASM execution.
     - **Sidebar & UX Polish**:
         - **Machine Highlighting**: Added visual warning (yellow text) in the sidebar for unstable machine models (PowerBook series, mprof3).
         - **Visibility Fixes**: Updated dark theme tokens to ensure setting hints are legible.

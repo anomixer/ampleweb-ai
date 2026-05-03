@@ -42,10 +42,11 @@ const DRIVER_MAP: Record<string, string> = {
   mac2fdhd: 'macii',
   maciix: 'maciix',
   maciifx: 'maciifx',
+  maciici: 'maciici',
   maciicx: 'macii',
   maciisi: 'maciisi',
-  maciivx: 'maciivx',
   maciivi: 'maciivi',
+  maciivx: 'maciivx',
   // Mac Quadra
   macqd605: 'macqd605',
   macqd610: 'macqd610',
@@ -183,19 +184,18 @@ const DRIVER_MAP: Record<string, string> = {
   apple2p: 'apple2p',
   apple2jp: 'apple2jp',
   apple2e: 'apple2e',
-  apple2euk: 'apple2euk',
-  apple2ede: 'apple2e',
-  apple2ese: 'apple2e',
-  apple2efr: 'apple2e',
-  apple2es: 'apple2e',
+  apple2euk: 'apple2e',
+  apple2ede: 'apple2ede',
+  apple2ese: 'apple2ese',
+  apple2efr: 'apple2efr',
+  apple2ees: 'apple2ees',
   apple2ee: 'apple2ee',
-  apple2eeuk: 'apple2eeuk',
+  apple2eeuk: 'apple2ee',
   apple2eede: 'apple2ee',
   apple2eese: 'apple2ee',
   apple2eefr: 'apple2ee',
-  apple2ees: 'apple2ee',
   apple2ep: 'apple2ee',
-  apple2epuk: 'apple2eeuk',
+  apple2epuk: 'apple2ee',
   apple2epde: 'apple2ee',
   apple2epfr: 'apple2ee',
   apple2epes: 'apple2ee',
@@ -373,9 +373,9 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   laser2c: 'laser2c.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   laser3k: 'laser3k.zip;d2fdc.zip;a2diskiing.zip;apple2e.zip',
   mac128k: 'mac128k.zip;mackbd_m0110.zip;mackbd_m0120.zip',
-  mac2fdhd: 'mac2fdhd.zip;nb_mdc824.zip;adbmodem.zip',
+  mac2fdhd: 'mac2fdhd.zip;macii.zip;nb_mdc824.zip;adbmodem.zip',
   mac512k: 'mac512k.zip;mackbd_m0110.zip;mackbd_m0120.zip;mac128k.zip',
-  mac512ke: 'mac512ke.zip;mackbd_m0110.zip;mackbd_m0120.zip;macplus.zip',
+  mac512ke: 'mac512ke.zip;mackbd_m0110.zip;mackbd_m0120.zip;macplus.zip;mac128k.zip',
   maccclas: 'maccclas.zip;adbmodem.zip;cuda.zip',
   macclas2: 'macclas2.zip;egret.zip',
   macclasc: 'macclasc.zip;adbmodem.zip;cuda.zip',
@@ -383,7 +383,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macct650: 'macct650.zip;macqd800.zip;adbmodem.zip',
   macii: 'macii.zip;nb_mdc824.zip;adbmodem.zip',
   maciici: 'maciici.zip;egret.zip;nb_mdc824.zip;adbmodem.zip',
-  maciicx: 'maciicx.zip;nb_mdc824.zip;adbmodem.zip;mac2fdhd.zip',
+  maciicx: 'maciicx.zip;macii.zip;nb_mdc824.zip;adbmodem.zip;mac2fdhd.zip',
   maciifx: 'maciifx.zip;egret.zip;nb_mdc824.zip;adbmodem.zip',
   maciihmu: 'maciihmu.zip;nb_mdc824.zip;adbmodem.zip;macii.zip',
   maciisi: 'maciisi.zip;egret.zip',
@@ -394,10 +394,10 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   maclc2: 'maclc2.zip;egret.zip',
   maclc3: 'maclc3.zip;egret.zip',
   maclc3p: 'maclc3p.zip;maclc3.zip;egret.zip',
-  maclc475: 'maclc475.zip;macqd605.zip;cuda.zip',
-  maclc520: 'maclc520.zip;cuda.zip',
-  maclc550: 'maclc550.zip;maclc520.zip;cuda.zip',
-  maclc575: 'maclc575.zip;macqd605.zip;cuda.zip',
+  maclc475: 'maclc475.zip;maclc.zip;egret.zip;macqd605.zip;cuda.zip',
+  maclc520: 'maclc520.zip;maclc.zip;cuda.zip',
+  maclc550: 'maclc550.zip;maclc520.zip;maclc.zip;cuda.zip',
+  maclc575: 'maclc575.zip;maclc520.zip;maclc.zip;macqd605.zip;cuda.zip',
   macpb100: 'macpb100.zip',
   macpb140: 'macpb140.zip',
   macpb145: 'macpb145.zip;macpb140.zip',
@@ -424,10 +424,10 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macqd900: 'macqd900.zip;egret.zip',
   macqd950: 'macqd950.zip;egret.zip',
   macse: 'macse.zip;adbmodem.zip',
-  macse30: 'macse30.zip;mac2fdhd.zip;nb_mdc824.zip;adbmodem.zip',
-  macsefd: 'macsefd.zip;adbmodem.zip',
+  macse30: 'macse30.zip;mac2fdhd.zip;macii.zip;nb_mdc824.zip;adbmodem.zip',
+  macsefd: 'macsefd.zip;macse.zip;adbmodem.zip',
   mactv: 'mactv.zip;adbmodem.zip;cuda.zip',
-  maxxi: 'maxxi.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
+  maxxi: 'maxxi.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   mc10: 'mc10.zip',
   megast: 'megast.zip;st.zip;st_kbd.zip',
   microeng: 'microeng.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
@@ -766,8 +766,21 @@ function App() {
       { romSet: 'a2scsi', zipName: 'a2scsi', files: ['341-0437-a.bin'] },
       { romSet: 'a2cffa2', zipName: 'a2cffa2', files: ['cffa20eec02.bin'] },
       { romSet: 'a2cffa02', zipName: 'a2cffa02', files: ['cffa20ee02.bin'] },
+      { romSet: 'apple2e', zipName: 'apple2e', files: ['342-0133-a.chr'] },
+      { romSet: 'a3fdc', zipName: 'd2fdc', files: ['341-0028-a.rom'] },
+      { romSet: 'a1cass', zipName: 'a1cass', files: ['apple-a3.3'] },
     ]
-    if (driverName.startsWith('apple2') || driverName === 'apple2p') {
+    // Broad check for Apple II/III family and clones
+    const isApple2Family = driverName.startsWith('apple1') ||
+      driverName.startsWith('apple2') ||
+      driverName.startsWith('apple3') ||
+      ['albert', 'am100', 'am64', 'basis108', 'craft2p', 'dodo', 'elppa', 'hkapple', 'mprof3', 'space84', 'spectre', 'tk2000', 'tk3000',
+        'maxxi', 'hkc8800a', 'ivelultr', 'microeng', 'prav82', 'prav8c', 'prav8d', 'prav8m', 'uniap2en', 'uniap2pt', 'zijini',
+        'cec2000', 'cece', 'cecg', 'ceci', 'cecm', 'ace100', 'ace500', 'ace1000', 'ace2200'].includes(driverName)
+
+    const isMacFamily = driverName.startsWith('mac')
+
+    if (isApple2Family || isMacFamily) {
       for (const aux of auxRoms) {
         try {
           const resp = await fetch(`/roms/${aux.zipName}.zip`)
@@ -1048,7 +1061,7 @@ function App() {
     })
     addLog(`args: ${args.join(' ')}`, false)
     console.log('[WasmLoader] Launching with localDirHandle:', pathSettings?.mapLocalDir ? localDirHandleRef.current : 'null (mapLocalDir is false or handle missing)')
-    
+
     // Crucial: Request permission HERE (user gesture context) before WASM starts
     if (pathSettings?.mapLocalDir && localDirHandleRef.current) {
       try {
@@ -1760,7 +1773,7 @@ function App() {
                           </div>
                         )}
                         <p className="settings-hint" style={{ marginTop: 8 }}>
-                          AmpleWeb (WASM) does not support -shared_directory (USB flash emulation for Booti cards). 
+                          AmpleWeb (WASM) does not support -shared_directory (USB flash emulation for Booti cards).
                           Use this to map a local folder to /share for hot-swapping disk images. Restart Required.
                           Once set, Restart/Stop the machine, then Launch again and Reconnect when prompted to take effect.
                         </p>

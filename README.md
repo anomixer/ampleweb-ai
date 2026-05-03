@@ -33,10 +33,10 @@ AmpleWeb now utilizes a unified **MAME 0.287 (Universal)** engine for all suppor
 
 - **Multi-Tab Configuration**: Control **Video, CPU, A/V, Paths, Slots, and Media** settings from a unified side panel.
 - **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and mouse pointer lock.
-- **Power Management**: Support for **Stop (Power Off)** and **Restart (Power Cycle)** for stable MAME state management.
-- **Hardware Accuracy**: Optional **Disk Sound Effects** and peripheral support for **a2scsi** (SCSI) and **a2cffa2** (CompactFlash) cards.
-- **Local Directory Mapping**: Replaces the desktop `-shared_directory` flag (unsupported in WASM) with a custom **Map Local Directory** feature. Mapped folders are synced to `/share`, allowing disk hot-swapping via MAME's internal File Manager (TAB menu). *Note: After a restart, users must manually click "Launch" to re-authorize the directory handle.*
-- **Intelligent Media Eject**: Automatically clears incompatible disk images when switching hardware families (e.g., from Apple II to Apple III or Mac).
+- **Local Directory Mapping (/share)**: Map any local folder to `/share` within the emulator for seamless disk swapping.
+- **Power Management**: Dedicated **Stop** (Power Off) and **Restart** (Power Cycle) controls for maximum WASM stability.
+- **Enhanced ROM Support**: Automatic injection of auxiliary ROMs for SCSI, CFFA2, Disk II/III, and Cassette interfaces across the entire Apple I/II/III and Macintosh families.
+- **International Localization**: Proper support for localized Apple IIe/IIee/IIep variants (DE, FR, ES, SE, UK) with accurate boot logos and character sets.
 - **Persistence**: All settings (theme, configurations, sidebar width) are saved automatically via IndexedDB.
 
 ## Supported Machines
@@ -63,7 +63,7 @@ Use `download_roms.ps1` to download and prepare the required ROM library automat
 https://mdk.cab/download/full/<romname>.7z
 and convert to zip
 
-tk3000 required to download too
+(tk3000 should be in apple2e.zip, but rom sources may put in apple2c.zip)
 
 ## Architecture
 
