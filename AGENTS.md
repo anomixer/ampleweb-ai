@@ -4,26 +4,26 @@
 ## Project: AmpleWeb (MAME WASM Frontend)
 
 ### Recent Updates (2026-05-03)
-- **UI Modernization & Feature Parity**:
-    - Reorganized the machine configuration panel into a modular multi-tab interface: **Video**, **CPU**, **A/V**, **Paths**, **Slots**, **Media**, and **Logs**.
-    - **Video Features**:
-        - Added **Window Mode** scaling (1x, 2x, 3x, 4x, Fit to Screen) using CSS transforms.
-        - Integrated **Mouse Capture** via the Pointer Lock API (Hold Esc to release).
-        - Added **Video Method** selection (Software, BGFX, OpenGL).
-        - Added **BGFX Backend** (OpenGL, GLES, Vulkan) and **Screen Effects** (Scanlines, CRT-Geom, HQ2X, etc.).
-        - Added **Square Pixel** toggle (aspect ratio correction).
-    - **CPU Features**:
-        - Added **Speed Throttling** (100% to 500%, or No Throttle).
-        - Added **Rewind** support.
-        - Disabled **Debug** toggle as per user request.
-    - **A/V Features**:
-        - Added toggles for generating **AVI** and **WAV** recordings.
-        - Added **Disk Sound Effects** (audio samples).
-    - **Paths Features**:
-        - Implemented **Local Directory Mapping** UI using the browser's File System Access API to map a local folder to MAME's `/share` VFS path.
-- **Stability & Persistence**:
-    - Integrated all new configuration settings into a persistent Zustand store (`ample-app-storage-v2`).
-    - Implemented safety checks and optional chaining in `App.tsx` to prevent blank screen crashes during state rehydration.
-- **UX Improvements**:
-    - Implemented "Slow Boot" notifications for PowerBook/Duo series.
-    - Improved visibility of UI hint text in Dark Mode.
+- **UI & Feature Overhaul (AmpleWin Parity)**:
+    - **Advanced Configuration Tabs**: Fully implemented modular tabs for **Video**, **CPU**, **A/V**, **Paths**, **Slots**, **Media**, and **Logs**.
+    - **Video & UX Improvements**:
+        - Integrated **BGFX Video Settings**: Added Video Method selection (Software, BGFX, OpenGL) with BGFX Backend (Auto, GLES, Vulkan) and Effects (CRT-Geom, Scanlines, etc.) support.
+        - **Window Scaling**: Added CSS-transform based scaling (1x, 2x, 3x, 4x, Fit to Screen).
+        - **Mouse Capture**: Implemented Pointer Lock API (Hold Esc to release).
+        - **Square Pixel**: Added UI toggle (disabled for now as per design).
+    - **Audio & Media Enhancements**:
+        - **Disk Sound Effects**: Implemented loading of floppy drive audio samples from `/samples/floppy/`. Added `-samples` and `-samplepath` engine support.
+        - **Granular Media Management**: Restored and improved the **Media Tab**. Media drives are now grouped by physical type (5.25" Floppies, 3.5" Floppies, Hard Drives, CD-ROMs) to match AmpleWin.
+        - **Iconic Controls**: Restored 📁 (Choose) and ⏏️ (Eject) iconography for media slots.
+    - **CPU & Engine Logic**:
+        - Added Speed Throttling (100% to 500%, or No Throttle) and Rewind support.
+        - Disabled Debug toggle in UI to match stable build requirements.
+    - **Path Mapping**:
+        - Implemented Local Directory Mapping UI using File System Access API for mapping folders to MAME's `/share` VFS.
+- **Stability & Internal Architecture**:
+    - **Zustand Persistence**: Migrated all settings to a persistent store (`ample-app-storage-v2`).
+    - **Robust State Handling**: Added safety guards and optional chaining to prevent "blank screen" failures during WASM initialization and store rehydration.
+    - **Media VFS Hooks**: Updated `wasm_loader.ts` to support injecting multiple media types and audio samples into the virtual filesystem.
+- **UX Fixes**:
+    - Improved visibility of "Slow Boot" notifications and UI hint text in Dark Mode.
+    - Fixed `ReferenceError` when switching to the Media tab.

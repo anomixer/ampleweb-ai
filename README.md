@@ -38,6 +38,14 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 | Commodore 64 | 11 MB | c64, c64c | ✅ Working |
 | MC-10 | 22 MB | mc10 | ✅ Working |
 
+## Features
+
+- **Multi-Tab Configuration**: Control **Video, CPU, A/V, Paths, Slots, and Media** settings from a unified side panel.
+- **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and mouse pointer lock.
+- **Hardware Accuracy**: Optional **Disk Sound Effects** using real hardware audio samples.
+- **VFS Integration**: Map local directories to MAME's `/share` path for easy file transfer between host and guest.
+- **Persistence**: All settings (theme, configurations, sidebar width) are saved automatically via IndexedDB.
+
 ## Supported Machines
 
 AmpleWeb now supports nearly the entire library of 8-bit and 16-bit machines featured in AmpleWin, including Apple II clones (Franklin, Laser, Agat), the full Macintosh 68k family (including Quadra and PowerBook), and UK classics like the BBC Micro and Oric-1.

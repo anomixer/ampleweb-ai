@@ -534,6 +534,7 @@ function App() {
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
   const hasAutoLaunched = useRef(false)
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   // Detect available WASM on mount (legacy display only)
   const [wasmTarget] = useState(() => {
@@ -794,10 +795,18 @@ function App() {
    * Calculate effective media drives based on current machine config and slot selections.
    */
   const getEffectiveMedia = useCallback(() => {
-    if (!machineConfig) return {}
+    if (!machineConfig) return []
 
-    const counts: Record<string, number> = {}
     const typeMap: Record<string, string> = {
+      'floppy_5_25': '5.25" Floppy',
+      'floppy_3_5': '3.5" Floppy',
+      'hard': 'Hard Drive',
+      'cdrom': 'CD-ROM',
+      'cass': 'Cassette',
+      'cassette': 'Cassette'
+    }
+
+    const mameBrief: Record<string, string> = {
       'floppy_5_25': 'flop',
       'floppy_3_5': 'flop',
       'hard': 'hard',
@@ -806,10 +815,27 @@ function App() {
       'cassette': 'cass'
     }
 
+    const results: { id: string; type: string; label: string; group: string }[] = []
+    const briefCounts: Record<string, number> = {}
+
+    const addMedia = (mameType: string, count: number) => {
+      const brief = mameBrief[mameType] || 'media'
+      const group = typeMap[mameType] || mameType
+      for (let i = 0; i < count; i++) {
+        const index = (briefCounts[brief] || 0) + 1
+        briefCounts[brief] = index
+        results.push({
+          id: `${brief}${index}`,
+          type: mameType,
+          label: `${group} ${index}`,
+          group: group
+        })
+      }
+    }
+
     // Include root media
-    Object.entries(machineConfig.media).forEach(([mameType, count]) => {
-      const brief = typeMap[mameType] || mameType
-      counts[brief] = (counts[brief] || 0) + count
+    Object.entries(machineConfig.media || {}).forEach(([mameType, count]) => {
+      addMedia(mameType, count)
     })
 
     const collectMedia = (slots: Slot[], pathPrefix = '') => {
@@ -823,14 +849,14 @@ function App() {
         }
 
         const selectedValue = slotValues[fullPath]
-        if (!selectedValue) return
+        // Use undefined check instead of falsy check to allow empty string values
+        if (selectedValue === undefined) return
 
         const option = slot.options?.find(o => o.value === selectedValue)
         if (option) {
           if (option.media) {
             Object.entries(option.media).forEach(([mameType, count]) => {
-              const brief = typeMap[mameType] || mameType
-              counts[brief] = (counts[brief] || 0) + count
+              addMedia(mameType, count)
             })
           }
           const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
@@ -849,12 +875,12 @@ function App() {
 
     collectMedia(machineConfig.slots)
 
-    // Force 5.25" floppy drives for CEC machines
-    if (selectedMachine?.name.startsWith('cec')) {
-      counts['flop'] = Math.max(counts['flop'] || 0, 2)
+    // Force 5.25" floppy drives for CEC machines if they didn't appear
+    if (selectedMachine?.name.startsWith('cec') && !results.some(r => r.type === 'floppy_5_25')) {
+      addMedia('floppy_5_25', 2)
     }
 
-    return counts
+    return results
   }, [machineConfig, slotValues, selectedMachine])
 
   /**
@@ -1718,58 +1744,64 @@ function App() {
                   {configTab === 'media' && (
                     <div className="section no-border">
                       <div className="media-grid">
-                        {machineConfig && Object.entries(getEffectiveMedia()).map(([type, count]) => (
-                          Array.from({ length: count }).map((_, i) => {
-                            const mediaId = `${type}${i + 1}`
-                            const label = `${type.toUpperCase()} ${i + 1}`
-                            return (
-                              <div key={mediaId} className="media-row">
-                                <label className="media-label">{label}</label>
-                                <div className="media-input-wrap">
-                                  <span className="media-filename">
-                                    {mediaFiles[mediaId]?.name || 'Empty'}
-                                  </span>
-                                  <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById(`file-${mediaId}`)?.click()} title="Select File">
-                                    📁
-                                  </button>
-                                  {mediaFiles[mediaId] && (
-                                    <button
-                                      className="btn btn-ghost btn-icon"
-                                      onClick={() => {
-                                        setMediaFiles(prev => {
-                                          const next = { ...prev }
-                                          delete next[mediaId]
-                                          return next
-                                        })
-                                        dataManager.clearMedia(mediaId)
-                                      }}
-                                      title="Eject"
-                                    >
-                                      ⏏️
-                                    </button>
-                                  )}
-                                  <input
-                                    type="file"
-                                    id={`file-${mediaId}`}
-                                    style={{ display: 'none' }}
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0] || null
-                                      setMediaFiles(prev => ({ ...prev, [mediaId]: file }))
-                                      if (file) {
-                                        dataManager.saveMedia(mediaId, file)
-                                      } else {
-                                        dataManager.clearMedia(mediaId)
-                                      }
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )
+                        {(() => {
+                          const mediaItems = getEffectiveMedia()
+                          if (mediaItems.length === 0) {
+                            return <p className="empty-hint">No media drives available for current configuration.</p>
+                          }
+
+                          // Group by group name
+                          const groups: Record<string, typeof mediaItems> = {}
+                          mediaItems.forEach(item => {
+                            if (!groups[item.group]) groups[item.group] = []
+                            groups[item.group].push(item)
                           })
-                        ))}
-                        {(!machineConfig || Object.keys(getEffectiveMedia()).length === 0) && (
-                          <p className="empty-hint">No media drives available.</p>
-                        )}
+
+                          return Object.entries(groups).map(([groupName, items]) => (
+                            <div key={groupName} className="media-group-wrap">
+                              <h4 className="media-group-title">{groupName}</h4>
+                              {items.map(item => (
+                                <div key={item.id} className="media-row">
+                                  <label className="media-label">{item.label}</label>
+                                  <div className="media-input-wrap">
+                                    <span className="media-filename">
+                                      {mediaFiles[item.id]?.name || 'Empty'}
+                                    </span>
+                                    <div className="media-actions">
+                                      <button className="btn btn-ghost btn-icon" onClick={() => fileInputRefs.current[item.id]?.click()} title="Select File">
+                                        📁
+                                      </button>
+                                      {mediaFiles[item.id] && (
+                                        <button className="btn btn-ghost btn-icon" onClick={() => {
+                                          setMediaFiles(prev => {
+                                            const next = { ...prev }
+                                            delete next[item.id]
+                                            return next
+                                          })
+                                          dataManager.clearMedia(item.id)
+                                        }} title="Eject">
+                                          ⏏️
+                                        </button>
+                                      )}
+                                    </div>
+                                    <input 
+                                      type="file" 
+                                      ref={el => fileInputRefs.current[item.id] = el}
+                                      style={{ display: 'none' }}
+                                      onChange={e => {
+                                        const file = e.target.files?.[0]
+                                        if (file) {
+                                          setMediaFiles(prev => ({ ...prev, [item.id]: file }))
+                                          dataManager.saveMedia(item.id, file)
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))
+                        })()}
                       </div>
                     </div>
                   )}
