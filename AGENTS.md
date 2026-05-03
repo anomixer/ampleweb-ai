@@ -16,6 +16,7 @@
         - **Granular Media Management**: Restored and improved the **Media Tab**. Media drives are now grouped by physical type (5.25" Floppies, 3.5" Floppies, Hard Drives, CD-ROMs) to match AmpleWin.
         - **Media Auto-Eject**: Implemented intelligent media ejection when switching between hardware families (e.g., Apple II to Macintosh or Apple III) to prevent boot crashes.
         - **Iconic Controls**: Restored 📁 (Choose) and ⏏️ (Eject) iconography for media slots.
+        - **Local Folder Mapping (/share)**: Implemented recursive synchronization using File System Access API. Mapped folders appear as `/share` in MAME, allowing users to hot-swap media via MAME's internal File Manager without restarting the emulator.
     - **Sidebar & UX Polish**:
         - **Machine Highlighting**: Added visual warning (yellow text) in the sidebar for unstable machine models (PowerBook series, mprof3).
         - **Visibility Fixes**: Updated dark theme tokens to ensure setting hints are legible.

@@ -1044,6 +1044,7 @@ function App() {
       ]
     })
     addLog(`args: ${args.join(' ')}`, false)
+    console.log('[WasmLoader] Launching with localDirHandle:', pathSettings?.mapLocalDir ? localDirHandleRef.current : 'null (mapLocalDir is false or handle missing)')
 
     try {
       const mod = await loadMameWasm(wasmUrl, {
@@ -1053,6 +1054,7 @@ function App() {
         sampleFiles: sampleList,
         romPath: '/roms',
         jsUrl: `/wasm/${wasmInfo.js}`,
+        localDirHandle: pathSettings?.mapLocalDir ? localDirHandleRef.current : null,
         onProgress: (loaded, total) => {
           if (total > 0) {
             const pct = Math.round((loaded / total) * 100)
@@ -1678,17 +1680,21 @@ function App() {
                         <div className="slot-row">
                           <label className="slot-label">Map Local Directory</label>
                           <button 
-                            className="btn btn-secondary btn-sm" 
+                            className={`btn ${pathSettings?.localDirPath && !localDirHandleRef.current ? 'btn-danger' : 'btn-secondary'} btn-sm`} 
                             onClick={async () => {
                               try {
                                 // @ts-ignore
                                 const handle = await window.showDirectoryPicker()
                                 setPathSettings({ mapLocalDir: true, localDirPath: handle.name })
                                 localDirHandleRef.current = handle
-                              } catch {}
+                              } catch (e) {
+                                console.error('Directory picker failed:', e)
+                              }
                             }}
                           >
-                            {pathSettings?.localDirPath ? `Mapped: ${pathSettings.localDirPath}` : 'Select Folder...'}
+                            {pathSettings?.localDirPath ? (
+                              localDirHandleRef.current ? `Mapped: ${pathSettings.localDirPath}` : `Reconnect: ${pathSettings.localDirPath} (Required)`
+                            ) : 'Select Folder...'}
                           </button>
                         </div>
                         {pathSettings?.localDirPath && (

@@ -67,6 +67,8 @@ export interface WasmLoaderOptions {
   onProgress?: (loaded: number, total: number) => void
   onError?: (error: string) => void
   onLog?: (line: string, isError: boolean) => void
+  /** Local directory handle to mount to /share */
+  localDirHandle?: FileSystemDirectoryHandle
 }
 
 let _moduleRef: MameWasmModule | null = null
@@ -88,6 +90,7 @@ export function loadMameWasm(
       onProgress,
       onError,
       onLog,
+      localDirHandle,
     } = opts
 
     // ── canvas ──
@@ -296,6 +299,52 @@ export function loadMameWasm(
             console.error('[WasmLoader] Media write failed:', e)
           }
           Module.removeRunDependency('media-write')
+        }
+
+        const sharePath = '/share'
+        try { FS.mkdir(sharePath) } catch { /* exists */ }
+
+        if (localDirHandle) {
+          Module.addRunDependency('local-dir-sync')
+
+          // Recursive sync function
+          const syncDir = async (handle: FileSystemDirectoryHandle, currentPath: string) => {
+            try {
+              console.log(`[WasmLoader] Scanning directory: ${currentPath}`)
+              // @ts-ignore - Check if we have permission first
+              const permission = await handle.queryPermission({ mode: 'readwrite' })
+              if (permission !== 'granted') {
+                console.warn(`[WasmLoader] Permission not granted for ${currentPath}, requesting...`)
+                await handle.requestPermission({ mode: 'readwrite' })
+              }
+
+              // @ts-ignore
+              for await (const [name, entry] of (handle as any).entries()) {
+                const dest = `${currentPath}/${name}`
+                if (entry.kind === 'file') {
+                  const file = await (entry as FileSystemFileHandle).getFile()
+                  const buffer = await file.arrayBuffer()
+                  FS.writeFile(dest, new Uint8Array(buffer))
+                  console.log(`[WasmLoader] Synced: ${dest} (${buffer.byteLength} bytes)`)
+                } else if (entry.kind === 'directory') {
+                  try { FS.mkdir(dest) } catch { /* exists */ }
+                  await syncDir(entry as FileSystemDirectoryHandle, dest)
+                }
+              }
+            } catch (e: any) {
+              console.error(`[WasmLoader] Error syncing ${currentPath}:`, e)
+            }
+          }
+
+          syncDir(localDirHandle, sharePath)
+            .then(() => {
+              onLog?.(`[FS] Local directory synced to ${sharePath}`, false)
+              Module.removeRunDependency('local-dir-sync')
+            })
+            .catch(e => {
+              console.error('[WasmLoader] Local dir sync failed:', e)
+              Module.removeRunDependency('local-dir-sync')
+            })
         }
       }],
 
