@@ -44,6 +44,7 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 - **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and mouse pointer lock.
 - **Hardware Accuracy**: Optional **Disk Sound Effects** using real hardware audio samples.
 - **VFS Integration**: Map local directories to MAME's `/share` path for easy file transfer between host and guest.
+- **Intelligent Media Eject**: Automatically clears incompatible disk images when switching hardware families (e.g., from Apple II to Apple III or Mac).
 - **Persistence**: All settings (theme, configurations, sidebar width) are saved automatically via IndexedDB.
 
 ## Supported Machines
