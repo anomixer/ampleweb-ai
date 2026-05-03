@@ -541,6 +541,25 @@ function App() {
   const localDirHandleRef = useRef<any>(null)
   const hasAutoLaunched = useRef(false)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const prevFamilyRef = useRef<string | null>(null)
+
+  const getMachineFamily = useCallback((machineName: string): string => {
+    const families = [
+      'apple3', 'apple1', 'apple2', 'apple', // Apple variants (ordered specifically)
+      'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', 'mprof3', // Apple II Clones
+      'mac', // Macintosh
+      'coco', 'trs80', 'dragon', 'mc10', // Tandy / TRS-80 / Dragon
+      'st', 'megast', 'spectred', // Atari ST
+      'bbc', 'electron', // Acorn
+      'c64', // Commodore
+      'oric', 'telstrat' // Oric
+    ];
+    const lowerName = machineName.toLowerCase();
+    for (const family of families) {
+      if (lowerName.startsWith(family)) return family;
+    }
+    return 'other';
+  }, []);
 
   // Detect available WASM on mount (legacy display only)
   const [wasmTarget] = useState(() => {
@@ -670,6 +689,22 @@ function App() {
   }, [])
 
   const doSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
+    // Check family switch
+    const currentFamily = getMachineFamily(machine.name)
+    if (prevFamilyRef.current && prevFamilyRef.current !== currentFamily) {
+      // Auto-eject all media if family changed
+      setMediaFiles({})
+      // Also clear in DataManager for persistence consistency
+      // (Simplified: clear first 16 generic slots, usually enough for auto-eject)
+      for (let i = 1; i <= 16; i++) {
+        dataManager.clearMedia(`flop${i}`)
+        dataManager.clearMedia(`hard${i}`)
+        dataManager.clearMedia(`cdrom${i}`)
+      }
+      addLog(`Family changed (${prevFamilyRef.current} → ${currentFamily}): All media ejected`, false)
+    }
+    prevFamilyRef.current = currentFamily
+
     setSelectedMachine(machine)
     setErrorText(null)
     setStatusText('')
@@ -680,7 +715,7 @@ function App() {
       const defaults = fillSlotDefaults(config.slots, {}, config.devices)
       setSlotValues(defaults)
     }
-  }, [fillSlotDefaults])
+  }, [fillSlotDefaults, getMachineFamily, addLog])
 
   const handleSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
     doSelectMachine(machine)
