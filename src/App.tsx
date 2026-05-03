@@ -524,21 +524,21 @@ function App() {
 
   const getMachineFamily = useCallback((machineName: string): string => {
     const lowerName = machineName.toLowerCase();
-    
+
     // Apple II & Clones
     if (['apple3', 'apple1', 'apple2', 'apple', 'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', 'mprof3'].some(f => lowerName.startsWith(f))) {
       if (lowerName.startsWith('apple3')) return 'apple3';
       if (lowerName.startsWith('apple1')) return 'apple1';
       return 'apple2'; // General Apple II / Clones
     }
-    
+
     if (lowerName.startsWith('mac')) return 'mac';
     if (['coco', 'trs80', 'mc10', 'dragon'].some(f => lowerName.startsWith(f))) return 'tandy';
     if (['st', 'megast', 'spectred'].some(f => lowerName.startsWith(f))) return 'atarist';
     if (['bbc', 'electron'].some(f => lowerName.startsWith(f))) return 'acorn';
     if (lowerName.startsWith('c64') || lowerName.startsWith('c128') || lowerName.startsWith('vic20')) return 'commodore';
     if (['oric', 'telstrat'].some(f => lowerName.startsWith(f))) return 'oric';
-    
+
     return 'other';
   }, []);
 
@@ -584,7 +584,7 @@ function App() {
     if (!videoSettings || !videoSettings.captureMouse || launchState !== 'running') return
     const c = document.getElementById('canvas') as HTMLCanvasElement | null
     if (!c) return
-    
+
     const onClick = () => {
       try { c.requestPointerLock() } catch (e) { console.warn('Pointer lock failed:', e) }
     }
@@ -763,6 +763,9 @@ function App() {
       { romSet: 'votrax', zipName: 'votrsc01a', files: ['sc01a.bin'] },
       { romSet: 'a2diskiing', zipName: 'a2diskiing', files: ['341-0027-a.p5'] },
       { romSet: 'd2fdc', zipName: 'd2fdc', files: ['341-0028-a.rom'] },
+      { romSet: 'a2scsi', zipName: 'a2scsi', files: ['341-0437-a.bin'] },
+      { romSet: 'a2cffa2', zipName: 'a2cffa2', files: ['cffa20eec02.bin'] },
+      { romSet: 'a2cffa02', zipName: 'a2cffa02', files: ['cffa20ee02.bin'] },
     ]
     if (driverName.startsWith('apple2') || driverName === 'apple2p') {
       for (const aux of auxRoms) {
@@ -1045,6 +1048,24 @@ function App() {
     })
     addLog(`args: ${args.join(' ')}`, false)
     console.log('[WasmLoader] Launching with localDirHandle:', pathSettings?.mapLocalDir ? localDirHandleRef.current : 'null (mapLocalDir is false or handle missing)')
+    
+    // Crucial: Request permission HERE (user gesture context) before WASM starts
+    if (pathSettings?.mapLocalDir && localDirHandleRef.current) {
+      try {
+        const handle = localDirHandleRef.current as FileSystemDirectoryHandle
+        const permission = await handle.queryPermission({ mode: 'readwrite' })
+        if (permission !== 'granted') {
+          addLog(`Requesting permission for local directory: ${handle.name}`, false)
+          const result = await handle.requestPermission({ mode: 'readwrite' })
+          if (result !== 'granted') {
+            addLog(`Permission denied for local directory: ${handle.name}`, true)
+          }
+        }
+      } catch (e: any) {
+        console.error('Permission request failed:', e)
+        addLog(`Permission error: ${e.message}`, true)
+      }
+    }
 
     try {
       const mod = await loadMameWasm(wasmUrl, {
@@ -1107,6 +1128,24 @@ function App() {
   const handleLaunch = useCallback(async () => {
     if (!selectedMachine) return
 
+    // If local mapping is enabled but handle is missing (e.g. after refresh), 
+    // force reconnect now while we still have the user gesture context!
+    if (pathSettings?.mapLocalDir && !localDirHandleRef.current) {
+      addLog('Local directory mapping enabled but folder needs reconnection...', false)
+      try {
+        // @ts-ignore
+        const handle = await window.showDirectoryPicker()
+        setPathSettings({ mapLocalDir: true, localDirPath: handle.name })
+        localDirHandleRef.current = handle
+        addLog(`Reconnected: ${handle.name}`, false)
+      } catch (e: any) {
+        addLog(`Failed to reconnect folder: ${e.message}`, true)
+        // If we were auto-launching, we can't show picker, so we just log error.
+        // But if this was a manual click, the user sees why it didn't start.
+        return // Abort launch
+      }
+    }
+
     // If already running, refresh the whole page to ensure a clean state
     if (wasmModule) {
       const url = new URL(window.location.href)
@@ -1118,7 +1157,16 @@ function App() {
     }
 
     doLaunch(selectedMachine)
-  }, [selectedMachine, wasmModule, doLaunch])
+  }, [selectedMachine, wasmModule, doLaunch, pathSettings, localDirHandleRef, addLog])
+
+  const handleStop = useCallback(() => {
+    if (!selectedMachine) return
+    const url = new URL(window.location.href)
+    url.searchParams.set('m', selectedMachine.name)
+    url.searchParams.set('d', selectedMachine.description)
+    url.searchParams.delete('launch')
+    window.location.href = url.toString()
+  }, [selectedMachine])
 
   useEffect(() => {
     const init = async () => {
@@ -1205,7 +1253,16 @@ function App() {
           const newUrl = new URL(window.location.href)
           newUrl.searchParams.delete('launch')
           window.history.replaceState({}, '', newUrl.toString())
-          doLaunch(machineToLaunch, slots, restoredMedia)
+
+          // If mapping is enabled, we CANNOT auto-launch because we need a user gesture for the folder.
+          // handleLaunch will be called by the user clicking the "Launch" button which should be 
+          // visible because we set the state.
+          if (pathSettings?.mapLocalDir && !localDirHandleRef.current) {
+            addLog('Auto-launch paused: Local directory needs reconnection. Please click Launch.', false)
+            setStatusText('Reconnection required for local directory...')
+          } else {
+            doLaunch(machineToLaunch, slots, restoredMedia)
+          }
         }
       }
     }
@@ -1679,8 +1736,8 @@ function App() {
                       <div className="slot-grid">
                         <div className="slot-row">
                           <label className="slot-label">Map Local Directory</label>
-                          <button 
-                            className={`btn ${pathSettings?.localDirPath && !localDirHandleRef.current ? 'btn-danger' : 'btn-secondary'} btn-sm`} 
+                          <button
+                            className={`btn ${pathSettings?.localDirPath && !localDirHandleRef.current ? 'btn-danger' : 'btn-secondary'} btn-sm`}
                             onClick={async () => {
                               try {
                                 // @ts-ignore
@@ -1703,7 +1760,9 @@ function App() {
                           </div>
                         )}
                         <p className="settings-hint" style={{ marginTop: 8 }}>
-                          Maps a local folder to MAME's /share directory for file exchange.
+                          AmpleWeb (WASM) does not support -shared_directory (USB flash emulation for Booti cards). 
+                          Use this to map a local folder to /share for hot-swapping disk images. Restart Required.
+                          Once set, Restart/Stop the machine, then Launch again and Reconnect when prompted to take effect.
                         </p>
                       </div>
                     </div>
@@ -1814,8 +1873,8 @@ function App() {
                                         </button>
                                       )}
                                     </div>
-                                    <input 
-                                      type="file" 
+                                    <input
+                                      type="file"
                                       ref={el => fileInputRefs.current[item.id] = el}
                                       style={{ display: 'none' }}
                                       onChange={e => {
@@ -1857,13 +1916,33 @@ function App() {
                 </div>
 
                 <div className="launch-footer">
-                  <button
-                    className="btn btn-primary btn-large"
-                    onClick={handleLaunch}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? '⏳' : wasmModule ? '🔄' : '🚀'} {isLoading ? 'Loading...' : wasmModule ? 'Restart' : 'Launch'}
-                  </button>
+                  {wasmModule && !isLoading ? (
+                    <div className="btn-group-row" style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                      <button
+                        className="btn btn-danger btn-large"
+                        style={{ flex: 1 }}
+                        onClick={handleStop}
+                      >
+                        ⏹️ Stop
+                      </button>
+                      <button
+                        className="btn btn-warning btn-large"
+                        style={{ flex: 1 }}
+                        onClick={handleLaunch}
+                      >
+                        🔄 Restart
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn-primary btn-large"
+                      onClick={handleLaunch}
+                      disabled={isLoading}
+                      style={{ width: '100%' }}
+                    >
+                      {isLoading ? '⏳' : '🚀'} {isLoading ? 'Loading...' : 'Launch'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

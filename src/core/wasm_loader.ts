@@ -311,13 +311,7 @@ export function loadMameWasm(
           const syncDir = async (handle: FileSystemDirectoryHandle, currentPath: string) => {
             try {
               console.log(`[WasmLoader] Scanning directory: ${currentPath}`)
-              // @ts-ignore - Check if we have permission first
-              const permission = await handle.queryPermission({ mode: 'readwrite' })
-              if (permission !== 'granted') {
-                console.warn(`[WasmLoader] Permission not granted for ${currentPath}, requesting...`)
-                await handle.requestPermission({ mode: 'readwrite' })
-              }
-
+              // @ts-ignore
               // @ts-ignore
               for await (const [name, entry] of (handle as any).entries()) {
                 const dest = `${currentPath}/${name}`

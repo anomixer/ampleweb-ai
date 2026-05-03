@@ -33,8 +33,9 @@ AmpleWeb now utilizes a unified **MAME 0.287 (Universal)** engine for all suppor
 
 - **Multi-Tab Configuration**: Control **Video, CPU, A/V, Paths, Slots, and Media** settings from a unified side panel.
 - **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and mouse pointer lock.
-- **Hardware Accuracy**: Optional **Disk Sound Effects** using real hardware audio samples.
-- **VFS Integration**: Map local directories to MAME's `/share` path using the File System Access API. This enables dynamic file exchange and allows swapping disk images via MAME's internal File Manager (TAB menu) without restarting the emulator.
+- **Power Management**: Support for **Stop (Power Off)** and **Restart (Power Cycle)** for stable MAME state management.
+- **Hardware Accuracy**: Optional **Disk Sound Effects** and peripheral support for **a2scsi** (SCSI) and **a2cffa2** (CompactFlash) cards.
+- **Local Directory Mapping**: Replaces the desktop `-shared_directory` flag (unsupported in WASM) with a custom **Map Local Directory** feature. Mapped folders are synced to `/share`, allowing disk hot-swapping via MAME's internal File Manager (TAB menu). *Note: After a restart, users must manually click "Launch" to re-authorize the directory handle.*
 - **Intelligent Media Eject**: Automatically clears incompatible disk images when switching hardware families (e.g., from Apple II to Apple III or Mac).
 - **Persistence**: All settings (theme, configurations, sidebar width) are saved automatically via IndexedDB.
 
