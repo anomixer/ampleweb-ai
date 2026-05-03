@@ -15,25 +15,9 @@ import { useStore } from './core/store'
  * Maps Ample's emulator values to the correct WASM file and MAME driver.
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
-  // Dedicated emularity builds (each WASM = one emularity config)
-  apple2e: { wasm: 'apple2e.wasm', js: 'apple2e.js', driver: 'apple2e' },
-  apple2ee: { wasm: 'apple2e.wasm', js: 'apple2e.js', driver: 'apple2ee' },
-  mac128: { wasm: 'mac128.wasm', js: 'mac128.js', driver: 'mac128k' },
-  maciici: { wasm: 'maciici.wasm', js: 'maciici.js', driver: 'maciici' },
-  mc10: { wasm: 'mc10.wasm', js: 'mc10.js', driver: 'mc10' },
-  // MAME-wrapped builds (full MAME with specific driver)
-  apple2: { wasm: 'mameapple2.wasm', js: 'mameapple2.js', driver: 'apple2p' },
-  apple2gs: { wasm: 'apple2gs.wasm', js: 'apple2gs.js', driver: 'apple2gs' },
-  apple3: { wasm: 'apple3.wasm', js: 'apple3.js', driver: 'apple3' },
-  mac: { wasm: 'mac.wasm', js: 'mac.js', driver: 'mac' },
-  coco: { wasm: 'coco.wasm', js: 'coco.js', driver: 'coco' },
-  coco3: { wasm: 'coco3.wasm', js: 'coco3.js', driver: 'coco3' },
-  trs80: { wasm: 'trs80.wasm', js: 'trs80.js', driver: 'trs80' },
-  // NOTE: st WASM is Stadium Hero (arcade), NOT Atari ST. No Atari ST support.
-  // NOTE: mac128.wasm only supports mac128k + macplus + macse drivers (per emularity config).
-  c64: { wasm: 'c64.wasm', js: 'c64.js', driver: 'c64' },
-  // Universal and Tiny engines
+  // Universal MAME 0.287 engine (supports all 150+ variants)
   mame: { wasm: 'mame.wasm.gz', js: 'mame.js', driver: 'apple2e' },
+  // Lightweight fallback for early machines (optional)
   mametiny: { wasm: 'mametiny.wasm', js: 'mametiny.js', driver: 'apple2' },
 }
 
@@ -289,14 +273,9 @@ async function fetchAllSamples(): Promise<RomFile[]> {
  * Get the WASM info for an emulator type, falling back to available.
  */
 function getWasmForEmulator(emulator: string, machineName: string): { wasm: string; js: string; driver: string } | null {
-  // Direct match from EMULATOR_WASM_MAP
-  const info = EMULATOR_WASM_MAP[emulator]
+  // Direct match from EMULATOR_WASM_MAP (mame.wasm is the default)
+  const info = EMULATOR_WASM_MAP[emulator] || EMULATOR_WASM_MAP['mame']
   if (info) return info
-  // Fallback for early Apple machines if emulator lookup failed
-  if (machineName === 'apple1' || machineName === 'apple2' || machineName === 'apple2p' || machineName === 'apple2jp') {
-    return EMULATOR_WASM_MAP['mametiny'] || EMULATOR_WASM_MAP['apple2']
-  }
-  if (emulator === 'apple2e') return EMULATOR_WASM_MAP['apple2e']
   return null
 }
 

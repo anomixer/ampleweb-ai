@@ -20,23 +20,14 @@ AmpleWeb is the pure browser-based emulation frontend for the Ample project. It 
 - **Storage**: IndexedDB / OPFS for ROMs and disk images
 - **UI**: Custom CSS with dark/light theme support
 
-## Currently Deployed Emulators
+## Unified Engine Architecture
 
-| Emulator | WASM Size | Supported Machines | Status |
-|----------|-----------|-------------------|--------|
-| **Universal (mame.wasm)** | 41 MB | **100+ Models** (BBC, Dragon, Oric, Agat, Franklin, etc.) | ✅ Working |
-| Apple II (mameapple2.wasm) | 26 MB | apple2, apple2p, apple2woz | ✅ Working |
-| Apple IIe | 27 MB | apple2e, apple2ee, apple2ep, apple2c, apple2cp, etc. | ✅ Working |
-| Apple IIgs | 27 MB | apple2gs, apple2gsr0, apple2gsr1 | ✅ Working |
-| Apple III | 26 MB | apple3 | ✅ Working |
-| Mac (mac.wasm) | 55 MB | **All Macintosh Variants** (II, Quadra, LC, PB, Duo, etc.) | ✅ Working |
-| Mac Legacy (mac128.wasm) | 33 MB | mac128k, mac512k, macplus, macse | ✅ Working |
-| Mac IIci | 26 MB | maciici | ✅ Working |
-| Color Computer / Coco | 21 MB | coco, cocoh, coco2b, coco2bh | ✅ Working |
-| Coco 3 | 21 MB | coco3, coco3p, coco3h | ✅ Working |
-| TRS-80 | 20 MB | trs80, trs80l2 | ✅ Working |
-| Commodore 64 | 11 MB | c64, c64c | ✅ Working |
-| MC-10 | 22 MB | mc10 | ✅ Working |
+AmpleWeb now utilizes a unified **MAME 0.287 (Universal)** engine for all supported systems. This consolidation ensures maximum compatibility and feature parity (such as BGFX effects and sample support) across all machine variants.
+
+| Engine | WASM Size | Description | Status |
+|--------|-----------|-------------|--------|
+| **Universal (mame.wasm.gz)** | 10 MB | **All 150+ Models** (Apple II, Mac, BBC, CoCo, C64, etc.) | ✅ Active |
+| Tiny (mametiny.wasm) | 3 MB | Optimized build for early 8-bit machines | ⚡ Optional |
 
 ## Features
 
