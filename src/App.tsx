@@ -523,20 +523,22 @@ function App() {
   const prevFamilyRef = useRef<string | null>(null)
 
   const getMachineFamily = useCallback((machineName: string): string => {
-    const families = [
-      'apple3', 'apple1', 'apple2', 'apple', // Apple variants (ordered specifically)
-      'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', 'mprof3', // Apple II Clones
-      'mac', // Macintosh
-      'coco', 'trs80', 'dragon', 'mc10', // Tandy / TRS-80 / Dragon
-      'st', 'megast', 'spectred', // Atari ST
-      'bbc', 'electron', // Acorn
-      'c64', // Commodore
-      'oric', 'telstrat' // Oric
-    ];
     const lowerName = machineName.toLowerCase();
-    for (const family of families) {
-      if (lowerName.startsWith(family)) return family;
+    
+    // Apple II & Clones
+    if (['apple3', 'apple1', 'apple2', 'apple', 'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', 'mprof3'].some(f => lowerName.startsWith(f))) {
+      if (lowerName.startsWith('apple3')) return 'apple3';
+      if (lowerName.startsWith('apple1')) return 'apple1';
+      return 'apple2'; // General Apple II / Clones
     }
+    
+    if (lowerName.startsWith('mac')) return 'mac';
+    if (['coco', 'trs80', 'mc10', 'dragon'].some(f => lowerName.startsWith(f))) return 'tandy';
+    if (['st', 'megast', 'spectred'].some(f => lowerName.startsWith(f))) return 'atarist';
+    if (['bbc', 'electron'].some(f => lowerName.startsWith(f))) return 'acorn';
+    if (lowerName.startsWith('c64') || lowerName.startsWith('c128') || lowerName.startsWith('vic20')) return 'commodore';
+    if (['oric', 'telstrat'].some(f => lowerName.startsWith(f))) return 'oric';
+    
     return 'other';
   }, []);
 
