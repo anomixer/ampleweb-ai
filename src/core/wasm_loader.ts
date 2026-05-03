@@ -61,6 +61,8 @@ export interface WasmLoaderOptions {
   mediaFiles?: MediaFile[]
   /** WASM virtual FS root for Media (default /media) */
   mediaPath?: string
+  /** Audio samples to mount into VFS (default /samples) */
+  sampleFiles?: RomFile[]
   onReady?: (module: MameWasmModule) => void
   onProgress?: (loaded: number, total: number) => void
   onError?: (error: string) => void
@@ -79,6 +81,7 @@ export function loadMameWasm(
       driverArgs = [],
       romFiles = [],
       mediaFiles = [],
+      sampleFiles = [],
       romPath = '/roms',
       mediaPath = '/media',
       onReady,
@@ -258,6 +261,27 @@ export function loadMameWasm(
           Module.removeRunDependency('rom-write')
         }
 
+        if (sampleFiles.length > 0) {
+          const samplePath = '/samples'
+          try { FS.mkdir(samplePath) } catch { /* exists */ }
+          Module.addRunDependency('sample-write')
+          try {
+            for (const s of sampleFiles) {
+              const dest = `${samplePath}/${s.name}`
+              const dir = dest.substring(0, dest.lastIndexOf('/'))
+              if (dir && dir !== samplePath) {
+                try { FS.mkdir(dir) } catch { /* exists */ }
+              }
+              FS.writeFile(dest, s.data)
+              console.log('[WasmLoader] Wrote sample', dest)
+              onLog?.(`[FS] ${dest} mounted`, false)
+            }
+          } catch (e: any) {
+            console.error('[WasmLoader] Sample write error:', e)
+          }
+          Module.removeRunDependency('sample-write')
+        }
+
         if (mediaFiles.length > 0) {
           Module.addRunDependency('media-write')
           try {
@@ -361,12 +385,19 @@ export function buildMameArgs(
   options: {
     slots?: Record<string, string>
     extraArgs?: string[]
-    video?: 'soft' | 'bgfx' | 'opengl' | 'none'
-    resolution?: string
-    noMaximize?: boolean
-    skipGameInfo?: boolean
-    window?: boolean
-  } = {}
+  video?: 'soft' | 'bgfx' | 'opengl' | 'none'
+  resolution?: string
+  noMaximize?: boolean
+  skipGameInfo?: boolean
+  window?: boolean
+  aviWrite?: boolean
+  wavWrite?: boolean
+  videoMethod?: 'soft' | 'bgfx' | 'opengl'
+  bgfxBackend?: string
+  bgfxEffect?: string
+  keepAspect?: boolean
+  diskSound?: boolean
+} = {}
 ): string[] {
   const args: string[] = [driver]
 
@@ -376,11 +407,40 @@ export function buildMameArgs(
     }
   }
 
-  args.push('-video', options.video ?? 'soft')
+  args.push('-video', options.videoMethod ?? options.video ?? 'soft')
   args.push('-resolution', options.resolution ?? '640x480')
   if (options.window !== false) args.push('-window')
   if (options.noMaximize !== false) args.push('-nomaximize')
   if (options.skipGameInfo !== false) args.push('-skip_gameinfo')
+  if (options.keepAspect === false) args.push('-nokeepaspect')
+  if (options.diskSound !== false) {
+    args.push('-samples')
+    args.push('-samplepath', '/samples')
+  }
+
+  if (options.videoMethod === 'bgfx') {
+    if (options.bgfxBackend && options.bgfxBackend !== 'auto') {
+      args.push('-bgfx_backend', options.bgfxBackend)
+    }
+    if (options.bgfxEffect && options.bgfxEffect !== 'none') {
+      args.push('-bgfx_screen_chains', options.bgfxEffect)
+    }
+  }
+
+  if (options.cpuSpeed) {
+    if (options.cpuSpeed === 'nothrottle') {
+      args.push('-nothrottle')
+    } else {
+      const speedMult = parseFloat(options.cpuSpeed) / 100
+      if (speedMult !== 1.0) {
+        args.push('-speed', speedMult.toString())
+      }
+    }
+  }
+  if (options.debug) args.push('-debug')
+  if (options.rewind) args.push('-rewind')
+  if (options.aviWrite) args.push('-aviwrite', 'output.avi')
+  if (options.wavWrite) args.push('-wavwrite', 'output.wav')
 
   if (options.extraArgs) args.push(...options.extraArgs)
 

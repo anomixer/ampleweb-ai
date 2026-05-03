@@ -235,6 +235,20 @@ const DRIVER_MAP: Record<string, string> = {
   apple3: 'apple3',
 }
 
+/** Machines known to have a very slow hardware initialization/boot process. */
+const SLOW_BOOT_MACHINES = [
+  'macpb160', 'macpb165', 'macpb165c', 'macpb180', 'macpb180c'
+];
+
+const FLOPPY_SAMPLES = [
+  '35_seek_12ms.wav', '35_seek_20ms.wav', '35_seek_2ms.wav', '35_seek_6ms.wav',
+  '35_spin_empty.wav', '35_spin_end.wav', '35_spin_loaded.wav',
+  '35_spin_start_empty.wav', '35_spin_start_loaded.wav', '35_step_1_1.wav',
+  '525_seek_12ms.wav', '525_seek_20ms.wav', '525_seek_2ms.wav', '525_seek_6ms.wav',
+  '525_spin_empty.wav', '525_spin_end.wav', '525_spin_loaded.wav',
+  '525_spin_start_empty.wav', '525_spin_start_loaded.wav', '525_step_1_1.wav'
+];
+
 /** Lightweight file existence check (synchronous, checks browser cache). */
 const _wasmCache: Record<string, boolean> = {}
 function _wasmExists(filename: string): boolean {
@@ -246,6 +260,23 @@ function _wasmExists(filename: string): boolean {
       .catch(() => { _wasmCache[url] = false })
   }
   return _wasmCache[url]
+}
+
+async function fetchAllSamples(): Promise<RomFile[]> {
+  const results: RomFile[] = []
+  for (const filename of FLOPPY_SAMPLES) {
+    try {
+      const url = `/samples/floppy/${filename}`
+      const resp = await fetch(url)
+      if (resp.ok) {
+        const data = new Uint8Array(await resp.arrayBuffer())
+        results.push({ name: `floppy/${filename}`, driver: 'floppy', data })
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch sample ${filename}:`, e)
+    }
+  }
+  return results
 }
 
 /**
@@ -386,12 +417,12 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macpb140: 'macpb140.zip',
   macpb145: 'macpb145.zip;macpb140.zip',
   macpb145b: 'macpb145b.zip;macpb140.zip',
-  macpb160: 'macpb160.zip;egret.zip;adbmodem.zip',
-  macpb165: 'macpb165.zip;macpb160.zip;egret.zip;adbmodem.zip',
-  macpb165c: 'macpb165c.zip;macpb180c.zip;egret.zip;adbmodem.zip',
-  macpb170: 'macpb170.zip;macpb140.zip;egret.zip;adbmodem.zip',
-  macpb180: 'macpb180.zip;macpb160.zip;egret.zip;adbmodem.zip',
-  macpb180c: 'macpb180c.zip;egret.zip;adbmodem.zip',
+  macpb160: 'macpb160.zip',
+  macpb165: 'macpb165.zip;macpb160.zip',
+  macpb165c: 'macpb165c.zip;macpb180c.zip',
+  macpb170: 'macpb170.zip;macpb140.zip',
+  macpb180: 'macpb180.zip;macpb160.zip',
+  macpb180c: 'macpb180c.zip',
   macpd210: 'macpd210.zip;m68hc05pge.zip',
   macpd230: 'macpd230.zip;macpd210.zip;m68hc05pge.zip',
   macpd250: 'macpd250.zip;macpd210.zip;m68hc05pge.zip',
@@ -462,7 +493,25 @@ const DEFAULT_RESOLUTIONS: Record<string, string> = {
 }
 
 function App() {
-  const { theme, toggleTheme } = useStore()
+  const {
+    theme,
+    toggleTheme,
+    romSettings,
+    setRomSettings,
+    sidebarWidth,
+    setSidebarWidth,
+    configWidth,
+    setConfigWidth,
+    videoSettings,
+    setVideoSettings,
+    cpuSettings,
+    setCpuSettings,
+    avSettings,
+    setAvSettings,
+    pathSettings,
+    setPathSettings
+  } = useStore()
+
   const [models, setModels] = useState<ModelEntry[]>([])
   const [selectedMachine, setSelectedMachine] = useState<{ name: string; description: string } | null>(null)
   const [machineConfig, setMachineConfig] = useState<MachineConfig | null>(null)
@@ -476,16 +525,14 @@ function App() {
   const [logs, setLogs] = useState<LogLine[]>([])
   const [showLogs, setShowLogs] = useState(false)
   const [search, setSearch] = useState('')
-  const [sidebarWidth, setSidebarWidth] = useState(280)
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
-  const [configWidth, setConfigWidth] = useState(450)
   const [isConfigResizing, setIsConfigResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [romSettings, setRomSettings] = useState({ autoDownload: false, downloadServers: [] as string[] })
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [configTab, setConfigTab] = useState<'slots' | 'media' | 'logs'>('slots')
+  const [configTab, setConfigTab] = useState<'video' | 'cpu' | 'av' | 'paths' | 'slots' | 'media' | 'logs'>('slots')
   const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
   const logEndRef = useRef<HTMLDivElement>(null)
+  const localDirHandleRef = useRef<any>(null)
   const hasAutoLaunched = useRef(false)
 
   // Detect available WASM on mount (legacy display only)
@@ -499,6 +546,44 @@ function App() {
 
 
 
+
+  // ── Canvas Scaling ──
+  useEffect(() => {
+    if (!videoSettings) return
+    const c = document.getElementById('canvas') as HTMLCanvasElement | null
+    if (!c) return
+
+    if (videoSettings.windowMode === 'fit') {
+      c.style.width = '100%'
+      c.style.height = '100%'
+      c.style.objectFit = 'contain'
+      c.style.transform = ''
+    } else {
+      const scale = parseInt(videoSettings.windowMode) || 1
+      c.style.width = ''
+      c.style.height = ''
+      c.style.objectFit = ''
+      if (scale > 1) {
+        c.style.transform = `scale(${scale})`
+        c.style.transformOrigin = 'center'
+      } else {
+        c.style.transform = ''
+      }
+    }
+  }, [videoSettings?.windowMode, launchState])
+
+  // ── Mouse Capture ──
+  useEffect(() => {
+    if (!videoSettings || !videoSettings.captureMouse || launchState !== 'running') return
+    const c = document.getElementById('canvas') as HTMLCanvasElement | null
+    if (!c) return
+    
+    const onClick = () => {
+      try { c.requestPointerLock() } catch (e) { console.warn('Pointer lock failed:', e) }
+    }
+    c.addEventListener('mousedown', onClick)
+    return () => c.removeEventListener('mousedown', onClick)
+  }, [videoSettings?.captureMouse, launchState])
 
   // ── Sidebar resize ──
   useEffect(() => {
@@ -851,6 +936,14 @@ function App() {
       }
     }
 
+    // 3b. Fetch samples if enabled
+    let sampleList: RomFile[] = []
+    if (avSettings?.diskSound) {
+      setStatusText('Fetching samples...')
+      sampleList = await fetchAllSamples()
+      addLog(`Fetched ${sampleList.length} sound samples`, false)
+    }
+
     // 4. Build MAME args
     const finalSlots = slotsParam ?? slotValues
 
@@ -884,6 +977,16 @@ function App() {
 
     const args = buildMameArgs(mameDriver, {
       slots: filteredSlots,
+      cpuSpeed: cpuSettings?.speed,
+      debug: false, // Disabled as requested
+      rewind: cpuSettings?.rewind,
+      aviWrite: avSettings?.generateAvi,
+      wavWrite: avSettings?.generateWav,
+      videoMethod: videoSettings?.videoMethod,
+      bgfxBackend: videoSettings?.bgfxBackend,
+      bgfxEffect: videoSettings?.bgfxEffect,
+      keepAspect: videoSettings?.keepAspect,
+      diskSound: avSettings?.diskSound,
       extraArgs: [
         '-verbose',
         ...(ramsizeArg ? ['-ramsize', ramsizeArg] : []),
@@ -899,6 +1002,7 @@ function App() {
         driverArgs: args,
         romFiles,
         mediaFiles: mediaList,
+        sampleFiles: sampleList,
         romPath: '/roms',
         jsUrl: `/wasm/${wasmInfo.js}`,
         onProgress: (loaded, total) => {
@@ -921,7 +1025,13 @@ function App() {
         onReady: (m) => {
           setWasmModule(m)
           setLaunchState('running')
-          setStatusText('')
+          if (SLOW_BOOT_MACHINES.includes(machine.name)) {
+            setStatusText('This takes longer time to boot...')
+            // Keep the message for 10 seconds then clear it
+            setTimeout(() => setStatusText(''), 10000)
+          } else {
+            setStatusText('')
+          }
 
           requestAnimationFrame(() => {
             const c = document.getElementById('canvas') as HTMLCanvasElement | null
@@ -1174,7 +1284,7 @@ function App() {
     })
   }, [])
 
-  const isLoading = launchState === 'fetching-rom' || launchState === 'loading-wasm'
+  const isLoading = launchState === 'fetching-rom' || launchState === 'loading-wasm' || (launchState === 'running' && !!statusText)
 
   return (
     <div className={`app ${theme}`}>
@@ -1306,7 +1416,7 @@ function App() {
                 <div className="progress-bar">
                   <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
                 </div>
-                <span className="progress-label">{statusText}</span>
+                <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''}`}>{statusText}</span>
               </div>
             )}
 
@@ -1345,7 +1455,7 @@ function App() {
                       {isLoading && (
                         <div className="loading-indicator">
                           <div className="spinner" />
-                          <p>{statusText}</p>
+                          <p className={statusText.includes('longer time') ? 'highlight' : ''}>{statusText}</p>
                         </div>
                       )}
                       {launchState === 'error' && (
@@ -1369,27 +1479,180 @@ function App() {
               {/* Config area */}
               <div className="config-area" style={{ width: configWidth ?? 450 }}>
                 <div className="tab-header">
-                  <button
-                    className={`tab-btn ${configTab === 'slots' ? 'active' : ''}`}
-                    onClick={() => setConfigTab('slots')}
-                  >
-                    Slots
-                  </button>
-                  <button
-                    className={`tab-btn ${configTab === 'media' ? 'active' : ''}`}
-                    onClick={() => setConfigTab('media')}
-                  >
-                    Media
-                  </button>
-                  <button
-                    className={`tab-btn ${configTab === 'logs' ? 'active' : ''}`}
-                    onClick={() => setConfigTab('logs')}
-                  >
-                    Logs
-                  </button>
+                  <button className={`tab-btn ${configTab === 'video' ? 'active' : ''}`} onClick={() => setConfigTab('video')}>Video</button>
+                  <button className={`tab-btn ${configTab === 'cpu' ? 'active' : ''}`} onClick={() => setConfigTab('cpu')}>CPU</button>
+                  <button className={`tab-btn ${configTab === 'av' ? 'active' : ''}`} onClick={() => setConfigTab('av')}>A/V</button>
+                  <button className={`tab-btn ${configTab === 'paths' ? 'active' : ''}`} onClick={() => setConfigTab('paths')}>Paths</button>
+                  <div className="tab-separator" />
+                  <button className={`tab-btn ${configTab === 'slots' ? 'active' : ''}`} onClick={() => setConfigTab('slots')}>Slots</button>
+                  <button className={`tab-btn ${configTab === 'media' ? 'active' : ''}`} onClick={() => setConfigTab('media')}>Media</button>
+                  <button className={`tab-btn ${configTab === 'logs' ? 'active' : ''}`} onClick={() => setConfigTab('logs')}>Logs</button>
                 </div>
 
                 <div className="tab-content">
+                  {configTab === 'video' && (
+                    <div className="section no-border">
+                      <div className="slot-grid">
+                        <div className="slot-row">
+                          <label className="slot-label">Window Mode</label>
+                          <select className="slot-select" value={videoSettings?.windowMode || '1x'} onChange={e => setVideoSettings({ windowMode: e.target.value as any })}>
+                            <option value="1x">1x (Native)</option>
+                            <option value="2x">2x</option>
+                            <option value="3x">3x</option>
+                            <option value="4x">4x</option>
+                            <option value="fit">Fit to Screen</option>
+                          </select>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Square Pixel</label>
+                          <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                            <input type="checkbox" disabled checked={!videoSettings?.keepAspect} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Capture Mouse</label>
+                          <label className="settings-toggle-wrap">
+                            <input type="checkbox" checked={!!videoSettings?.captureMouse} onChange={e => setVideoSettings({ captureMouse: e.target.checked })} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                          <span className="settings-hint">Lock cursor on click, hold Esc to release</span>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Disk Sound Effects</label>
+                          <label className="settings-toggle-wrap">
+                            <input type="checkbox" checked={!!avSettings?.diskSound} onChange={e => setAvSettings({ diskSound: e.target.checked })} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                          <span className="settings-hint">Requires restart to take effect</span>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Video Method</label>
+                          <select className="slot-select" value="soft" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                            <option value="soft">Software</option>
+                            <option value="bgfx">BGFX (Hardware Accel)</option>
+                            <option value="opengl">OpenGL</option>
+                          </select>
+                        </div>
+                        {videoSettings?.videoMethod === 'bgfx' && (
+                          <>
+                            <div className="slot-row">
+                              <label className="slot-label">BGFX Backend</label>
+                              <select className="slot-select" value={videoSettings?.bgfxBackend || 'auto'} onChange={e => setVideoSettings({ bgfxBackend: e.target.value as any })}>
+                                <option value="auto">Auto</option>
+                                <option value="opengl">OpenGL</option>
+                                <option value="gles">OpenGLES</option>
+                                <option value="vulkan">Vulkan</option>
+                              </select>
+                            </div>
+                            <div className="slot-row">
+                              <label className="slot-label">Effect</label>
+                              <select className="slot-select" value={videoSettings?.bgfxEffect || 'none'} onChange={e => setVideoSettings({ bgfxEffect: e.target.value as any })}>
+                                <option value="none">None</option>
+                                <option value="scanlines">Scanlines</option>
+                                <option value="crt-geom">CRT Geom</option>
+                                <option value="crt-geom-deluxe">CRT Geom Deluxe</option>
+                                <option value="hq2x">HQ2X</option>
+                                <option value="lcd-grid">LCD Grid</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {configTab === 'cpu' && (
+                    <div className="section no-border">
+                      <div className="slot-grid">
+                        <div className="slot-row">
+                          <label className="slot-label">Speed</label>
+                          <select className="slot-select" value={cpuSettings?.speed || '100'} onChange={e => setCpuSettings({ speed: e.target.value as any })}>
+                            <option value="100">100% (Normal)</option>
+                            <option value="200">200%</option>
+                            <option value="300">300%</option>
+                            <option value="400">400%</option>
+                            <option value="500">500%</option>
+                            <option value="nothrottle">No Throttle (Max)</option>
+                          </select>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Debug</label>
+                          <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                            <input type="checkbox" disabled checked={false} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Rewind</label>
+                          <label className="settings-toggle-wrap">
+                            <input type="checkbox" checked={!!cpuSettings?.rewind} onChange={e => setCpuSettings({ rewind: e.target.checked })} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {configTab === 'av' && (
+                    <div className="section no-border">
+                      <div className="slot-grid">
+                        <div className="slot-row">
+                          <label className="slot-label">Generate AVI</label>
+                          <label className="settings-toggle-wrap">
+                            <input type="checkbox" checked={!!avSettings?.generateAvi} onChange={e => setAvSettings({ generateAvi: e.target.checked })} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Generate WAV</label>
+                          <label className="settings-toggle-wrap">
+                            <input type="checkbox" checked={!!avSettings?.generateWav} onChange={e => setAvSettings({ generateWav: e.target.checked })} />
+                            <span className="settings-toggle-track" />
+                          </label>
+                        </div>
+                        <div className="slot-row">
+                          <label className="slot-label">Generate VGM</label>
+                          <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                            <input type="checkbox" disabled />
+                            <span className="settings-toggle-track" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {configTab === 'paths' && (
+                    <div className="section no-border">
+                      <div className="slot-grid">
+                        <div className="slot-row">
+                          <label className="slot-label">Map Local Directory</label>
+                          <button 
+                            className="btn btn-secondary btn-sm" 
+                            onClick={async () => {
+                              try {
+                                // @ts-ignore
+                                const handle = await window.showDirectoryPicker()
+                                setPathSettings({ mapLocalDir: true, localDirPath: handle.name })
+                                localDirHandleRef.current = handle
+                              } catch {}
+                            }}
+                          >
+                            {pathSettings?.localDirPath ? `Mapped: ${pathSettings.localDirPath}` : 'Select Folder...'}
+                          </button>
+                        </div>
+                        {pathSettings?.localDirPath && (
+                          <div className="slot-row">
+                            <button className="btn btn-ghost btn-sm" onClick={() => setPathSettings({ mapLocalDir: false, localDirPath: null })}>Remove Mapping</button>
+                          </div>
+                        )}
+                        <p className="settings-hint" style={{ marginTop: 8 }}>
+                          Maps a local folder to MAME's /share directory for file exchange.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {configTab === 'slots' && (
                     <div className="section no-border">
                       {machineConfig ? (
