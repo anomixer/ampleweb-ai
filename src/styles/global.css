@@ -1048,6 +1048,14 @@ body {
   font-size: 32px;
 }
 
+.tree-label.warning {
+  color: #fcd34d !important;
+}
+.tree-id.warning {
+  color: #fcd34d !important;
+  opacity: 0.9 !important;
+}
+
 .media-group-wrap {
   margin-bottom: 16px;
   border: 1px solid var(--border);

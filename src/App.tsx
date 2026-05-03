@@ -2103,6 +2103,7 @@ function TreeItem({
 
   const isExpanded = filter ? matchesFilter(entry, filter) : expanded.has(id)
   const isSelected = selected?.name === entry.value && !!entry.value
+  const isWarning = entry.value && (NOT_WORKING_MACHINES.includes(entry.value) || entry.value === 'mprof3')
   const itemRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -2128,10 +2129,10 @@ function TreeItem({
           ) : (
             <span className="tree-dot"></span>
           )}
-          <span className="tree-label">{entry.description}</span>
+          <span className={`tree-label${isWarning ? ' warning' : ''}`}>{entry.description}</span>
         </div>
         {entry.value && !hasChildren && (
-          <code className="tree-id">{entry.value}</code>
+          <code className={`tree-id${isWarning ? ' warning' : ''}`}>{entry.value}</code>
         )}
       </div>
 
