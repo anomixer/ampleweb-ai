@@ -1453,10 +1453,10 @@ function App() {
       {/* ── Left Sidebar ── */}
       <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
         <div className="sidebar-header">
-          <div className="sidebar-title">
+          <a href="https://github.com/anomixer/ample" target="_blank" rel="noopener noreferrer" className="sidebar-title">
             <span className="sidebar-logo">🍎</span>
             <span>AmpleWeb</span>
-          </div>
+          </a>
           <button className="theme-btn" onClick={toggleTheme} title="Toggle theme">
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
