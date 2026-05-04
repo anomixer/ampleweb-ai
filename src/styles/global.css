@@ -483,6 +483,20 @@ body {
   background: radial-gradient(circle at center, var(--bg2), var(--bg1));
 }
 
+/* ─── Fullscreen Scaling ─── */
+.emulator-container:fullscreen {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emulator-container:fullscreen canvas {
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: contain !important;
+}
+
 .config-area {
   flex-shrink: 0;
   display: flex;

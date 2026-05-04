@@ -535,8 +535,21 @@ function App() {
   const [isConfigResizing, setIsConfigResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths'>('video')
-  const [machineTab, setMachineTab] = useState<'slots' | 'media' | 'logs'>('slots')
+  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths'>(() => {
+    return (localStorage.getItem('ample-system-tab') as any) || 'video'
+  })
+  const [machineTab, setMachineTab] = useState<'slots' | 'media' | 'logs'>(() => {
+    return (localStorage.getItem('ample-machine-tab') as any) || 'slots'
+  })
+
+  // Persist tabs
+  useEffect(() => {
+    localStorage.setItem('ample-system-tab', systemTab)
+  }, [systemTab])
+
+  useEffect(() => {
+    localStorage.setItem('ample-machine-tab', machineTab)
+  }, [machineTab])
   const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
@@ -1126,6 +1139,7 @@ function App() {
         driverArgs: args,
         romFiles: romFiles,
         mediaFiles: mediaList,
+        sampleFiles: sampleList,
         jsUrl: `/wasm/${wasmInfo.js}`,
         localDirHandle: pathSettings?.mapLocalDir ? localDirHandleRef.current : undefined,
         onProgress: (loaded, total) => {
@@ -1145,8 +1159,8 @@ function App() {
           if (m.canvas && canvasContainerRef.current) {
             canvasContainerRef.current.appendChild(m.canvas)
             m.canvas.style.display = 'block'
-            m.canvas.style.maxWidth = '100%'
-            m.canvas.style.maxHeight = '100%'
+            m.canvas.style.width = '100%'
+            m.canvas.style.height = '100%'
             m.canvas.style.objectFit = 'contain'
           }
           setWasmModule(m)
@@ -1320,6 +1334,7 @@ function App() {
     }
   }, [logs, showLogs])
 
+
   // Sync selection to URL (without reloading)
   useEffect(() => {
     if (selectedMachine) {
@@ -1346,6 +1361,22 @@ function App() {
       window.history.replaceState({}, '', url.toString())
     }
   }, [selectedMachine, slotValues, mediaFiles])
+
+  /**
+   * Full-screen toggle for the emulator
+   */
+  const toggleFullScreen = useCallback(() => {
+    const container = canvasContainerRef.current
+    if (!container) return
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      container.requestFullscreen().catch(err => {
+        addLog(`Fullscreen error: ${err.message}`, true)
+      })
+    }
+  }, [addLog])
 
   /**
    * Test launch — no ROMs, just load the WASM runtime.
@@ -1391,8 +1422,8 @@ function App() {
           if (m.canvas && canvasContainerRef.current) {
             canvasContainerRef.current.appendChild(m.canvas)
             m.canvas.style.display = 'block'
-            m.canvas.style.maxWidth = '100%'
-            m.canvas.style.maxHeight = '100%'
+            m.canvas.style.width = '100%'
+            m.canvas.style.height = '100%'
             m.canvas.style.objectFit = 'contain'
           }
         },
@@ -1565,7 +1596,17 @@ function App() {
               </div>
               <div className="header-badges" style={{ marginLeft: 'auto' }}>
                 {launchState === 'running' && (
-                  <span className="badge badge-running">● Running</span>
+                  <>
+                    <button 
+                      className="badge badge-running" 
+                      onClick={toggleFullScreen}
+                      title="Full Screen"
+                      style={{ cursor: 'pointer', border: 'none', marginRight: '6px', color: '#fff' }}
+                    >
+                      📺 Full Screen
+                    </button>
+                    <span className="badge badge-running">● Running</span>
+                  </>
                 )}
                 {launchState === 'error' && (
                   <span className="badge badge-error">● Error</span>
