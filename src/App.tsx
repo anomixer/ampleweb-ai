@@ -535,7 +535,8 @@ function App() {
   const [isConfigResizing, setIsConfigResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [configTab, setConfigTab] = useState<'video' | 'cpu' | 'av' | 'paths' | 'slots' | 'media' | 'logs'>('slots')
+  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths'>('video')
+  const [machineTab, setMachineTab] = useState<'slots' | 'media' | 'logs'>('slots')
   const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
@@ -1121,55 +1122,45 @@ function App() {
     }
 
     try {
-      const mod = await loadMameWasm(wasmUrl, {
+      const module = await loadMameWasm(wasmUrl, {
         driverArgs: args,
-        romFiles,
+        romFiles: romFiles,
         mediaFiles: mediaList,
-        sampleFiles: sampleList,
-        romPath: '/roms',
         jsUrl: `/wasm/${wasmInfo.js}`,
-        localDirHandle: pathSettings?.mapLocalDir ? localDirHandleRef.current : null,
+        localDirHandle: pathSettings?.mapLocalDir ? localDirHandleRef.current : undefined,
         onProgress: (loaded, total) => {
           if (total > 0) {
             const pct = Math.round((loaded / total) * 100)
             setWasmProgress(pct)
-            setStatusText(`Loading... ${pct}%`)
+            setStatusText(`Loading machine... ${pct}%`)
           }
         },
         onError: (err) => {
-          let msg = err
-          if (err.includes('Failed to fetch') || err.includes('404')) {
-            msg += `\nPlace the correct WASM in public/wasm/`
-          }
-          setErrorText(msg)
+          setErrorText(err)
           setLaunchState('error')
-          addLog(`Error: ${msg}`, true)
+          addLog(`Error: ${err}`, true)
         },
         onLog: addLog,
         onReady: (m) => {
+          if (m.canvas && canvasContainerRef.current) {
+            canvasContainerRef.current.appendChild(m.canvas)
+            m.canvas.style.display = 'block'
+            m.canvas.style.maxWidth = '100%'
+            m.canvas.style.maxHeight = '100%'
+            m.canvas.style.objectFit = 'contain'
+          }
           setWasmModule(m)
           setLaunchState('running')
           if (NOT_WORKING_MACHINES.includes(machine.name)) {
             setStatusText('This machine may not work...')
           } else if (SLOW_BOOT_MACHINES.includes(machine.name)) {
             setStatusText('This takes longer time to boot...')
-            // Keep the message for 10 seconds then clear it
             setTimeout(() => setStatusText(''), 10000)
           } else {
             setStatusText('')
           }
-
-          requestAnimationFrame(() => {
-            const c = document.getElementById('canvas') as HTMLCanvasElement | null
-            if (c && canvasContainerRef.current) {
-              canvasContainerRef.current.innerHTML = ''
-              canvasContainerRef.current.appendChild(c)
-              c.style.display = ''
-            }
-          })
-        },
+        }
       })
-      setWasmModule(mod)
     } catch (e: any) {
       const msg = e.message || String(e)
       setErrorText(msg)
@@ -1385,7 +1376,7 @@ function App() {
     })
 
     try {
-      await loadMameWasm(wasmUrl, {
+      const module = await loadMameWasm(wasmUrl, {
         driverArgs: args,
         romFiles: [],
         jsUrl: `/wasm/${wasmInfo.js}`,
@@ -1394,6 +1385,15 @@ function App() {
             const pct = Math.round((loaded / total) * 100)
             setWasmProgress(pct)
             setStatusText(`Loading... ${pct}%`)
+          }
+        },
+        onReady: (m) => {
+          if (m.canvas && canvasContainerRef.current) {
+            canvasContainerRef.current.appendChild(m.canvas)
+            m.canvas.style.display = 'block'
+            m.canvas.style.maxWidth = '100%'
+            m.canvas.style.maxHeight = '100%'
+            m.canvas.style.objectFit = 'contain'
           }
         },
         onError: (err) => {
@@ -1553,16 +1553,17 @@ function App() {
       />
 
       {/* ── Right Main Panel ── */}
-      <div className="main" style={{ minWidth: 0 }}>
+      <div className="main">
         {selectedMachine ? (
-          <div className="machine-panel">
+          <>
+            <div className="machine-panel">
             {/* Machine header */}
             <div className="machine-header">
               <div>
                 <h2 className="machine-title">{selectedMachine.description}</h2>
                 <code className="machine-id">{selectedMachine.name}</code>
               </div>
-              <div className="header-badges">
+              <div className="header-badges" style={{ marginLeft: 'auto' }}>
                 {launchState === 'running' && (
                   <span className="badge badge-running">● Running</span>
                 )}
@@ -1592,8 +1593,7 @@ function App() {
               </div>
             )}
 
-            {/* Content row: emulator + config side by side */}
-            <div className="content-row">
+            {/* Emulator Area */}
               {/* Left: emulator canvas */}
               <div className="emulator-area">
                 <div className={`emulator-container ${launchState === 'running' ? 'active' : ''} mode-${videoSettings?.windowMode || 'fit'}`}>
@@ -1627,376 +1627,387 @@ function App() {
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* ── Config Resize Handle ── */}
-              <div
-                className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
-                onMouseDown={() => setIsConfigResizing(true)}
-              />
+          {/* ── Config Resize Handle ── */}
+          <div
+            className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
+            onMouseDown={() => setIsConfigResizing(true)}
+          />
 
-              {/* Config area */}
-              <div className="config-area" style={{ width: configWidth ?? 450 }}>
-                <div className="tab-header">
-                  <button className={`tab-btn ${configTab === 'video' ? 'active' : ''}`} onClick={() => setConfigTab('video')}>Video</button>
-                  <button className={`tab-btn ${configTab === 'cpu' ? 'active' : ''}`} onClick={() => setConfigTab('cpu')}>CPU</button>
-                  <button className={`tab-btn ${configTab === 'av' ? 'active' : ''}`} onClick={() => setConfigTab('av')}>A/V</button>
-                  <button className={`tab-btn ${configTab === 'paths' ? 'active' : ''}`} onClick={() => setConfigTab('paths')}>Paths</button>
-                  <div className="tab-separator" />
-                  <button className={`tab-btn ${configTab === 'slots' ? 'active' : ''}`} onClick={() => setConfigTab('slots')}>Slots</button>
-                  <button className={`tab-btn ${configTab === 'media' ? 'active' : ''}`} onClick={() => setConfigTab('media')}>Media</button>
-                  <button className={`tab-btn ${configTab === 'logs' ? 'active' : ''}`} onClick={() => setConfigTab('logs')}>Logs</button>
-                </div>
-
-                <div className="tab-content">
-                  {configTab === 'video' && (
-                    <div className="section no-border">
-                      <div className="slot-grid">
-                        <div className="slot-row">
-                          <label className="slot-label">Window Mode</label>
-                          <select className="slot-select" value={videoSettings?.windowMode || '1x'} onChange={e => setVideoSettings({ windowMode: e.target.value as any })}>
-                            <option value="1x">1x (Native)</option>
-                            <option value="2x">2x</option>
-                            <option value="3x">3x</option>
-                            <option value="4x">4x</option>
-                            <option value="fit">Fit to Screen</option>
-                          </select>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Square Pixel</label>
-                          <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                            <input type="checkbox" disabled checked={!videoSettings?.keepAspect} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Capture Mouse</label>
-                          <label className="settings-toggle-wrap">
-                            <input type="checkbox" checked={!!videoSettings?.captureMouse} onChange={e => setVideoSettings({ captureMouse: e.target.checked })} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                          <span className="settings-hint">Lock cursor on click, hold Esc to release</span>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Disk Sound Effects</label>
-                          <label className="settings-toggle-wrap">
-                            <input type="checkbox" checked={!!avSettings?.diskSound} onChange={e => setAvSettings({ diskSound: e.target.checked })} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                          <span className="settings-hint">Requires restart to take effect</span>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Video Method</label>
-                          <select className="slot-select" value="soft" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-                            <option value="soft">Software</option>
-                            <option value="bgfx">BGFX (Hardware Accel)</option>
-                            <option value="opengl">OpenGL</option>
-                          </select>
-                        </div>
-                        {videoSettings?.videoMethod === 'bgfx' && (
-                          <>
-                            <div className="slot-row">
-                              <label className="slot-label">BGFX Backend</label>
-                              <select className="slot-select" value={videoSettings?.bgfxBackend || 'auto'} onChange={e => setVideoSettings({ bgfxBackend: e.target.value as any })}>
-                                <option value="auto">Auto</option>
-                                <option value="opengl">OpenGL</option>
-                                <option value="gles">OpenGLES</option>
-                                <option value="vulkan">Vulkan</option>
-                              </select>
-                            </div>
-                            <div className="slot-row">
-                              <label className="slot-label">Effect</label>
-                              <select className="slot-select" value={videoSettings?.bgfxEffect || 'none'} onChange={e => setVideoSettings({ bgfxEffect: e.target.value as any })}>
-                                <option value="none">None</option>
-                                <option value="scanlines">Scanlines</option>
-                                <option value="crt-geom">CRT Geom</option>
-                                <option value="crt-geom-deluxe">CRT Geom Deluxe</option>
-                                <option value="hq2x">HQ2X</option>
-                                <option value="lcd-grid">LCD Grid</option>
-                              </select>
-                            </div>
-                          </>
-                        )}
+          {/* Config area (Full height) */}
+          <div className="config-area" style={{ width: configWidth ?? 320 }}>
+            {/* Top Frame: System Settings */}
+            <div className="config-frame top">
+              <div className="frame-header">
+                <button className={`tab-btn ${systemTab === 'video' ? 'active' : ''}`} onClick={() => setSystemTab('video')}>Video</button>
+                <button className={`tab-btn ${systemTab === 'cpu' ? 'active' : ''}`} onClick={() => setSystemTab('cpu')}>CPU</button>
+                <button className={`tab-btn ${systemTab === 'av' ? 'active' : ''}`} onClick={() => setSystemTab('av')}>A/V</button>
+                <button className={`tab-btn ${systemTab === 'paths' ? 'active' : ''}`} onClick={() => setSystemTab('paths')}>Paths</button>
+              </div>
+              <div className="frame-content">
+                {systemTab === 'video' && (
+                  <div className="section no-border">
+                    <div className="slot-grid">
+                      <div className="slot-row">
+                        <label className="slot-label">Window Mode</label>
+                        <select className="slot-select" value={videoSettings?.windowMode || '1x'} onChange={e => setVideoSettings({ windowMode: e.target.value as any })}>
+                          <option value="1x">1x (Native)</option>
+                          <option value="2x">2x</option>
+                          <option value="3x">3x</option>
+                          <option value="4x">4x</option>
+                          <option value="fit">Fit to Screen</option>
+                        </select>
                       </div>
-                    </div>
-                  )}
-
-                  {configTab === 'cpu' && (
-                    <div className="section no-border">
-                      <div className="slot-grid">
-                        <div className="slot-row">
-                          <label className="slot-label">Speed</label>
-                          <select className="slot-select" value={cpuSettings?.speed || '100'} onChange={e => setCpuSettings({ speed: e.target.value as any })}>
-                            <option value="100">100% (Normal)</option>
-                            <option value="200">200%</option>
-                            <option value="300">300%</option>
-                            <option value="400">400%</option>
-                            <option value="500">500%</option>
-                            <option value="nothrottle">No Throttle (Max)</option>
-                          </select>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Debug</label>
-                          <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                            <input type="checkbox" disabled checked={false} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Rewind</label>
-                          <label className="settings-toggle-wrap">
-                            <input type="checkbox" checked={!!cpuSettings?.rewind} onChange={e => setCpuSettings({ rewind: e.target.checked })} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                        </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Square Pixel</label>
+                        <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                          <input type="checkbox" disabled checked={!videoSettings?.keepAspect} />
+                          <span className="settings-toggle-track" />
+                        </label>
                       </div>
-                    </div>
-                  )}
-
-                  {configTab === 'av' && (
-                    <div className="section no-border">
-                      <div className="slot-grid">
-                        <div className="slot-row">
-                          <label className="slot-label">Generate AVI</label>
-                          <label className="settings-toggle-wrap">
-                            <input type="checkbox" checked={!!avSettings?.generateAvi} onChange={e => setAvSettings({ generateAvi: e.target.checked })} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Generate WAV</label>
-                          <label className="settings-toggle-wrap">
-                            <input type="checkbox" checked={!!avSettings?.generateWav} onChange={e => setAvSettings({ generateWav: e.target.checked })} />
-                            <span className="settings-toggle-track" />
-                          </label>
-                        </div>
-                        <div className="slot-row">
-                          <label className="slot-label">Generate VGM</label>
-                          <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                            <input type="checkbox" disabled />
-                            <span className="settings-toggle-track" />
-                          </label>
-                        </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Capture Mouse</label>
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!!videoSettings?.captureMouse} onChange={e => setVideoSettings({ captureMouse: e.target.checked })} />
+                          <span className="settings-toggle-track" />
+                        </label>
+                        <span className="settings-hint">Lock cursor on click, hold Esc to release</span>
                       </div>
-                    </div>
-                  )}
-
-                  {configTab === 'paths' && (
-                    <div className="section no-border">
-                      <div className="slot-grid">
-                        <div className="slot-row">
-                          <label className="slot-label">Map Local Directory</label>
-                          <button
-                            className={`btn ${pathSettings?.localDirPath && !localDirHandleRef.current ? 'btn-danger' : 'btn-secondary'} btn-sm`}
-                            onClick={async () => {
-                              try {
-                                // @ts-ignore
-                                const handle = await window.showDirectoryPicker()
-                                setPathSettings({ mapLocalDir: true, localDirPath: handle.name })
-                                localDirHandleRef.current = handle
-                              } catch (e) {
-                                console.error('Directory picker failed:', e)
-                              }
-                            }}
-                          >
-                            {pathSettings?.localDirPath ? (
-                              localDirHandleRef.current ? `Mapped: ${pathSettings.localDirPath}` : `Reconnect: ${pathSettings.localDirPath} (Required)`
-                            ) : 'Select Folder...'}
-                          </button>
-                        </div>
-                        {pathSettings?.localDirPath && (
+                      <div className="slot-row">
+                        <label className="slot-label">Disk Sound Effects</label>
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!!avSettings?.diskSound} onChange={e => setAvSettings({ diskSound: e.target.checked })} />
+                          <span className="settings-toggle-track" />
+                        </label>
+                        <span className="settings-hint">Requires restart to take effect</span>
+                      </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Video Method</label>
+                        <select className="slot-select" value="soft" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                          <option value="soft">Software</option>
+                          <option value="bgfx">BGFX (Hardware Accel)</option>
+                          <option value="opengl">OpenGL</option>
+                        </select>
+                      </div>
+                      {videoSettings?.videoMethod === 'bgfx' && (
+                        <>
                           <div className="slot-row">
-                            <button className="btn btn-ghost btn-sm" onClick={() => setPathSettings({ mapLocalDir: false, localDirPath: null })}>Remove Mapping</button>
+                            <label className="slot-label">BGFX Backend</label>
+                            <select className="slot-select" value={videoSettings?.bgfxBackend || 'auto'} onChange={e => setVideoSettings({ bgfxBackend: e.target.value as any })}>
+                              <option value="auto">Auto</option>
+                              <option value="opengl">OpenGL</option>
+                              <option value="gles">OpenGLES</option>
+                              <option value="vulkan">Vulkan</option>
+                            </select>
                           </div>
-                        )}
-                        <p className="settings-hint" style={{ marginTop: 8 }}>
-                          AmpleWeb (WASM) does not support -shared_directory (USB flash emulation for Booti cards).
-                          Use this to map a local folder to /share for hot-swapping disk images. Restart Required.
-                          Once set, Restart/Stop the machine, then Launch again and Reconnect when prompted to take effect.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {configTab === 'slots' && (
-                    <div className="section no-border">
-                      {machineConfig ? (
-                        <div className="slot-grid">
-                          {(() => {
-                            const renderSlots = (sList: Slot[], depth = 0, pathPrefix = '') => {
-                              if (!Array.isArray(sList)) return null
-                              return sList.map((slot, idx) => {
-                                let fullPath = slot.name
-                                if (pathPrefix) {
-                                  fullPath = (pathPrefix.endsWith(':') || slot.name.startsWith(':'))
-                                    ? `${pathPrefix}${slot.name}`.replace(/:+/g, ':')
-                                    : `${pathPrefix}:${slot.name}`
-                                }
-
-                                const selectedValue = slotValues[fullPath] || ''
-                                const selectedOption = slot.options?.find(o => o.value === selectedValue)
-
-                                const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
-
-                                return (
-                                  <React.Fragment key={`${fullPath}-${depth}-${idx}`}>
-                                    <div className="slot-row" style={{ paddingLeft: depth * 16 }}>
-                                      <label className="slot-label" title={fullPath}>
-                                        {depth > 0 ? '↳ ' : ''}{slot.description}
-                                      </label>
-                                      <select
-                                        className="slot-select"
-                                        value={selectedValue}
-                                        onChange={e => {
-                                          const newVal = e.target.value
-                                          setSlotValues(prev => {
-                                            const next = { ...prev, [fullPath]: newVal }
-                                            return fillSlotDefaults(machineConfig!.slots, next, machineConfig!.devices)
-                                          })
-                                        }}
-                                      >
-                                        {slot.options?.map((opt, i) => (
-                                          <option key={i} value={opt.value} disabled={opt.disabled}>
-                                            {opt.description}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    {Array.isArray(selectedOption?.slots) && renderSlots(selectedOption.slots, depth + 1, nextPath)}
-                                    {selectedOption?.devname && machineConfig?.devices && (() => {
-                                      const dev = machineConfig.devices.find(d => d.name === selectedOption.devname)
-                                      return dev && Array.isArray(dev.slots) && renderSlots(dev.slots, depth + 1, nextPath)
-                                    })()}
-                                  </React.Fragment>
-                                )
-                              })
-                            }
-                            return renderSlots(machineConfig.slots)
-                          })()}
-                        </div>
-                      ) : (
-                        <p className="empty-hint">No slots available for this machine.</p>
+                          <div className="slot-row">
+                            <label className="slot-label">Effect</label>
+                            <select className="slot-select" value={videoSettings?.bgfxEffect || 'none'} onChange={e => setVideoSettings({ bgfxEffect: e.target.value as any })}>
+                              <option value="none">None</option>
+                              <option value="scanlines">Scanlines</option>
+                              <option value="crt-geom">CRT Geom</option>
+                              <option value="crt-geom-deluxe">CRT Geom Deluxe</option>
+                              <option value="hq2x">HQ2X</option>
+                              <option value="lcd-grid">LCD Grid</option>
+                            </select>
+                          </div>
+                        </>
                       )}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {configTab === 'media' && (
-                    <div className="section no-border">
-                      <div className="media-grid">
-                        {(() => {
-                          const mediaItems = getEffectiveMedia()
-                          if (mediaItems.length === 0) {
-                            return <p className="empty-hint">No media drives available for current configuration.</p>
-                          }
-
-                          // Group by group name
-                          const groups: Record<string, typeof mediaItems> = {}
-                          mediaItems.forEach(item => {
-                            if (!groups[item.group]) groups[item.group] = []
-                            groups[item.group].push(item)
-                          })
-
-                          return Object.entries(groups).map(([groupName, items]) => (
-                            <div key={groupName} className="media-group-wrap">
-                              <h4 className="media-group-title">{groupName}</h4>
-                              {items.map(item => (
-                                <div key={item.id} className="media-row">
-                                  <label className="media-label">{item.label}</label>
-                                  <div className="media-input-wrap">
-                                    <span className="media-filename">
-                                      {mediaFiles[item.id]?.name || 'Empty'}
-                                    </span>
-                                    <div className="media-actions">
-                                      <button className="btn btn-ghost btn-icon" onClick={() => fileInputRefs.current[item.id]?.click()} title="Select File">
-                                        📁
-                                      </button>
-                                      {mediaFiles[item.id] && (
-                                        <button className="btn btn-ghost btn-icon" onClick={() => {
-                                          setMediaFiles(prev => {
-                                            const next = { ...prev }
-                                            delete next[item.id]
-                                            return next
-                                          })
-                                          dataManager.clearMedia(item.id)
-                                        }} title="Eject">
-                                          ⏏️
-                                        </button>
-                                      )}
-                                    </div>
-                                    <input
-                                      type="file"
-                                      ref={el => fileInputRefs.current[item.id] = el}
-                                      style={{ display: 'none' }}
-                                      onChange={e => {
-                                        const file = e.target.files?.[0]
-                                        if (file) {
-                                          setMediaFiles(prev => ({ ...prev, [item.id]: file }))
-                                          dataManager.saveMedia(item.id, file)
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ))
-                        })()}
+                {systemTab === 'cpu' && (
+                  <div className="section no-border">
+                    <div className="slot-grid">
+                      <div className="slot-row">
+                        <label className="slot-label">Speed</label>
+                        <select className="slot-select" value={cpuSettings?.speed || '100'} onChange={e => setCpuSettings({ speed: e.target.value as any })}>
+                          <option value="100">100% (Normal)</option>
+                          <option value="200">200%</option>
+                          <option value="300">300%</option>
+                          <option value="400">400%</option>
+                          <option value="500">500%</option>
+                          <option value="nothrottle">No Throttle (Max)</option>
+                        </select>
+                      </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Debug</label>
+                        <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                          <input type="checkbox" disabled checked={false} />
+                          <span className="settings-toggle-track" />
+                        </label>
+                      </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Rewind</label>
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!!cpuSettings?.rewind} onChange={e => setCpuSettings({ rewind: e.target.checked })} />
+                          <span className="settings-toggle-track" />
+                        </label>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {configTab === 'logs' && (
-                    <div className="log-panel-inline">
-                      <div className="log-body">
-                        {logs.length === 0 && (
-                          <span className="log-empty">No log output yet.</span>
-                        )}
-                        {logs.map((l, i) => (
-                          <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
-                            {l.text}
-                          </div>
-                        ))}
-                        <div ref={logEndRef} />
+                {systemTab === 'av' && (
+                  <div className="section no-border">
+                    <div className="slot-grid">
+                      <div className="slot-row">
+                        <label className="slot-label">Generate AVI</label>
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!!avSettings?.generateAvi} onChange={e => setAvSettings({ generateAvi: e.target.checked })} />
+                          <span className="settings-toggle-track" />
+                        </label>
                       </div>
-                      <div className="log-footer">
-                        <button className="log-btn" onClick={() => setLogs([])}>Clear Log</button>
+                      <div className="slot-row">
+                        <label className="slot-label">Generate WAV</label>
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!!avSettings?.generateWav} onChange={e => setAvSettings({ generateWav: e.target.checked })} />
+                          <span className="settings-toggle-track" />
+                        </label>
+                      </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Generate VGM</label>
+                        <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                          <input type="checkbox" disabled />
+                          <span className="settings-toggle-track" />
+                        </label>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <div className="launch-footer">
-                  {wasmModule && !isLoading ? (
-                    <div className="btn-group-row" style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                      <button
-                        className="btn btn-danger btn-large"
-                        style={{ flex: 1 }}
-                        onClick={handleStop}
-                      >
-                        ⏹️ Stop
-                      </button>
-                      <button
-                        className="btn btn-warning btn-large"
-                        style={{ flex: 1 }}
-                        onClick={handleLaunch}
-                      >
-                        🔄 Restart
-                      </button>
+                {systemTab === 'paths' && (
+                  <div className="section no-border">
+                    <div className="slot-grid">
+                      <div className="slot-row">
+                        <label className="slot-label">Map Local Directory</label>
+                        <button
+                          className={`btn ${pathSettings?.localDirPath && !localDirHandleRef.current ? 'btn-danger' : 'btn-secondary'} btn-sm`}
+                          onClick={async () => {
+                            try {
+                              // @ts-ignore
+                              const handle = await window.showDirectoryPicker()
+                              setPathSettings({ mapLocalDir: true, localDirPath: handle.name })
+                              localDirHandleRef.current = handle
+                            } catch (e) {
+                              console.error('Directory picker failed:', e)
+                            }
+                          }}
+                        >
+                          {pathSettings?.localDirPath ? (
+                            localDirHandleRef.current ? `Mapped: ${pathSettings.localDirPath}` : `Reconnect: ${pathSettings.localDirPath} (Required)`
+                          ) : 'Select Folder...'}
+                        </button>
+                      </div>
+                      {pathSettings?.localDirPath && (
+                        <div className="slot-row">
+                          <button className="btn btn-ghost btn-sm" onClick={() => setPathSettings({ mapLocalDir: false, localDirPath: null })}>Remove Mapping</button>
+                        </div>
+                      )}
+                      <p className="settings-hint" style={{ marginTop: 8 }}>
+                        AmpleWeb (WASM) does not support -shared_directory (USB flash emulation for Booti cards).
+                        Use this to map a local folder to /share for hot-swapping disk images. Restart Required.
+                        Once set, Restart/Stop the machine, then Launch again and Reconnect when prompted to take effect.
+                      </p>
                     </div>
-                  ) : (
-                    <button
-                      className="btn btn-primary btn-large"
-                      onClick={handleLaunch}
-                      disabled={isLoading}
-                      style={{ width: '100%' }}
-                    >
-                      {isLoading ? '⏳' : '🚀'} {isLoading ? 'Loading...' : 'Launch'}
-                    </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Bottom Frame: Machine Configuration */}
+            <div className="config-frame">
+              <div className="frame-header">
+                <button className={`tab-btn ${machineTab === 'slots' ? 'active' : ''}`} onClick={() => setMachineTab('slots')}>Slots</button>
+                <button className={`tab-btn ${machineTab === 'media' ? 'active' : ''}`} onClick={() => setMachineTab('media')}>Media</button>
+                <button className={`tab-btn ${machineTab === 'logs' ? 'active' : ''}`} onClick={() => setMachineTab('logs')}>Logs</button>
+              </div>
+              <div className="frame-content">
+                {machineTab === 'slots' && (
+                  <div className="section no-border">
+                    {machineConfig ? (
+                      <div className="slot-grid">
+                        {(() => {
+                          const renderSlots = (sList: Slot[], depth = 0, pathPrefix = '') => {
+                            if (!Array.isArray(sList)) return null
+                            return sList.map((slot, idx) => {
+                              let fullPath = slot.name
+                              if (pathPrefix) {
+                                fullPath = (pathPrefix.endsWith(':') || slot.name.startsWith(':'))
+                                  ? `${pathPrefix}${slot.name}`.replace(/:+/g, ':')
+                                  : `${pathPrefix}:${slot.name}`
+                              }
+
+                              const selectedValue = slotValues[fullPath] || ''
+                              const selectedOption = slot.options?.find(o => o.value === selectedValue)
+
+                              const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
+
+                              return (
+                                <React.Fragment key={`${fullPath}-${depth}-${idx}`}>
+                                  <div className="slot-row" style={{ paddingLeft: depth * 16 }}>
+                                    <label className="slot-label" title={fullPath}>
+                                      {depth > 0 ? '↳ ' : ''}{slot.description}
+                                    </label>
+                                    <select
+                                      className="slot-select"
+                                      value={selectedValue}
+                                      onChange={e => {
+                                        const newVal = e.target.value
+                                        setSlotValues(prev => {
+                                          const next = { ...prev, [fullPath]: newVal }
+                                          return fillSlotDefaults(machineConfig!.slots, next, machineConfig!.devices)
+                                        })
+                                      }}
+                                    >
+                                      {slot.options?.map((opt, i) => (
+                                        <option key={i} value={opt.value} disabled={opt.disabled}>
+                                          {opt.description}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  {Array.isArray(selectedOption?.slots) && renderSlots(selectedOption.slots, depth + 1, nextPath)}
+                                  {selectedOption?.devname && machineConfig?.devices && (() => {
+                                    const dev = machineConfig.devices.find(d => d.name === selectedOption.devname)
+                                    return dev && Array.isArray(dev.slots) && renderSlots(dev.slots, depth + 1, nextPath)
+                                  })()}
+                                </React.Fragment>
+                              )
+                            })
+                          }
+                          return renderSlots(machineConfig.slots)
+                        })()}
+                      </div>
+                    ) : (
+                      <p className="empty-hint">No slots available for this machine.</p>
+                    )}
+                  </div>
+                )}
+
+                {machineTab === 'media' && (
+                  <div className="section no-border">
+                    <div className="media-grid">
+                      {(() => {
+                        const mediaItems = getEffectiveMedia()
+                        if (mediaItems.length === 0) {
+                          return <p className="empty-hint">No media drives available for current configuration.</p>
+                        }
+
+                        // Group by group name
+                        const groups: Record<string, typeof mediaItems> = {}
+                        mediaItems.forEach(item => {
+                          if (!groups[item.group]) groups[item.group] = []
+                          groups[item.group].push(item)
+                        })
+
+                        return Object.entries(groups).map(([groupName, items]) => (
+                          <div key={groupName} className="media-group-wrap">
+                            <h4 className="media-group-title">{groupName}</h4>
+                            {items.map(item => (
+                              <div key={item.id} className="media-row">
+                                <label className="media-label">{item.label}</label>
+                                <div className="media-input-wrap">
+                                  <span className="media-filename">
+                                    {mediaFiles[item.id]?.name || 'Empty'}
+                                  </span>
+                                  <div className="media-actions">
+                                    <button className="btn btn-ghost btn-icon" onClick={() => fileInputRefs.current[item.id]?.click()} title="Select File">
+                                      📁
+                                    </button>
+                                    {mediaFiles[item.id] && (
+                                      <button className="btn btn-ghost btn-icon" onClick={() => {
+                                        setMediaFiles(prev => {
+                                          const next = { ...prev }
+                                          delete next[item.id]
+                                          return next
+                                        })
+                                        dataManager.clearMedia(item.id)
+                                      }} title="Eject">
+                                        ⏏️
+                                      </button>
+                                    )}
+                                  </div>
+                                  <input
+                                    type="file"
+                                    ref={el => fileInputRefs.current[item.id] = el}
+                                    style={{ display: 'none' }}
+                                    onChange={e => {
+                                      const file = e.target.files?.[0]
+                                      if (file) {
+                                        setMediaFiles(prev => ({ ...prev, [item.id]: file }))
+                                        dataManager.saveMedia(item.id, file)
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {machineTab === 'logs' && (
+                  <div className="log-panel-inline">
+                    <div className="log-body">
+                      {logs.length === 0 && (
+                        <span className="log-empty">No log output yet.</span>
+                      )}
+                      {logs.map((l, i) => (
+                        <div key={i} className={`log-line ${l.isError ? 'log-err' : ''}`}>
+                          {l.text}
+                        </div>
+                      ))}
+                      <div ref={logEndRef} />
+                    </div>
+                    <div className="log-footer">
+                      <button className="log-btn" onClick={() => setLogs([])}>Clear Log</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Config Footer: Launch Controls */}
+            <div className="config-footer">
+              {launchState === 'running' ? (
+                <div className="btn-group-row" style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <button
+                    className="btn btn-primary btn-large"
+                    onClick={handleLaunch}
+                    style={{ flex: 1 }}
+                    title="Restart"
+                  >
+                    <span style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', marginRight: '6px' }}>🔄</span> Restart
+                  </button>
+                  <button
+                    className="btn btn-primary btn-large"
+                    onClick={handleStop}
+                    style={{ flex: 1 }}
+                    title="Stop"
+                  >
+                    <span style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', marginRight: '6px' }}>⏹️</span> Stop
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="btn btn-primary btn-large"
+                  onClick={handleLaunch}
+                  disabled={isLoading}
+                  style={{ width: '100%' }}
+                >
+                  {isLoading ? '⏳' : '🚀'} {isLoading ? 'Launch' : 'Launch'}
+                </button>
+              )}
+            </div>
           </div>
-        ) : (
+        </>
+      ) : (
           <div className="welcome">
             <div className="welcome-icon">🍎</div>
             <h2>AmpleWeb</h2>

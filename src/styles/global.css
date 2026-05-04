@@ -386,16 +386,23 @@ body {
   margin-top: 4px;
 }
 
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
 /* Machine Panel */
 .machine-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  padding: 16px 20px; /* Reduced padding to maximize space */
+  min-width: 0;
+  padding: 16px 20px;
   gap: 16px;
   background: radial-gradient(circle at top left, var(--bg1), var(--bg0) 600px);
+  overflow-y: auto;
 }
 
 .machine-header {
@@ -441,31 +448,85 @@ body {
   color: var(--red);
 }
 
-/* ─── Content Row: emulator + config side by side ─── */
-.content-row {
-  display: flex;
-  gap: 16px;
-  flex: 1;
-  min-height: 0;
-}
-
 .emulator-area {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column; /* Ensure vertical filling */
-  align-items: stretch;
-  justify-content: stretch;
+  flex-direction: column;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+}
+
+.emulator-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 0;
+  width: 100%;
+}
+
+.emulator-container.active {
+  background: #000;
+}
+
+.emulator-placeholder {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+  background: radial-gradient(circle at center, var(--bg2), var(--bg1));
 }
 
 .config-area {
-  width: 280px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: var(--bg1);
+  border-left: 1px solid var(--border);
+  position: relative;
+}
+
+.config-footer {
+  padding: 16px;
+  background: var(--bg1);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+.config-frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.config-frame.top {
+  flex: 0.4; /* Even smaller ratio */
+  border-bottom: 1px solid var(--border);
+}
+
+.frame-header {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  gap: 4px;
+}
+
+.frame-content {
+  flex: 1;
   overflow-y: auto;
-  max-height: calc(100vh - 120px);
+  padding: 0;
 }
 
 /* ─── Section ─── */
