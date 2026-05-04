@@ -302,7 +302,9 @@ export function loadMameWasm(
         }
 
         const sharePath = '/share'
+        const snapPath = '/snap'
         try { FS.mkdir(sharePath) } catch { /* exists */ }
+        try { FS.mkdir(snapPath) } catch { /* exists */ }
 
         if (localDirHandle) {
           Module.addRunDependency('local-dir-sync')
@@ -509,7 +511,10 @@ export function buildMameArgs(
   }
   if (options.debug) args.push('-debug')
   if (options.rewind) args.push('-rewind')
-  if (options.aviWrite) args.push('-aviwrite', 'output.avi')
+  if (options.aviWrite) {
+    args.push('-snapshot_directory', 'snap')
+    args.push('-aviwrite', 'output.avi')
+  }
   if (options.wavWrite) args.push('-wavwrite', 'output.wav')
 
   if (options.extraArgs) args.push(...options.extraArgs)

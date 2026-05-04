@@ -1182,7 +1182,7 @@ function App() {
       setLaunchState('error')
       addLog(`Fatal: ${msg}`, true)
     }
-  }, [wasmTarget, addLog, fetchAllRoms, mediaFiles, slotValues])
+  }, [wasmTarget, addLog, fetchAllRoms, mediaFiles, slotValues, videoSettings, cpuSettings, avSettings, pathSettings])
 
   const handleLaunch = useCallback(async () => {
     if (!selectedMachine) return
@@ -1221,6 +1221,27 @@ function App() {
   const handleStop = useCallback(() => {
     window.location.href = window.location.pathname
   }, [])
+
+  const handleToggleCapture = (type: 'avi' | 'wav', enable: boolean) => {
+    // Synchronously update state to keep checkbox responsive
+    if (type === 'avi') setAvSettings({ generateAvi: enable })
+    else setAvSettings({ generateWav: enable })
+
+    // Handle asynchronous saving separately
+    if (!enable && launchState === 'running') {
+      (async () => {
+        const filename = type === 'avi' ? 'output.avi' : 'output.wav'
+        const virtualPath = type === 'avi' ? `/snap/${filename}` : `/${filename}`
+        const data = getVirtualFile(virtualPath)
+        if (data && data.length > 0) {
+          const save = window.confirm(`Capture file "${filename}" found. Save back to local?`)
+          if (save) {
+            await saveFileToLocal(filename, data)
+          }
+        }
+      })()
+    }
+  }
 
   const saveFileToLocal = async (filename: string, data: Uint8Array) => {
     try {
@@ -1762,14 +1783,12 @@ function App() {
                         <label className="slot-label">Square Pixel</label>
                         <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
                           <input type="checkbox" disabled checked={!videoSettings?.keepAspect} />
-                          <span className="settings-toggle-track" />
                         </label>
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Capture Mouse</label>
                         <label className="settings-toggle-wrap">
                           <input type="checkbox" checked={!!videoSettings?.captureMouse} onChange={e => setVideoSettings({ captureMouse: e.target.checked })} />
-                          <span className="settings-toggle-track" />
                         </label>
                         <span className="settings-hint">Lock cursor on click, hold Esc to release</span>
                       </div>
@@ -1777,7 +1796,6 @@ function App() {
                         <label className="slot-label">Disk Sound Effects</label>
                         <label className="settings-toggle-wrap">
                           <input type="checkbox" checked={!!avSettings?.diskSound} onChange={e => setAvSettings({ diskSound: e.target.checked })} />
-                          <span className="settings-toggle-track" />
                         </label>
                         <span className="settings-hint">Requires restart to take effect</span>
                       </div>
@@ -1835,14 +1853,12 @@ function App() {
                         <label className="slot-label">Debug</label>
                         <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
                           <input type="checkbox" disabled checked={false} />
-                          <span className="settings-toggle-track" />
                         </label>
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Rewind</label>
                         <label className="settings-toggle-wrap">
                           <input type="checkbox" checked={!!cpuSettings?.rewind} onChange={e => setCpuSettings({ rewind: e.target.checked })} />
-                          <span className="settings-toggle-track" />
                         </label>
                       </div>
                     </div>
@@ -1855,24 +1871,25 @@ function App() {
                       <div className="slot-row">
                         <label className="slot-label">Generate AVI</label>
                         <label className="settings-toggle-wrap">
-                          <input type="checkbox" checked={!!avSettings?.generateAvi} onChange={e => setAvSettings({ generateAvi: e.target.checked })} />
-                          <span className="settings-toggle-track" />
+                          <input type="checkbox" checked={!!avSettings?.generateAvi} onChange={e => handleToggleCapture('avi', e.target.checked)} />
                         </label>
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Generate WAV</label>
                         <label className="settings-toggle-wrap">
-                          <input type="checkbox" checked={!!avSettings?.generateWav} onChange={e => setAvSettings({ generateWav: e.target.checked })} />
-                          <span className="settings-toggle-track" />
+                          <input type="checkbox" checked={!!avSettings?.generateWav} onChange={e => handleToggleCapture('wav', e.target.checked)} />
                         </label>
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Generate VGM</label>
                         <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
                           <input type="checkbox" disabled />
-                          <span className="settings-toggle-track" />
                         </label>
                       </div>
+                      <p className="settings-hint" style={{ marginTop: 8 }}>
+                        Recording starts on launch. Uncheck while running to save the virtual file to your device. 
+                        Note: Excessive recording length may cause WASM memory overflow.
+                      </p>
                     </div>
                   </div>
                 )}

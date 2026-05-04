@@ -86,7 +86,15 @@ export const useStore = create<StoreState>()(
       setPathSettings: (settings) => set((state) => ({ pathSettings: { ...state.pathSettings, ...settings } })),
     }),
     {
-      name: 'ample-app-storage-v2', // Changed name to ensure fresh start
+      name: 'ample-app-storage-v2',
+      partialize: (state) => ({
+        ...state,
+        avSettings: {
+          ...state.avSettings,
+          generateAvi: false,
+          generateWav: false
+        }
+      })
     }
   )
 )
