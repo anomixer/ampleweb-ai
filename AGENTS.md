@@ -3,7 +3,17 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
-### Recent Updates (2026-05-03)
+### Recent Updates (2026-05-05)
+- **UI/UX Refinement & Interaction**:
+    - **Double-Click to Launch**: Implemented double-click interaction on the machine list, allowing users to bypass the "Launch" button for faster access.
+    - **UI Tab Persistence**: Added `localStorage` synchronization for both System (Video/CPU/Paths) and Machine (Slots/Media/Logs) tab selections, preserving the user's workspace layout across reloads.
+    - **Full-Screen Optimization**: Refactored full-screen handling to use native CSS `:fullscreen` rules. The emulator canvas now correctly expands to fill the screen (Fit-to-Screen) while maintaining aspect ratio via `object-fit: contain`. Standardized the toggle button text to white for clarity.
+- **Bug Fixes & Stability**:
+    - **Selection Logic Correction**: Fixed a typo in `models.plist` where the `Apple IIe (platinum)` group was incorrectly assigned the `apple2p` value, causing a selection conflict with the Apple ][+ machine. Corrected it to `apple2ep` to ensure distinct family highlighting.
+    - **WASM Audio Restored**: Fixed an issue where disk drive sound effects were missing. Now correctly passes the sample file list to the WASM loader during initialization.
+    - **Crash Prevention**: Resolved a "black screen" failure caused by a missing destructuring of the `onLaunch` prop in the recursive tree components.
+
+### Previous Updates (2026-05-03)
 - **UI & Feature Overhaul (AmpleWin Parity)**:
     - **Advanced Configuration Tabs**: Fully implemented modular tabs for **Video**, **CPU**, **A/V**, **Paths**, **Slots**, **Media**, and **Logs**.
     - **Video & UX Improvements**:

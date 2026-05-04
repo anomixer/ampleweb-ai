@@ -32,12 +32,13 @@ AmpleWeb now utilizes a unified **MAME 0.287 (Universal)** engine for all suppor
 ## Features
 
 - **Multi-Tab Configuration**: Control **Video, CPU, A/V, Paths, Slots, and Media** settings from a unified side panel.
-- **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and mouse pointer lock.
+- **UI State Persistence**: Tabs and sidebar selections are saved across sessions for a seamless experience.
+- **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and true **Full Screen** mode.
 - **Local Directory Mapping (/share)**: Map any local folder to `/share` within the emulator for seamless disk swapping.
 - **Power Management**: Dedicated **Stop** (Power Off) and **Restart** (Power Cycle) controls for maximum WASM stability.
 - **Enhanced ROM Support**: Automatic injection of auxiliary ROMs for SCSI, CFFA2, Disk II/III, and Cassette interfaces across the entire Apple I/II/III and Macintosh families.
 - **International Localization**: Proper support for localized Apple IIe/IIee/IIep variants (DE, FR, ES, SE, UK) with accurate boot logos and character sets.
-- **Persistence**: All settings (theme, configurations, sidebar width) are saved automatically via IndexedDB.
+- **Interaction Polish**: Double-click any machine in the sidebar to launch instantly.
 
 ## Supported Machines
 
