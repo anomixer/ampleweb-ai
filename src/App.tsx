@@ -995,10 +995,16 @@ function App() {
       return
     }
 
-    // Use emulator-appropriate resolution
-    const resolution = DEFAULT_RESOLUTIONS[emulator] ?? '640x480'
+    // Use emulator-appropriate resolution with hierarchical lookup
+    const machineFamily = getMachineFamily(machine.name)
+    const driverName = DRIVER_MAP[machine.name] || ''
+    const resolution = DEFAULT_RESOLUTIONS[machine.name] || 
+                       DEFAULT_RESOLUTIONS[driverName] || 
+                       DEFAULT_RESOLUTIONS[machineFamily] || 
+                       '640x480'
+    
     // Resolve MAME driver name (e.g. mac128k → mac)
-    const mameDriver = DRIVER_MAP[machine.name] ?? wasmInfo.driver
+    const mameDriver = driverName || wasmInfo.driver
 
     // Step 1: fetch ROMs
     setLaunchState('fetching-rom')
