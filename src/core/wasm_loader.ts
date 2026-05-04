@@ -399,6 +399,33 @@ export function loadMameWasm(
   })
 }
 
+/**
+ * Read a file from the Emscripten virtual filesystem.
+ */
+export function getVirtualFile(path: string): Uint8Array | null {
+  try {
+    const FS = (window as any).FS
+    if (!FS) return null
+    return FS.readFile(path)
+  } catch (e) {
+    console.warn(`[WasmLoader] Failed to read virtual file ${path}:`, e)
+    return null
+  }
+}
+
+/**
+ * Get stats for a file in the Emscripten virtual filesystem.
+ */
+export function getVirtualFileStat(path: string): any | null {
+  try {
+    const FS = (window as any).FS
+    if (!FS) return null
+    return FS.stat(path)
+  } catch (e) {
+    return null
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // fetchRom: GET a ROM ZIP from URL → RomFile
 // ─────────────────────────────────────────────────────────────────────────────

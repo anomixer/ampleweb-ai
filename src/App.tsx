@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { dataManager, type ModelEntry, type MachineConfig } from './core/data_manager'
 import {
   loadMameWasm,
+  getModule,
   buildMameArgs,
   fetchRom,
+  getVirtualFile,
+  getVirtualFileStat,
   type MameWasmModule,
   type RomFile,
   type MediaFile,
@@ -556,6 +559,7 @@ function App() {
   const hasAutoLaunched = useRef(false)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const prevFamilyRef = useRef<string | null>(null)
+  const mountTimeRef = useRef<number>(0)
 
   const getMachineFamily = useCallback((machineName: string): string => {
     const lowerName = machineName.toLowerCase();
@@ -584,10 +588,6 @@ function App() {
     }
     return 'none'
   })
-
-
-
-
 
   // ── Canvas Scaling ──
   useEffect(() => {
@@ -986,6 +986,7 @@ function App() {
     setLogs([])
     setWasmProgress(0)
     setShowLogs(true)
+    mountTimeRef.current = Date.now()
 
     // Clear old canvas if it exists
     if (canvasContainerRef.current) {
@@ -1218,13 +1219,69 @@ function App() {
   }, [selectedMachine, wasmModule, doLaunch, pathSettings, localDirHandleRef, addLog])
 
   const handleStop = useCallback(() => {
-    if (!selectedMachine) return
-    const url = new URL(window.location.href)
-    url.searchParams.set('m', selectedMachine.name)
-    url.searchParams.set('d', selectedMachine.description)
-    url.searchParams.delete('launch')
-    window.location.href = url.toString()
-  }, [selectedMachine])
+    window.location.href = window.location.pathname
+  }, [])
+
+  const saveFileToLocal = async (filename: string, data: Uint8Array) => {
+    try {
+      // @ts-ignore
+      if (window.showSaveFilePicker) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+        })
+        const writable = await handle.createWritable()
+        await writable.write(data)
+        await writable.close()
+        addLog(`Saved ${filename} to local filesystem`, false)
+      } else {
+        const blob = new Blob([data], { type: 'application/octet-stream' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+        addLog(`Downloaded ${filename}`, false)
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        addLog(`Save failed: ${e.message}`, true)
+      }
+    }
+  }
+
+  const handleEject = async (slotId: string) => {
+    const file = mediaFiles[slotId]
+    if (!file) return
+
+    if (launchState === 'running') {
+      const virtualPath = `/media/${file.name}`
+      const stat = getVirtualFileStat(virtualPath)
+      
+      // If file exists and mtime is newer than mountTime, it was modified
+      // Emscripten mtime is in seconds or milliseconds depending on version, 
+      // but usually we can check if it changed at all.
+      if (stat) {
+        const data = getVirtualFile(virtualPath)
+        if (data) {
+          const mtime = stat.mtime?.getTime ? stat.mtime.getTime() : (stat.mtime * 1000)
+          if (mtime > mountTimeRef.current) {
+            const save = window.confirm(`Disk "${file.name}" has been modified. Save back to local?`)
+            if (save) {
+              await saveFileToLocal(file.name, data)
+            }
+          }
+        }
+      }
+    }
+
+    setMediaFiles(prev => {
+      const next = { ...prev }
+      delete next[slotId]
+      return next
+    })
+    dataManager.clearMedia(slotId)
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -1960,14 +2017,7 @@ function App() {
                                       📁
                                     </button>
                                     {mediaFiles[item.id] && (
-                                      <button className="btn btn-ghost btn-icon" onClick={() => {
-                                        setMediaFiles(prev => {
-                                          const next = { ...prev }
-                                          delete next[item.id]
-                                          return next
-                                        })
-                                        dataManager.clearMedia(item.id)
-                                      }} title="Eject">
+                                      <button className="btn btn-ghost btn-icon" onClick={() => handleEject(item.id)} title="Eject">
                                         ⏏️
                                       </button>
                                     )}
@@ -1982,6 +2032,8 @@ function App() {
                                         setMediaFiles(prev => ({ ...prev, [item.id]: file }))
                                         dataManager.saveMedia(item.id, file)
                                       }
+                                      // Clear value to allow re-selecting same file after eject
+                                      e.target.value = ''
                                     }}
                                   />
                                 </div>
