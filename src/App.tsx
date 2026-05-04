@@ -459,22 +459,43 @@ const DRIVER_ROM_MAP: Record<string, string> = {
  * For MAME-wrapped builds, these are used as -resolution flags.
  */
 const DEFAULT_RESOLUTIONS: Record<string, string> = {
+  // Families
   apple2: '560x384',
-  apple2e: '560x384',
-  apple2gs: '704x462',
   apple3: '560x384',
-  mac128: '512x342',
-  maciici: '640x480',
+  apple1: '560x384',
   mac: '640x480',
+  tandy: '320x240',
+  atarist: '640x400',
+  acorn: '640x512',
+  commodore: '384x272',
+  oric: '240x224',
+  
+  // Specific Drivers / Machines
+  apple2gs: '704x462',
+  mac128k: '512x342',
+  mac128: '512x342',
+  macplus: '512x342',
+  macse: '512x342',
   maclc: '512x384',
+  maclc2: '512x384',
+  maclc3: '512x384',
+  maclc520: '640x480',
   macqd: '640x480',
   macpb: '640x400',
-  coco: '320x240',
+  macpb100: '640x400',
+  macpb140: '640x400',
+  macprtb: '640x400',
+  maciici: '640x480',
+  maciisi: '640x480',
+  maciivi: '640x480',
+  maciivx: '640x480',
+  
+  coco: '320x240', 
   coco3: '640x480',
   trs80: '384x192',
   c64: '384x272',
   mc10: '372x243',
-  mametiny: '560x384',
+  mametiny: '640x480',
 }
 
 function App() {
@@ -567,17 +588,30 @@ function App() {
       c.style.transform = ''
     } else {
       const scale = parseInt(videoSettings.windowMode) || 1
-      c.style.width = ''
-      c.style.height = ''
-      c.style.objectFit = ''
-      if (scale > 1) {
-        c.style.transform = `scale(${scale})`
-        c.style.transformOrigin = 'center'
+      
+      if (selectedMachine) {
+        const machineName = selectedMachine.name
+        const driverName = DRIVER_MAP[machineName] || ''
+        const familyName = getMachineFamily(machineName)
+        
+        const res = DEFAULT_RESOLUTIONS[machineName] || 
+                    DEFAULT_RESOLUTIONS[driverName] || 
+                    DEFAULT_RESOLUTIONS[familyName] || 
+                    '640x480'
+        const [w, h] = res.split('x').map(n => parseInt(n))
+        
+        c.style.width = `${w * scale}px`
+        c.style.height = `${h * scale}px`
+        c.style.objectFit = 'contain'
+        c.style.transform = ''
       } else {
+        c.style.width = ''
+        c.style.height = ''
+        c.style.objectFit = ''
         c.style.transform = ''
       }
     }
-  }, [videoSettings?.windowMode, launchState])
+  }, [videoSettings?.windowMode, launchState, selectedMachine])
 
   // ── Mouse Capture ──
   useEffect(() => {
@@ -1533,14 +1567,16 @@ function App() {
             </div>
 
             {/* Progress bar (top of panel, before layout split) */}
-            {isLoading && (
-              <div className="progress-wrap">
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
+            <div className="progress-container">
+              {isLoading && (
+                <div className="progress-wrap">
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
+                  </div>
+                  <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
                 </div>
-                <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Error banner */}
             {errorText && (
@@ -1554,7 +1590,7 @@ function App() {
             <div className="content-row">
               {/* Left: emulator canvas */}
               <div className="emulator-area">
-                <div className={`emulator-container ${launchState === 'running' ? 'active' : ''}`}>
+                <div className={`emulator-container ${launchState === 'running' ? 'active' : ''} mode-${videoSettings?.windowMode || 'fit'}`}>
                   <div
                     ref={canvasContainerRef}
                     style={{
@@ -1572,12 +1608,6 @@ function App() {
                         <div className="welcome-inner">
                           <div className="welcome-badge">MAME {selectedMachine.name}</div>
                           <p>Press Launch to start emulation</p>
-                        </div>
-                      )}
-                      {isLoading && (
-                        <div className="loading-indicator">
-                          <div className="spinner" />
-                          <p className={`${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</p>
                         </div>
                       )}
                       {launchState === 'error' && (

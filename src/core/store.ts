@@ -64,13 +64,13 @@ export const useStore = create<StoreState>()(
       setRomSettings: (updater) => set((state) => ({
         romSettings: typeof updater === 'function' ? updater(state.romSettings) : updater
       })),
-      sidebarWidth: 280,
+      sidebarWidth: 260,
       setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
-      configWidth: 450,
+      configWidth: 320,
       setConfigWidth: (configWidth) => set({ configWidth }),
 
       videoSettings: { 
-        windowMode: '1x', 
+        windowMode: 'fit', 
         captureMouse: false,
         videoMethod: 'soft',
         bgfxBackend: 'auto',
