@@ -1509,6 +1509,7 @@ function App() {
             selected={selectedMachine}
             onToggle={toggleNode}
             onSelect={handleSelectMachine}
+            onLaunch={handleLaunch}
             filter={search.toLowerCase()}
           />
         </div>
@@ -2246,6 +2247,7 @@ function MachineTree({
   selected,
   onToggle,
   onSelect,
+  onLaunch,
   filter,
 }: {
   models: ModelEntry[]
@@ -2253,6 +2255,7 @@ function MachineTree({
   selected: { name: string; description: string } | null
   onToggle: (id: string) => void
   onSelect: (machine: { name: string; description: string }) => void
+  onLaunch: () => void
   filter: string
 }) {
   return (
@@ -2265,6 +2268,7 @@ function MachineTree({
           selected={selected}
           onToggle={onToggle}
           onSelect={onSelect}
+          onLaunch={onLaunch}
           filter={filter}
           depth={0}
         />
@@ -2287,6 +2291,7 @@ function TreeItem({
   selected,
   onToggle,
   onSelect,
+  onLaunch,
   filter,
   depth,
 }: {
@@ -2295,6 +2300,7 @@ function TreeItem({
   selected: { name: string; description: string } | null
   onToggle: (id: string) => void
   onSelect: (machine: { name: string; description: string }) => void
+  onLaunch: () => void
   filter: string
   depth: number
 }) {
@@ -2324,6 +2330,9 @@ function TreeItem({
           if (hasChildren) onToggle(id)
           if (entry.value) onSelect({ name: entry.value, description: entry.description })
         }}
+        onDoubleClick={() => {
+          if (entry.value && !hasChildren) onLaunch()
+        }}
       >
         <div className="tree-item-content">
           {hasChildren ? (
@@ -2348,6 +2357,7 @@ function TreeItem({
               selected={selected}
               onToggle={onToggle}
               onSelect={onSelect}
+              onLaunch={onLaunch}
               filter={filter}
               depth={depth + 1}
             />
