@@ -1,4 +1,4 @@
-# AmpleWeb - 網頁移植版 (Apple 模擬器前端)
+# [AmpleWeb](https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb) - 網頁移植版 (Apple 模擬器前端)
 
 [English](README.md) | [繁體中文](README_tw.md)
 
@@ -25,15 +25,17 @@
 
 ### 🍏 忠實體驗 (功能對等)
 *   **精確縮放**：支援 **視窗 1x-4x** 模式與 **全螢幕** (Fit-to-Screen) 自動縮放。
-*   **完整機型**：全面支援 **Apple I, II, III 以及 Macintosh** 家族及其各國語系變體。
+*   **完整機型**：全面支援 **Apple I, II, III 以及 Macintosh** 家族。
+*   **多國語系**：完整支援 **Apple IIe/IIee/IIep** 等多國語言版本 (DE, FR, ES, SE, UK) 及其正確的字集與開機 Logo。
 *   **周邊支援**：支援自動注入 **SCSI, CFFA2, 以及 Disk II/III** 介面。 (有些週邊仍會顯示Missing ROM，本功能完善中)
 *   **進階視訊**：內建 **BGFX 濾鏡鏈**，提供最真實的復古視覺效果。 (施工中 WIP)
+*   **個性化介面**：完整支援 **深色/淺色模式** 切換，忠實還原 macOS 原生視覺美學。
 
 ### 🌐 網頁版特有功能
 *   **本地目錄映射 (/share)**：可將電腦上的任何資料夾直接映射至模擬器的虛擬檔案系統，實現無縫資料交換。
 *   **變更自動回存**：自動偵測虛擬磁碟映像檔的修改，並在退片時主動提示下載回本機。
 *   **媒體錄製匯出**：可將模擬器產出的 **AVI 影片** 與 **WAV 音訊** 直接匯出至您的本地裝置 (不要錄太久，以免瀏覽器記憶體緩衝區爆滿)。
-*   **即時分享 (Deep Linking)**：透過 URL 參數即可預先設定機型、插槽周邊與載入磁碟，支援自動開機功能 (`autoboot`)，非常適合教學展示與快速體驗。
+*   **即時分享 (Deep Linking)**：透過 URL 參數即可預先設定機型、插槽周邊與載入磁碟，支援自動開機功能 (URL結尾加上`&autoboot`)，非常適合教學展示與快速體驗。
 *   **零設定 ROMs**：內建多伺服器自動下載引擎，自動處理韌體下載並快取於瀏覽器的 IndexedDB 中。
 
 ### ⚠️ 已知限制
@@ -52,15 +54,14 @@
 
 ### 本地執行步驟
 
-1.  **安裝依賴項目**：
-    ```bash
-    npm install
-    ```
+1.  **一鍵啟動 (推薦)**：
+    *   **Windows**: 點擊執行 `AmpleWeb.bat`
+    *   **Linux/macOS**: 執行 `./AmpleWeb.sh` (需先執行 `chmod +x AmpleWeb.sh`)
+    此腳本會自動檢查環境、安裝必要元件並啟動伺服器。
 
-2.  **啟動開發伺服器**：
-    ```bash
-    npm run dev
-    ```
+2.  **手動啟動**：
+    *   安裝依賴：`npm install`
+    *   啟動伺服器：`npm run dev` 或 `node server.js`
     開啟 `http://localhost:5173` 即可開始使用。
 
 3.  **準備 ROMs (已提供，此功能暫無作用)**：
@@ -85,4 +86,4 @@
 *   **WASM 核心**：採用 [emularity-engine](https://github.com/internetarchive/emularity-engine) 與自訂 MAME 建置版本。
 
 ---
-*註：AmpleWeb 為獨立開發專案，與 Apple Inc. 無關。*
+*免責聲明：AmpleWeb 是一個獨立的開源專案，與 Apple Inc. 或本專案提及之任何其他公司均無任何隸屬、授權、維護或背書關係。所有產品及公司名稱均為其各自持有人的商標™或註冊®商標。*

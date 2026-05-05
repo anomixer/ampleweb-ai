@@ -1573,7 +1573,7 @@ function App() {
       {/* ── Left Sidebar ── */}
       <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
         <div className="sidebar-header">
-          <a href="https://github.com/anomixer/ample" target="_blank" rel="noopener noreferrer" className="sidebar-title">
+          <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer" className="sidebar-title">
             <span className="sidebar-logo">🍎</span>
             <span>AmpleWeb</span>
           </a>
@@ -2134,7 +2134,7 @@ function App() {
             <div className="welcome-icon">🍎</div>
             <h2>AmpleWeb</h2>
             <div className="welcome-author">
-              by <a href="https://github.com/anomixer/ample" target="_blank" rel="noopener noreferrer">anomixer</a>
+              by <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer">anomixer</a>
             </div>
             <p>Browser-based Apple II &amp; Macintosh emulation</p>
             {wasmTarget && (
