@@ -389,18 +389,35 @@ body {
 }
 
 .welcome-icon {
-  font-size: 48px;
-  margin-bottom: 4px;
+  font-size: 72px;
+  margin-bottom: 8px;
 }
 
 .welcome h2 {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 600;
   color: var(--text1);
 }
 
+.welcome-author {
+  font-size: 14px;
+  color: var(--text2);
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.welcome-author a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.welcome-author a:hover {
+  text-decoration: underline;
+}
+
 .welcome p {
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .welcome-sub {

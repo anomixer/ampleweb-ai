@@ -4,6 +4,19 @@
 ## Project: AmpleWeb (MAME WASM Frontend)
 
 ### Recent Updates (2026-05-05)
+- **Filesystem & Data Persistence**:
+    - **Disk Save Workflow**: Implemented an intelligent "Save back to local" prompt when ejecting modified media. The app now tracks file modification times (`mtime`) within the WASM VFS to detect changes and triggers `showSaveFilePicker` (or fallback download) for data persistence.
+    - **Capture Persistence (AVI/WAV)**: Added support for exporting media captures. When disabling AVI or WAV recording while the emulator is running, the app automatically checks the `/snap` or root VFS directories and prompts the user to save the generated files.
+    - **VFS Infrastructure**: Updated the WASM loader to automatically initialize a `/snap` directory for MAME snapshots/AVI captures.
+- **UI/UX & Interaction Refinement**:
+    - **Compact Media Layout**: Optimized the Media tab spacing by reducing group margins and adjusting slot gaps for a more streamlined, professional appearance.
+    - **Visual Polish**: Removed redundant custom toggle tracks in favor of clean browser checkboxes. Added descriptive instruction hints to the A/V tab regarding recording behavior and WASM memory limits.
+    - **Interaction Fixes**: Resolved a bug where the same disk image could not be re-inserted immediately after ejection by resetting the file input value on change.
+- **Stability & Logic**:
+    - **State Synchronization Fix**: Resolved a critical issue where emulator settings (Video, CPU, A/V, Paths) would sometimes fail to apply on launch due to missing dependencies in the `launchMame` callback.
+    - **Branch Management**: Project branch officially renamed and set as the default branch: `ampleweb`.
+
+### Previous Updates (2026-05-04)
 - **UI/UX Refinement & Interaction**:
     - **Double-Click to Launch**: Implemented double-click interaction on the machine list, allowing users to bypass the "Launch" button for faster access.
     - **UI Tab Persistence**: Added `localStorage` synchronization for both System (Video/CPU/Paths) and Machine (Slots/Media/Logs) tab selections, preserving the user's workspace layout across reloads.

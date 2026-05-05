@@ -2122,6 +2122,9 @@ function App() {
           <div className="welcome">
             <div className="welcome-icon">🍎</div>
             <h2>AmpleWeb</h2>
+            <div className="welcome-author">
+              by <a href="https://github.com/anomixer/ample" target="_blank" rel="noopener noreferrer">anomixer</a>
+            </div>
             <p>Browser-based Apple II &amp; Macintosh emulation</p>
             {wasmTarget && (
               <p style={{ fontSize: '12px', opacity: 0.5 }}>

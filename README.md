@@ -1,71 +1,83 @@
-# AmpleWeb
+# AmpleWeb - Browser Port (Apple Emulator Frontend)
 
-> **⚠️ WARNING: WORK IN PROGRESS ⚠️**
->
-> AmpleWeb is currently in an active testing and development phase.
-> Please **do not Git clone or fork** for production use at this time.
-> The core WASM integration and filesystem hooks are undergoing rapid changes.
+[English](README.md) | [繁體中文](README_tw.md)
 
-## Overview
+This is a pure browser-based port of the macOS native [Ample](https://github.com/ksherlock/ample) project, bringing the premium Apple II and Macintosh emulation experience to any modern web browser. Powered by WASM and React.
 
-AmpleWeb is the pure browser-based emulation frontend for the Ample project. It runs MAME WASM directly in the client — zero backend, zero server-side code. Powered by [emularity-engine](https://github.com/internetarchive/emularity-engine) pre-built WASM modules and custom universal MAME builds.
+![](screenshot.png)
 
-**Goal**: Pixel-perfect web replica of AmpleWin's UI/UX, running entirely in the browser.
+> [!IMPORTANT]
+> **Pure Client-Side**: AmpleWeb runs entirely in your browser. No backend, no server-side emulation, and zero installation required.
 
-## Tech Stack
+## 🍎 Ample (macOS) vs. AmpleWeb (Web) Comparison
 
-- **Frontend**: Vite + React + TypeScript
-- **Emulation**: emularity-engine WASM + custom universal `mame.wasm`
-- **State**: Zustand
-- **Storage**: IndexedDB / OPFS for ROMs and disk images
-- **UI**: Custom CSS with dark/light theme support
+| Feature | Ample (macOS Native) | AmpleWeb (Web) | Notes |
+| :--- | :--- | :--- | :--- |
+| **Language** | Objective-C (Cocoa) | **React + TypeScript (Vite)** | 1:1 UI replica using modern web standards |
+| **Installation** | .dmg Image / Homebrew | **Zero Install (Web-based)** | Runs directly via URL |
+| **MAME Integration** | Built-in Custom Core | **MAME WASM (Universal)** | High-performance Emscripten-compiled binary |
+| **UI** | Native macOS Components | **Pixel-Perfect CSS Replica** | Includes **Dark/Light Mode** & Tab Persistence |
+| **File System** | Native HFS/ProDOS Access | **VFS + Local Folder Mapping** | Support for mounting local folders via File System Access API |
+| **Data Persistence** | Direct Disk Write | **Save-on-Eject Workflow** | Detects changes in VFS and prompts local save |
+| **Video Support** | Metal / OpenGL / BGFX | **WebGL / BGFX WASM** | Full BGFX effects (CRT-Geom, Scanlines, etc.) |
 
-## Unified Engine Architecture
+## 🌟 Key Features
 
-AmpleWeb now utilizes a unified **MAME 0.287 (Universal)** engine for all supported systems. This consolidation ensures maximum compatibility and feature parity (such as BGFX effects and sample support) across all machine variants.
+### 🍏 Faithful Experience (Feature Parity)
+*   **Visual Precision**: Support for **Window 1x-4x** modes and **Full Screen** (Fit-to-Screen) scaling.
+*   **Comprehensive Library**: Full support for **Apple I, II, III, and Macintosh** families with localized variants.
+*   **Peripheral Support**: Supports auto-injection for **SCSI, CFFA2, and Disk II/III** interfaces. (Work in Progress, some peripherals may still show Missing ROM)
+*   **Advanced Video**: Integrated **BGFX screen chains** for authentic retro visuals. (Work in Progress)
 
-| Engine | WASM Size | Description | Status |
-|--------|-----------|-------------|--------|
-| **Universal (mame.wasm.gz)** | 10 MB | **All 150+ Models** (Apple II, Mac, BBC, CoCo, C64, etc.) | ✅ Active |
-| Tiny (mametiny.wasm) | 3 MB | Optimized build for early 8-bit machines | ⚡ Optional |
+### 🌐 Web-Specific Features
+*   **Local Directory Mapping (/share)**: Map any local host folder directly to the emulator's VFS for seamless data exchange.
+*   **Save back to Local**: Modified virtual disk images are automatically detected and prompted for download upon ejection.
+*   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent buffer overflow).
+*   **Zero-Setup ROMs**: Multi-server failover engine for automatic firmware downloading and caching in IndexedDB.
 
-## Features
+### ⚠️ Known Limitations
+*   **VGM Mod**: The "Generate VGM" feature is currently disabled as the specific MAME mod lacks a stable WASM port.
+*   **Browser Limits**: Large AVI captures may exceed browser memory buffers if recorded for extended periods.
 
-- **Multi-Tab Configuration**: Control **Video, CPU, A/V, Paths, Slots, and Media** settings from a unified side panel.
-- **UI State Persistence**: Tabs and sidebar selections are saved across sessions for a seamless experience.
-- **Advanced Video**: Support for **BGFX effects** (CRT-Geom, Scanlines, HQ2X), window scaling (1x to 4x), and true **Full Screen** mode.
-- **Local Directory Mapping (/share)**: Map any local folder to `/share` within the emulator for seamless disk swapping.
-- **Power Management**: Dedicated **Stop** (Power Off) and **Restart** (Power Cycle) controls for maximum WASM stability.
-- **Enhanced ROM Support**: Automatic injection of auxiliary ROMs for SCSI, CFFA2, Disk II/III, and Cassette interfaces across the entire Apple I/II/III and Macintosh families.
-- **International Localization**: Proper support for localized Apple IIe/IIee/IIep variants (DE, FR, ES, SE, UK) with accurate boot logos and character sets.
-- **Interaction Polish**: Double-click any machine in the sidebar to launch instantly.
+## 🛠️ Quick Start
 
-## Supported Machines
+### Prerequisites
+-   A modern web browser ( **Chrome, Edge, or Opera** recommended for File System Access API support).
+-   **Node.js** (only if running locally).
 
-AmpleWeb now supports nearly the entire library of 8-bit and 16-bit machines featured in AmpleWin, including Apple II clones (Franklin, Laser, Agat), the full Macintosh 68k family (including Quadra and PowerBook), and UK classics like the BBC Micro and Oric-1.
+### Running Locally
 
-## Getting Started
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
 
-```bash
-npm install
-npm run dev
-```
-or
-```cmd
-ampleweb.bat
-```
+2.  **Launch Dev Server**:
+    ```bash
+    npm run dev
+    ```
+    Open `http://localhost:5173` to start playing.
 
-## ROM Requirements
+3.  **Prepare ROMs (Already provided, this feature is currently inactive)**:
+    *   Click the **⚙️ Settings** icon in the sidebar.
+    *   Ensure **Auto-download missing ROMs** is enabled.
+    *   Select a machine and the app will handle the rest.
 
-Each emulator needs its BIOS ROM ZIP in `public/roms/`.
+## 📂 Project Structure
 
-Use `download_roms.ps1` to download and prepare the required ROM library automatically.
+| File/Directory | Description |
+| :--- | :--- |
+| **`src/App.tsx`** | Main application logic, UI layout, and state management. |
+| **`src/core/wasm_loader.ts`** | MAME WASM bridge, VFS management, and boot argument builder. |
+| **`src/core/store.ts`** | Zustand state store for settings and persistence. |
+| **`src/styles/global.css`** | The custom CSS design system (the pixel-perfect replica). |
+| **`public/roms/`** | Default directory for system firmware (cached in IndexedDB). |
 
-https://mdk.cab/download/full/<romname>.7z
-and convert to zip
+## 📝 Acknowledgments
 
-(tk3000 should be in apple2e.zip, but rom sources may put in apple2c.zip)
+*   Original macOS version developer: [Kelvin Sherlock](https://github.com/ksherlock)
+*   **Web Port Developers: anomixer + Antigravity**
+*   **WASM Core**: Powered by [emularity-engine](https://github.com/internetarchive/emularity-engine) and custom MAME builds.
 
-## Architecture
-
-See `AGENTS.md` for detailed development log, architecture decisions, and session notes.
+---
+*Note: AmpleWeb is an independent project and is not affiliated with Apple Inc.*
