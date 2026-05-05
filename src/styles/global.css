@@ -189,6 +189,29 @@ body {
   border-color: var(--accent);
 }
 
+.github-btn {
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text1);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  margin-right: 4px;
+}
+
+.github-btn:hover {
+  background: var(--bg3);
+  border-color: var(--accent);
+  color: var(--text0);
+}
+
 .search-box-wrap {
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
@@ -389,14 +412,17 @@ body {
 }
 
 .welcome-icon {
-  font-size: 72px;
-  margin-bottom: 8px;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 16px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
 }
 
 .welcome h2 {
   font-size: 32px;
   font-weight: 600;
-  color: var(--text1);
+  color: var(--text0);
 }
 
 .welcome-author {
@@ -416,8 +442,26 @@ body {
   text-decoration: underline;
 }
 
+.welcome-port-link {
+  margin-top: 40px;
+  font-size: 20px;
+  color: var(--text0);
+  font-weight: 500;
+}
+
+.welcome-port-link a {
+  color: var(--text0);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.welcome-port-link a:hover {
+  color: var(--accent);
+}
+
 .welcome p {
   font-size: 16px;
+  color: var(--text2);
 }
 
 .welcome-sub {

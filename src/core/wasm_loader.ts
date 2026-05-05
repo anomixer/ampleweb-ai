@@ -469,6 +469,9 @@ export function buildMameArgs(
   bgfxEffect?: string
   keepAspect?: boolean
   diskSound?: boolean
+  cpuSpeed?: string
+  debug?: boolean
+  rewind?: boolean
 } = {}
 ): string[] {
   const args: string[] = [driver]

@@ -1,8 +1,8 @@
+/// <reference types="vite/client" />
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { dataManager, type ModelEntry, type MachineConfig } from './core/data_manager'
+import { dataManager, type ModelEntry, type MachineConfig, type Slot, type Device, type SlotOption } from './core/data_manager'
 import {
   loadMameWasm,
-  getModule,
   buildMameArgs,
   fetchRom,
   getVirtualFile,
@@ -12,6 +12,7 @@ import {
   type MediaFile,
 } from './core/wasm_loader'
 import { useStore } from './core/store'
+const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
 
 /**
  * Emulator type → WASM file info.
@@ -245,7 +246,7 @@ const FLOPPY_SAMPLES = [
 /** Lightweight file existence check (synchronous, checks browser cache). */
 const _wasmCache: Record<string, boolean> = {}
 function _wasmExists(filename: string): boolean {
-  const url = `/wasm/${filename}`
+  const url = `${BASE_URL}wasm/${filename}`
   if (!(url in _wasmCache)) {
     _wasmCache[url] = false
     fetch(url, { method: 'HEAD' })
@@ -259,7 +260,7 @@ async function fetchAllSamples(): Promise<RomFile[]> {
   const results: RomFile[] = []
   for (const filename of FLOPPY_SAMPLES) {
     try {
-      const url = `/samples/floppy/${filename}`
+      const url = `${BASE_URL}samples/floppy/${filename}`
       const resp = await fetch(url)
       if (resp.ok) {
         const data = new Uint8Array(await resp.arrayBuffer())
@@ -275,7 +276,7 @@ async function fetchAllSamples(): Promise<RomFile[]> {
 /**
  * Get the WASM info for an emulator type, falling back to available.
  */
-function getWasmForEmulator(emulator: string, machineName: string): { wasm: string; js: string; driver: string } | null {
+function getWasmForEmulator(emulator: string, _machineName: string): { wasm: string; js: string; driver: string } | null {
   // Direct match from EMULATOR_WASM_MAP (mame.wasm is the default)
   const info = EMULATOR_WASM_MAP[emulator] || EMULATOR_WASM_MAP['mame']
   if (info) return info
@@ -700,14 +701,14 @@ function App() {
         }
 
         let val = next[fullPath]
-        const option = s.options?.find(o => o.value === val) || s.options?.find(o => o.default)
+        const option = s.options?.find((o: SlotOption) => o.value === val) || s.options?.find((o: SlotOption) => o.default)
         if (option) {
           next[fullPath] = option.value
           // Avoid trailing colon if option.value is empty
           const nextPrefix = option.value ? `${fullPath}:${option.value}` : fullPath
           if (Array.isArray(option.slots)) walk(option.slots, nextPrefix)
           if (option.devname && devices) {
-            const dev = devices.find(d => d.name === option.devname)
+            const dev = devices.find((d: Device) => d.name === option.devname)
             if (dev && Array.isArray(dev.slots)) walk(dev.slots, nextPrefix)
           }
         }
@@ -759,7 +760,7 @@ function App() {
 
     for (const romFile of romFilesToFetch) {
       try {
-        const url = `/roms/${romFile}`
+        const url = `${BASE_URL}roms/${romFile}`
         // We associate the ROM with effectiveDriver so MAME (running as effectiveDriver) can find it
         const rom = await fetchRom(url, effectiveDriver, romFile)
 
@@ -831,7 +832,7 @@ function App() {
     if (isApple2Family || isMacFamily) {
       for (const aux of auxRoms) {
         try {
-          const resp = await fetch(`/roms/${aux.zipName}.zip`)
+          const resp = await fetch(`${BASE_URL}roms/${aux.zipName}.zip`)
           if (resp.ok) {
             const data = new Uint8Array(await resp.arrayBuffer())
             // Directly push the ZIP with the expected MAME name (romSet)
@@ -938,10 +939,10 @@ function App() {
         // Use undefined check instead of falsy check to allow empty string values
         if (selectedValue === undefined) return
 
-        const option = slot.options?.find(o => o.value === selectedValue)
+        const option = slot.options?.find((o: SlotOption) => o.value === selectedValue)
         if (option) {
           if (option.media) {
-            Object.entries(option.media).forEach(([mameType, count]) => {
+            Object.entries(option.media).forEach(([mameType, count]: [string, number]) => {
               addMedia(mameType, count)
             })
           }
@@ -950,7 +951,7 @@ function App() {
             collectMedia(option.slots, nextPath)
           }
           if (option.devname && machineConfig.devices) {
-            const dev = machineConfig.devices.find(d => d.name === option.devname)
+            const dev = machineConfig.devices.find((d: Device) => d.name === option.devname)
             if (dev && Array.isArray(dev.slots)) {
               collectMedia(dev.slots, nextPath)
             }
@@ -1034,8 +1035,8 @@ function App() {
 
     // Step 2: load WASM
     setLaunchState('loading-wasm')
-    const wasmUrl = `/wasm/${wasmInfo.wasm}`
-    addLog(`Using /wasm/${wasmInfo.wasm} (emulator: ${emulator}, driver: ${wasmInfo.driver})`, false)
+    const wasmUrl = `${BASE_URL}wasm/${wasmInfo.wasm}`
+    addLog(`Using ${BASE_URL}wasm/${wasmInfo.wasm} (emulator: ${emulator}, driver: ${wasmInfo.driver})`, false)
 
     // 3. Prepare media files
     const finalMedia = mediaParam ?? mediaFiles
@@ -1121,10 +1122,10 @@ function App() {
     if (pathSettings?.mapLocalDir && localDirHandleRef.current) {
       try {
         const handle = localDirHandleRef.current as FileSystemDirectoryHandle
-        const permission = await handle.queryPermission({ mode: 'readwrite' })
+        const permission = await (handle as any).queryPermission({ mode: 'readwrite' })
         if (permission !== 'granted') {
           addLog(`Requesting permission for local directory: ${handle.name}`, false)
-          const result = await handle.requestPermission({ mode: 'readwrite' })
+          const result = await (handle as any).requestPermission({ mode: 'readwrite' })
           if (result !== 'granted') {
             addLog(`Permission denied for local directory: ${handle.name}`, true)
           }
@@ -1136,12 +1137,12 @@ function App() {
     }
 
     try {
-      const module = await loadMameWasm(wasmUrl, {
+      /* const _module = */ await loadMameWasm(wasmUrl, {
         driverArgs: args,
         romFiles: romFiles,
         mediaFiles: mediaList,
         sampleFiles: sampleList,
-        jsUrl: `/wasm/${wasmInfo.js}`,
+        jsUrl: `${BASE_URL}wasm/${wasmInfo.js}`,
         localDirHandle: pathSettings?.mapLocalDir ? localDirHandleRef.current : undefined,
         onProgress: (loaded, total) => {
           if (total > 0) {
@@ -1246,8 +1247,8 @@ function App() {
   const saveFileToLocal = async (filename: string, data: Uint8Array) => {
     try {
       // @ts-ignore
-      if (window.showSaveFilePicker) {
-        const handle = await window.showSaveFilePicker({
+      if ((window as any).showSaveFilePicker) {
+        const handle = await (window as any).showSaveFilePicker({
           suggestedName: filename,
         })
         const writable = await handle.createWritable()
@@ -1285,7 +1286,7 @@ function App() {
       if (stat) {
         const data = getVirtualFile(virtualPath)
         if (data) {
-          const mtime = stat.mtime?.getTime ? stat.mtime.getTime() : (stat.mtime * 1000)
+          const mtime = stat.mtime?.getTime ? stat.mtime.getTime() : (Number(stat.mtime) * 1000)
           if (mtime > mountTimeRef.current) {
             const save = window.confirm(`Disk "${file.name}" has been modified. Save back to local?`)
             if (save) {
@@ -1469,8 +1470,8 @@ function App() {
 
   /**
    * Test launch — no ROMs, just load the WASM runtime.
-   */
-  const handleTestLaunch = useCallback(async () => {
+  /*
+  const _handleTestLaunch = useCallback(async () => {
     setWasmModule(null)
     setErrorText(null)
     setLogs([])
@@ -1478,8 +1479,7 @@ function App() {
     setShowLogs(true)
     setLaunchState('loading-wasm')
 
-    // Use apple2e for test
-    const wasmInfo = getWasmForEmulator('apple2e')
+    const wasmInfo = getWasmForEmulator('apple2e', 'apple2e')
     if (!wasmInfo) {
       setErrorText('No WASM file available')
       setLaunchState('error')
@@ -1496,7 +1496,7 @@ function App() {
     })
 
     try {
-      const module = await loadMameWasm(wasmUrl, {
+      await loadMameWasm(wasmUrl, {
         driverArgs: args,
         romFiles: [],
         jsUrl: `/wasm/${wasmInfo.js}`,
@@ -1531,12 +1531,13 @@ function App() {
       addLog(`Fatal: ${e}`, true)
     }
   }, [wasmTarget, addLog])
+  */
 
   /**
    * Strip TorrentZip footer (40 bytes: 36-byte SHA256 + PK\x07\x08 sig)
    * so MAME's ZIP parser can read the file.
-   */
-  const stripTorrentZip = (data: Uint8Array): Uint8Array => {
+  /*
+  const _stripTorrentZip = (data: Uint8Array): Uint8Array => {
     if (data.length < 48) return data
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
     const end = data.length
@@ -1547,6 +1548,7 @@ function App() {
     }
     return data
   }
+  */
 
   const toggleNode = useCallback((id: string) => {
     setExpandedNodes(prev => {
@@ -1564,13 +1566,24 @@ function App() {
       {/* ── Left Sidebar ── */}
       <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
         <div className="sidebar-header">
-          <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer" className="sidebar-title">
+          <a href={BASE_URL} className="sidebar-title">
             <span className="sidebar-logo">🍎</span>
             <span>AmpleWeb</span>
           </a>
-          <button className="theme-btn" onClick={toggleTheme} title="Toggle theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <a 
+              href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="github-btn"
+              title="View on GitHub"
+            >
+              <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+            </a>
+            <button className="theme-btn" onClick={toggleTheme} title="Toggle theme">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          </div>
         </div>
 
         <div className="search-box-wrap">
@@ -1741,7 +1754,7 @@ function App() {
                         <div className="error-state">
                           <span className="error-icon">❌</span>
                           <p>Emulation failed</p>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setConfigTab('logs')}>View Log</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setMachineTab('logs')}>View Log</button>
                         </div>
                       )}
                     </div>
@@ -1947,7 +1960,7 @@ function App() {
                     {machineConfig ? (
                       <div className="slot-grid">
                         {(() => {
-                          const renderSlots = (sList: Slot[], depth = 0, pathPrefix = '') => {
+                          const renderSlots = (sList: Slot[], depth = 0, pathPrefix = ''): React.ReactNode => {
                             if (!Array.isArray(sList)) return null
                             return sList.map((slot, idx) => {
                               let fullPath = slot.name
@@ -1958,7 +1971,7 @@ function App() {
                               }
 
                               const selectedValue = slotValues[fullPath] || ''
-                              const selectedOption = slot.options?.find(o => o.value === selectedValue)
+                              const selectedOption = slot.options?.find((o: SlotOption) => o.value === selectedValue)
 
                               const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
 
@@ -1979,7 +1992,7 @@ function App() {
                                         })
                                       }}
                                     >
-                                      {slot.options?.map((opt, i) => (
+                                      {slot.options?.map((opt: SlotOption, i: number) => (
                                         <option key={i} value={opt.value} disabled={opt.disabled}>
                                           {opt.description}
                                         </option>
@@ -1988,7 +2001,7 @@ function App() {
                                   </div>
                                   {Array.isArray(selectedOption?.slots) && renderSlots(selectedOption.slots, depth + 1, nextPath)}
                                   {selectedOption?.devname && machineConfig?.devices && (() => {
-                                    const dev = machineConfig.devices.find(d => d.name === selectedOption.devname)
+                                    const dev = machineConfig.devices.find((d: Device) => d.name === selectedOption.devname)
                                     return dev && Array.isArray(dev.slots) && renderSlots(dev.slots, depth + 1, nextPath)
                                   })()}
                                 </React.Fragment>
@@ -2042,7 +2055,7 @@ function App() {
                                   </div>
                                   <input
                                     type="file"
-                                    ref={el => fileInputRefs.current[item.id] = el}
+                                    ref={el => { fileInputRefs.current[item.id] = el }}
                                     style={{ display: 'none' }}
                                     onChange={e => {
                                       const file = e.target.files?.[0]
@@ -2113,7 +2126,7 @@ function App() {
                   disabled={isLoading}
                   style={{ width: '100%' }}
                 >
-                  {isLoading ? '⏳' : '🚀'} {isLoading ? 'Launch' : 'Launch'}
+                  {isLoading ? '⏳' : '🍎'} {isLoading ? 'Launch' : 'Launch'}
                 </button>
               )}
             </div>
@@ -2121,7 +2134,7 @@ function App() {
         </>
       ) : (
           <div className="welcome">
-            <div className="welcome-icon">🍎</div>
+            <img src={`${BASE_URL}icon-256.png`} className="welcome-icon" alt="Ample Logo" />
             <h2>AmpleWeb</h2>
             <div className="welcome-author">
               by <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer">anomixer</a>
@@ -2133,6 +2146,9 @@ function App() {
               </p>
             )}
             <p className="welcome-sub">Select a machine from the sidebar to begin</p>
+            <div className="welcome-port-link">
+              For macOS, Windows, Linux port, click <a href="https://github.com/ksherlock/ample" target="_blank" rel="noopener noreferrer">HERE</a>.
+            </div>
           </div>
         )}
       </div>
@@ -2140,11 +2156,8 @@ function App() {
   )
 }
 
-/**
- * Minimal ZIP parser: extract specific files from a ZIP archive.
- * Handles standard ZIP and TorrentZip (PK\x07\x08 footer stripped).
- */
-function parseZip(data: Uint8Array, wanted: string[]): Record<string, Uint8Array> {
+/*
+function _parseZip(data: Uint8Array, wanted: string[]): Record<string, Uint8Array> {
   const result: Record<string, Uint8Array> = {}
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
 
@@ -2165,7 +2178,7 @@ function parseZip(data: Uint8Array, wanted: string[]): Record<string, Uint8Array
   for (let i = 0; i < cdEntries; i++) {
     if (view.getUint32(pos, true) !== 0x02014b50) break
 
-    const compSize = view.getUint32(pos + 20, true)
+    // const compSize = view.getUint32(pos + 20, true)
     const uncompSize = view.getUint32(pos + 24, true)
     const nameLen = view.getUint16(pos + 28, true)
     const extraLen = view.getUint16(pos + 30, true)
@@ -2195,12 +2208,10 @@ function parseZip(data: Uint8Array, wanted: string[]): Record<string, Uint8Array
   }
   return result
 }
+*/
 
-/**
- * Create a minimal ZIP in memory from a map of filename -> content.
- * Uses stored (no-compression) method.
- */
-function createZip(entries: Record<string, Uint8Array>): Uint8Array {
+/*
+function _createZip(entries: Record<string, Uint8Array>): Uint8Array {
   const encoder = new TextEncoder()
   const fileNames = Object.keys(entries)
   let dataOffset = 0
@@ -2276,12 +2287,14 @@ function createZip(entries: Record<string, Uint8Array>): Uint8Array {
 
   return zip
 }
+*/
 
 /**
  * CRC32 lookup table and computation.
  */
-const _crc32Table: number[] = (() => {
-  const table: number[] = new Uint32Array(256)
+/*
+const _crc32Table: Uint32Array = (() => {
+  const table = new Uint32Array(256)
   for (let i = 0; i < 256; i++) {
     let c = i
     for (let j = 0; j < 8; j++) {
@@ -2291,7 +2304,9 @@ const _crc32Table: number[] = (() => {
   }
   return table
 })()
+*/
 
+/*
 function crc32(data: Uint8Array): number {
   let crc = 0xFFFFFFFF
   for (let i = 0; i < data.length; i++) {
@@ -2299,6 +2314,7 @@ function crc32(data: Uint8Array): number {
   }
   return (crc ^ 0xFFFFFFFF) >>> 0
 }
+*/
 
 /** Read File as Uint8Array */
 async function readFileAsArrayBuffer(file: File): Promise<Uint8Array> {

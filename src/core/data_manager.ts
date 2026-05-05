@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 export interface ModelEntry {
   description: string
   value: string
@@ -131,22 +132,25 @@ export class DataManager {
 
   async loadModels(): Promise<ModelEntry[]> {
     if (this.models.length > 0) return this.models
-    const text = await fetch('/resources/models.plist').then(r => r.text())
+    const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+    const text = await fetch(`${baseUrl}resources/models.plist`).then(r => r.text())
     this.models = this.parseModelsPlist(text)
     return this.models
   }
 
   async loadRoms(): Promise<RomEntry[]> {
     if (this.roms.length > 0) return this.roms
-    const text = await fetch('/resources/roms.plist').then(r => r.text())
+    const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+    const text = await fetch(`${baseUrl}resources/roms.plist`).then(r => r.text())
     this.roms = this.parseRomsPlist(text)
     return this.roms
   }
 
   async loadMachine(name: string): Promise<MachineConfig | null> {
     if (this.machineCache.has(name)) return this.machineCache.get(name)!
+    const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
     try {
-      const text = await fetch(`/resources/${name}.plist`).then(r => {
+      const text = await fetch(`${baseUrl}resources/${name}.plist`).then(r => {
         if (!r.ok) return null
         return r.text()
       })
@@ -183,7 +187,8 @@ export class DataManager {
         results.push({ name: listName, description: cached.description, items: filteredItems })
       } else {
         try {
-          const text = await fetch(`/resources/software/${xmlFile}`).then(r => {
+          const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+          const text = await fetch(`${baseUrl}resources/software/${xmlFile}`).then(r => {
             if (!r.ok) return null
             return r.text()
           })
