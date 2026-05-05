@@ -48,11 +48,17 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 
 ## 🛠️ Quick Start
 
-### Prerequisites
--   A modern web browser ( **Chrome, Edge, or Opera** recommended for File System Access API support).
--   **Node.js** (only if running locally).
+### 1. Instant Online Experience (Recommended)
 
-### Running Locally
+No setup required. Enjoy the classic 80s computing experience directly in your browser:
+👉 **[https://anomixer.github.io/ample/](https://anomixer.github.io/ample/)**
+
+---
+
+### 2. Running Locally (Developers/Offline Use)
+
+#### Prerequisites
+-   A modern web browser ( **Chrome, Edge, or Opera** recommended for File System Access API support).
 
 1.  **One-Click Start (Recommended)**:
     *   **Windows**: Run `AmpleWeb.bat`
