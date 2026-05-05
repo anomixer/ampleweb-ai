@@ -4,6 +4,16 @@
 ## Project: AmpleWeb (MAME WASM Frontend)
 
 ### Recent Updates (2026-05-05)
+- **Automated ROM Management**:
+    - **Multi-threaded CLI Downloader**: Created `rom_manager_cli.py`, a high-performance Python engine for ROM acquisition, featuring 50-thread concurrency and dual-source failover (CallApple/MDK). Supports both `.zip` and automatic `.7z` probing (force-converted or filtered for WASM compatibility).
+    - **PowerShell Wrapper**: Developed `download_roms.ps1` with an interactive source selection menu and specialized patches (e.g., `tk3000` fix via `apple2c.zip` copy).
+    - **One-Click Boot Integration**: Updated `AmpleWeb.bat` and `AmpleWeb.sh` to automatically detect missing ROMs and trigger the downloader, ensuring a "zero-setup" experience for local developers.
+- **Node.js Server Refinement**:
+    - **Optimized Startup**: Cleaned up redundant console output in boot scripts.
+    - **Modern Node.js Compatibility**: Fixed `DeprecationWarning [DEP0190]` and `spawn EINVAL` errors by explicitly using `cmd /c` on Windows, ensuring compatibility with Node v24.2.0+.
+- **VFS & Frontend Fixes**:
+    - **Vite Warning Resolved**: Fixed a "Duplicate key" warning in `App.tsx` by merging redundant `onReady` callbacks.
+    - **Format Standardization**: Forced all ROM downloads to `.zip` format as WASM MAME does not support `.7z`.
 - **Filesystem & Data Persistence**:
     - **Disk Save Workflow**: Implemented an intelligent "Save back to local" prompt when ejecting modified media. The app now tracks file modification times (`mtime`) within the WASM VFS to detect changes and triggers `showSaveFilePicker` (or fallback download) for data persistence.
     - **Capture Persistence (AVI/WAV)**: Added support for exporting media captures. When disabling AVI or WAV recording while the emulator is running, the app automatically checks the `/snap` or root VFS directories and prompts the user to save the generated files.

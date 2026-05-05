@@ -1507,31 +1507,22 @@ function App() {
             setStatusText(`Loading... ${pct}%`)
           }
         },
+        onError: (err) => {
+          addLog(`Error: ${err}`, true)
+          setLaunchState('error')
+        },
+        onLog: addLog,
         onReady: (m) => {
           if (m.canvas && canvasContainerRef.current) {
+            canvasContainerRef.current.innerHTML = ''
             canvasContainerRef.current.appendChild(m.canvas)
             m.canvas.style.display = 'block'
             m.canvas.style.width = '100%'
             m.canvas.style.height = '100%'
             m.canvas.style.objectFit = 'contain'
           }
-        },
-        onError: (err) => {
-          addLog(`Error: ${err}`, true)
-          setLaunchState('error')
-        },
-        onLog: addLog,
-        onReady: (mod) => {
-          setWasmModule(mod)
+          setWasmModule(m)
           setLaunchState('running')
-          requestAnimationFrame(() => {
-            const c = document.getElementById('canvas') as HTMLCanvasElement | null
-            if (c && canvasContainerRef.current) {
-              canvasContainerRef.current.innerHTML = ''
-              canvasContainerRef.current.appendChild(c)
-              c.style.display = ''
-            }
-          })
         },
       })
     } catch (e: any) {
@@ -1618,7 +1609,6 @@ function App() {
                   checked={romSettings.autoDownload}
                   onChange={e => setRomSettings(s => ({ ...s, autoDownload: e.target.checked }))}
                 />
-                <span className="settings-toggle-track" />
               </label>
               <p className="settings-hint">
                 When enabled, missing ROMs will be downloaded from configured servers and cached in IndexedDB.

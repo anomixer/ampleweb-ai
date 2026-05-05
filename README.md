@@ -63,27 +63,32 @@ No setup required. Enjoy the classic 80s computing experience directly in your b
 1.  **One-Click Start (Recommended)**:
     *   **Windows**: Run `AmpleWeb.bat`
     *   **Linux/macOS**: Run `./AmpleWeb.sh` (requires `chmod +x AmpleWeb.sh`)
-    The scripts will automatically check the environment, install dependencies, and start the server.
+    The scripts will automatically check the environment, install dependencies, **download ROMs**, and start the server.
 
-2.  **Manual Start**:
+2.  **Manual Start (For Developers)**:
     *   Install dependencies: `npm install`
+    *   **Download ROMs**: Run `download_roms.ps1`
+        - The system detects missing files in `public/roms` and launches the high-speed multi-threaded downloader.
+        - You can select sources (CallApple, MDK, etc.) or provide a custom URL.
+        - Downloaded `.zip` files are stored in `public/roms` for immediate use by the WASM frontend.
+    *   **(Optional)** To rebuild `public/wasm/mame.wasm.gz`, use the [MameWasm](https://github.com/anomixer/MameWasm) project to build the binary, then compress it to `.gz`.
     *   Launch server: `npm run dev` or `node server.js`
     Open `http://localhost:5173` to start playing.
-
-3.  **Prepare ROMs (Already provided, this feature is currently inactive)**:
-    *   Click the **⚙️ Settings** icon in the sidebar.
-    *   Ensure **Auto-download missing ROMs** is enabled.
-    *   Select a machine and the app will handle the rest.
 
 ## 📂 Project Structure
 
 | File/Directory | Description |
 | :--- | :--- |
+| **`AmpleWeb.bat / .sh`** | **One-Click Start Scripts**. Automatically checks env, installs deps, downloads ROMs, and starts server. |
+| **`download_roms.ps1`** | **ROM Downloader**. PowerShell script with interactive menus and automatic patching logic. |
+| **`rom_manager_cli.py`** | **Download Engine**. Python-based multi-threaded (50-threads) tool with failover support. |
+| **`server.js`** | **Local Dev Server**. Handles npm install, environment preparation, and auto-opens browser. |
 | **`src/App.tsx`** | Main application logic, UI layout, and state management. |
 | **`src/core/wasm_loader.ts`** | MAME WASM bridge, VFS management, and boot argument builder. |
-| **`src/core/store.ts`** | Zustand state store for settings and persistence. |
-| **`src/styles/global.css`** | The custom CSS design system (the pixel-perfect replica). |
-| **`public/roms/`** | Default directory for system firmware (cached in IndexedDB). |
+| **`public/roms/`** | Default directory for system firmware (ROM download target). |
+| **`public/wasm/`** | **MAME WASM Core**. Contains `mame.wasm.gz` and its loader script. |
+| **`public/samples/`** | **Audio Samples**. e.g., floppy drive mechanical sounds (`floppy/*.wav`). |
+| **`public/resources/`** | **UI Resources**. Includes machine icons, logos, and UI assets. |
 
 ## 📝 Acknowledgments
 

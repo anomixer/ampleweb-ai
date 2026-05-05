@@ -32,12 +32,9 @@ if (needsInstall) {
 console.log('\n🚀 Starting AmpleWeb dev server on http://localhost:5173\n')
 console.log('   Press Ctrl+C to stop.\n')
 
-const npmCmd = platform === 'win32' ? 'npm.cmd' : 'npm'
-const dev = spawn(npmCmd, ['run', 'dev'], {
-  cwd: __dirname,
-  stdio: 'inherit',
-  shell: true,
-})
+const dev = platform === 'win32'
+  ? spawn('cmd', ['/c', 'npm', 'run', 'dev'], { cwd: __dirname, stdio: 'inherit' })
+  : spawn('npm', ['run', 'dev'], { cwd: __dirname, stdio: 'inherit' })
 
 dev.on('error', (err) => {
   console.error('Failed to start dev server:', err)

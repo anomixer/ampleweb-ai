@@ -1018,26 +1018,14 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 2px;
 }
 
 .settings-toggle-wrap input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
-}
-
-.settings-toggle-track {
-  display: inline-block;
-  width: 32px;
-  height: 18px;
-  background: var(--bg4);
-  border-radius: 9px;
-  position: relative;
-  transition: background 0.15s;
-}
-
-.settings-toggle-wrap input[type="checkbox"]:checked+.settings-toggle-track {
-  background: var(--accent);
+  accent-color: var(--accent);
 }
 
 /* ─── Tabs ─── */

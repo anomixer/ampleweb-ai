@@ -64,27 +64,32 @@
 1.  **一鍵啟動 (推薦)**：
     *   **Windows**: 點擊執行 `AmpleWeb.bat`
     *   **Linux/macOS**: 執行 `./AmpleWeb.sh` (需先執行 `chmod +x AmpleWeb.sh`)
-    此腳本會自動檢查環境、安裝必要元件並啟動伺服器。
+    此腳本會自動檢查環境、安裝必要元件、下載ROMs，並啟動伺服器。
 
-2.  **手動啟動**：
+2.  **手動啟動 (適合開發者)**：
     *   安裝依賴：`npm install`
+    *   下載 ROMS：執行 `download_roms.ps1`
+        - 系統會偵測 `public/roms` 是否有缺檔，自動啟動高效能的多執行緒 **ROM 下載器**。
+        - 您可以手動選擇來源 (CallApple, MDK 等) 或自定義 URL。
+        - 下載後的 `.zip` 檔案會存放在 `public/roms`，以便前端 WASM 直接讀取。
+    *   (非必要) 若要重建 `public/wasm/mame.wasm.gz`，可使用 [MameWasm](https://github.com/anomixer/MameWasm) 專案來建置，再用壓縮軟體轉成 .gz。
     *   啟動伺服器：`npm run dev` 或 `node server.js`
     開啟 `http://localhost:5173` 即可開始使用。
-
-3.  **準備 ROMs (已提供，此功能暫無作用)**：
-    *   點擊側邊欄的 **⚙️ 設定** 圖示。
-    *   確保已開啟 **Auto-download missing ROMs**。
-    *   選擇任何機型，程式將自動處理後續作業。
 
 ## 📂 專案結構
 
 | 檔案 / 目錄 | 說明 |
 | :--- | :--- |
+| **`AmpleWeb.bat / .sh`** | **一鍵啟動腳本**。自動檢查環境、安裝依賴、下載 ROM 並啟動伺服器。 |
+| **`download_roms.ps1`** | **ROM 下載器**。具備交互式選單、來源切換與自動修補邏輯的 PowerShell 腳本。 |
+| **`rom_manager_cli.py`** | **下載引擎核心**。基於 Python 的多執行緒 (50-threads) 下載工具，支援 Failover。 |
+| **`server.js`** | **本地開發伺服器**。處理 npm 安裝、環境準備並自動開啟瀏覽器。 |
 | **`src/App.tsx`** | 主要應用程式邏輯、介面佈局與狀態管理。 |
-| **`src/core/wasm_loader.ts`** | MAME WASM 橋接器、虛擬檔案系統管理與啟動參數建構。 |
-| **`src/core/store.ts`** | 使用 Zustand 建立的狀態商店，處理設定與持久化。 |
-| **`src/styles/global.css`** | 自訂 CSS 設計系統 (像素級 UI 復刻的核心)。 |
-| **`public/roms/`** | 系統韌體預設存放處 (將快取至 IndexedDB)。 |
+| **`src/core/wasm_loader.ts`** | MAME WASM 橋接器、VFS 虛擬檔案系統管理與啟動參數建構。 |
+| **`public/roms/`** | 系統韌體預設存放處 (ROM 下載目標路徑，會快取至 IndexedDB)。 |
+| **`public/wasm/`** | **MAME WASM 核心**。包含 `mame.wasm.gz` 及其載入腳本。 |
+| **`public/samples/`** | **音效採樣**。例如磁碟機運轉聲 (`floppy/*.wav`)。 |
+| **`public/resources/`** | **介面資源**。包含機器圖示、品牌標誌與 UI 素材。 |
 
 ## 📝 致謝
 

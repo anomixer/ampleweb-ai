@@ -29,9 +29,17 @@ if not exist "node_modules" (
     )
 )
 
+:: Check ROMs
+set "ROM_DIR=public\roms"
+set "NEED_ROMS=1"
+if exist "%ROM_DIR%\*.zip" set "NEED_ROMS=0"
+
+if "%NEED_ROMS%"=="1" (
+    echo.
+    echo [!] ROMs not found in %ROM_DIR%.
+    echo Launching ROM Downloader...
+    powershell -ExecutionPolicy Bypass -File download_roms.ps1
+)
+
 :: Start dev server
-echo.
-echo Starting AmpleWeb dev server on http://localhost:5173
-echo Press Ctrl+C to stop.
-echo.
 node server.js
