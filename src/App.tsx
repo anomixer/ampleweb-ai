@@ -1384,10 +1384,14 @@ function App() {
         }
 
         // 4. Trigger launch logic
-        if (params.get('launch') === '1' && !hasAutoLaunched.current) {
+        const shouldLaunch = params.get('launch') === '1' || params.has('autoboot')
+        if (shouldLaunch && !hasAutoLaunched.current) {
           hasAutoLaunched.current = true
+          const isAutoBoot = params.has('autoboot')
+
           const newUrl = new URL(window.location.href)
           newUrl.searchParams.delete('launch')
+          newUrl.searchParams.delete('autoboot')
           window.history.replaceState({}, '', newUrl.toString())
 
           // If mapping is enabled, we CANNOT auto-launch because we need a user gesture for the folder.
@@ -1397,7 +1401,14 @@ function App() {
             addLog('Auto-launch paused: Local directory needs reconnection. Please click Launch.', false)
             setStatusText('Reconnection required for local directory...')
           } else {
-            doLaunch(machineToLaunch, slots, restoredMedia)
+            if (isAutoBoot) {
+              addLog('Autoboot sequence initiated (2s delay)...', false)
+              setTimeout(() => {
+                doLaunch(machineToLaunch!, slots, restoredMedia)
+              }, 2000)
+            } else {
+              doLaunch(machineToLaunch!, slots, restoredMedia)
+            }
           }
         }
       }

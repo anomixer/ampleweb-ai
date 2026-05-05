@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README_tw.md)
 
-This is a pure browser-based port of the macOS native [Ample](https://github.com/ksherlock/ample) project, bringing the premium Apple II and Macintosh emulation experience to any modern web browser. Powered by WASM and React.
+This is a pure browser-based port of the macOS native [Ample](https://github.com/ksherlock/ample) project, bringing the premium Apple II and Macintosh emulation experience to any modern web browser. Powered by WASM and React. Enjoy the nostalgic 198x-199x computing experience directly in your browser with zero installation of apps or ROM files.
 
 ![](screenshot.png)
 
@@ -32,11 +32,16 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 ### 🌐 Web-Specific Features
 *   **Local Directory Mapping (/share)**: Map any local host folder directly to the emulator's VFS for seamless data exchange.
 *   **Save back to Local**: Modified virtual disk images are automatically detected and prompted for download upon ejection.
-*   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent buffer overflow).
+*   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent browser memory buffer overflow).
+*   **Deep Linking (Instant Sharing)**: Pre-configure machines, slots, and media via URL parameters; supports automatic startup (URL ending with `&autoboot`) for seamless demos and education.
 *   **Zero-Setup ROMs**: Multi-server failover engine for automatic firmware downloading and caching in IndexedDB.
 
 ### ⚠️ Known Limitations
-*   **VGM Mod**: The "Generate VGM" feature is currently disabled as the specific MAME mod lacks a stable WASM port.
+*   **Disk Mounting Limits**: Due to browser VFS limitations, disks can only be mounted before launching the machine. Real-time disk swapping is not supported (Alternative: Use the "Local Directory Mapping" feature in the Paths tab and mount via MAME's internal UI from the `/share` directory).
+*   **Core Stability**: Machines highlighted in **yellow** may not function correctly due to underlying emulation core limitations.
+*   **Audio Latency**: There may be slight audio lag, which is a known limitation of MAME WASM.
+*   **Execution Speed**: Speed gains are limited by the WASM architecture; settings like 500% or Max speed may not be achievable.
+*   **Disabled Features**: Due to compatibility issues, the following features are currently disabled: Debug, Square Pixel, Video Method, and Generate VGM.
 *   **Browser Limits**: Large AVI captures may exceed browser memory buffers if recorded for extended periods.
 
 ## 🛠️ Quick Start
