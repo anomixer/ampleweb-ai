@@ -79,6 +79,19 @@
     - **Zustand Persistence**: Migrated all settings to a persistent store (`ample-app-storage-v2`).
     - **Robust State Handling**: Added safety guards and optional chaining to prevent "blank screen" failures during WASM initialization and store rehydration.
     - **Media VFS Hooks**: Updated `wasm_loader.ts` to support injecting multiple media types and audio samples into the virtual filesystem.
-- **UX Fixes**:
     - Improved visibility of "Slow Boot" notifications and UI hint text in Dark Mode.
     - Fixed `ReferenceError` when switching to the Media tab.
+- **2026-05-06 Optimization Session**:
+    - **ROM & WASM Stability**:
+        - Fixed `mametiny.wasm` 404 error by removing obsolete engine references.
+        - Implemented **Dynamic Slot ROM Fetching**: Automatically detects and downloads ROMs for selected slot devices (Mouse cards, Memory expansion), preventing "missing ROM" hangs.
+    - **State & URL Persistence**:
+        - Migrated `selectedMachine` and `slotValues` to persistent store; stopping/reloading no longer wipes the current configuration.
+        - Added **URL Media Loading**: Support for `media=slotId:http://...` to auto-download and mount disks from external URLs.
+    - **UX & Control Improvements**:
+        - Added dedicated **MAME UI (ScrlLk)** and **MAME Menu (Tab)** buttons with robust event dispatching to allow easier access to internal settings.
+        - Fixed sidebar button layout issues (overflow/clipping) using responsive flex wrapping and optimized font sizing.
+        - Fixed "blank screen" rendering failure caused by state variable refactoring.        - **Logo Reset**: Clicking the top-left 'AmpleWeb' logo now clears all persistent settings (machine, slots, media) and returns to the home screen.
+        - **Apple Mouse Card Support**: Added 'm68705p3' (bootstrap.bin) to auxiliary ROMs to fix boot errors when using the mouse card on Apple IIe/IIee.
+        - **Recursive Device Dependencies**: Implemented a 'DEVICE_DEPENDENCIES' mapping table and recursive ROM fetching logic. This automatically resolves sub-dependencies (e.g., a2mouse needing m68705p3, diskii needing d2fdc) without manual configuration.
+        - **Slot Validation**: Added robust validation for slot options. The system now filters out invalid or mismatched persistent slot configurations before launching MAME, preventing 'Unknown slot option' exceptions when switching machines.

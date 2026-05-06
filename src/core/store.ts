@@ -50,6 +50,14 @@ interface StoreState {
   setAvSettings: (settings: Partial<AvSettings>) => void
   pathSettings: PathSettings
   setPathSettings: (settings: Partial<PathSettings>) => void
+  
+  // Per-session persistence for machine config
+  selectedMachine: { name: string; description: string } | null
+  setSelectedMachine: (machine: { name: string; description: string } | null) => void
+  slotValues: Record<string, string>
+  setSlotValues: (values: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void
+  lastMedia: Record<string, string> // slotId -> filename
+  setLastMedia: (media: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void
 }
 
 export const useStore = create<StoreState>()(
@@ -84,6 +92,17 @@ export const useStore = create<StoreState>()(
       setAvSettings: (settings) => set((state) => ({ avSettings: { ...state.avSettings, ...settings } })),
       pathSettings: { mapLocalDir: false, localDirPath: null },
       setPathSettings: (settings) => set((state) => ({ pathSettings: { ...state.pathSettings, ...settings } })),
+      
+      selectedMachine: null,
+      setSelectedMachine: (selectedMachine) => set({ selectedMachine }),
+      slotValues: {},
+      setSlotValues: (updater) => set((state) => ({
+        slotValues: typeof updater === 'function' ? updater(state.slotValues) : updater
+      })),
+      lastMedia: {},
+      setLastMedia: (updater) => set((state) => ({
+        lastMedia: typeof updater === 'function' ? updater(state.lastMedia) : updater
+      })),
     }),
     {
       name: 'ample-app-storage-v2',

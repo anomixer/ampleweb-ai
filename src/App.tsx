@@ -21,8 +21,6 @@ const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_U
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
   // Universal MAME 0.287 engine (supports all 150+ variants)
   mame: { wasm: 'mame.wasm.gz', js: 'mame.js', driver: 'apple2e' },
-  // Lightweight fallback for early machines (optional)
-  mametiny: { wasm: 'mametiny.wasm', js: 'mametiny.js', driver: 'apple2' },
 }
 
 /**
@@ -233,6 +231,24 @@ const SLOW_BOOT_MACHINES = [
 const NOT_WORKING_MACHINES = [
   'macpb160', 'macpb165', 'macpb165c', 'macpb180', 'macpb180c'
 ];
+
+/**
+ * Device dependencies extracted from MAME XML
+ */
+const DEVICE_DEPENDENCIES: Record<string, string[]> = {
+  'a2diskiing': ['d2fdc'],
+  'a2grafex': ['upd7220'],
+  'a2mockbd': ['votrsc01a'],
+  'a2mouse': ['m68705p3'],
+  'a2surance': ['d2fdc'],
+  'diskii13': ['d2fdc'],
+  'sweetalk': ['votrsc01a'],
+  'votraxtnt': ['votrsc01a'],
+  'serial_votraxtnt': ['votraxtnt', 'votrsc01a'],
+  'ie15_terminal': ['ie15_device', 'ie15kbd'],
+  'isa_mpu401': ['mpu401'],
+  'number_9_rev': ['upd7220'],
+}
 
 const FLOPPY_SAMPLES = [
   '35_seek_12ms.wav', '35_seek_20ms.wav', '35_seek_2ms.wav', '35_seek_6ms.wav',
@@ -519,13 +535,17 @@ function App() {
     avSettings,
     setAvSettings,
     pathSettings,
-    setPathSettings
+    setPathSettings,
+    selectedMachine,
+    setSelectedMachine,
+    slotValues,
+    setSlotValues,
+    lastMedia,
+    setLastMedia
   } = useStore()
 
   const [models, setModels] = useState<ModelEntry[]>([])
-  const [selectedMachine, setSelectedMachine] = useState<{ name: string; description: string } | null>(null)
   const [machineConfig, setMachineConfig] = useState<MachineConfig | null>(null)
-  const [slotValues, setSlotValues] = useState<Record<string, string>>({})
   const [wasmModule, setWasmModule] = useState<MameWasmModule | null>(null)
   const [launchState, setLaunchState] = useState<LaunchState>('idle')
   const [wasmProgress, setWasmProgress] = useState(0)
@@ -849,8 +869,76 @@ function App() {
       }
     }
 
+    // 3. Dynamic Slot ROMs - Check selected slots for additional devices
+    if (machineConfig) {
+      const addedSlotRoms = new Set<string>()
+      
+      const checkSlots = (slots: Slot[], currentValues: Record<string, string>) => {
+        for (const slot of slots) {
+          const selectedValue = currentValues[slot.name]
+          if (selectedValue) {
+            const option = slot.options.find(o => o.value === selectedValue)
+            if (option && option.devname) {
+              addedSlotRoms.add(option.devname)
+            }
+            if (option && option.slots) {
+              checkSlots(option.slots, currentValues)
+            }
+          }
+        }
+      }
+
+      checkSlots(machineConfig.slots, slotValues)
+      if (machineConfig.devices) {
+        machineConfig.devices.forEach(dev => checkSlots(dev.slots, slotValues))
+      }
+
+      // 3.1 Handle Recursive Device Dependencies
+      const finalDeviceList = new Set<string>()
+      const resolveDeps = (devs: Set<string>) => {
+        devs.forEach(d => {
+          if (!finalDeviceList.has(d)) {
+            finalDeviceList.add(d)
+            const subDeps = DEVICE_DEPENDENCIES[d]
+            if (subDeps) {
+              subDeps.forEach(sd => finalDeviceList.add(sd))
+            }
+          }
+        })
+      }
+      resolveDeps(addedSlotRoms)
+
+      for (const devName of finalDeviceList) {
+        try {
+          addLog(`Slot ROM: ${devName}.zip requested...`, false)
+          const url = `${BASE_URL}roms/${devName}.zip`
+          const rom = await fetchRom(url, effectiveDriver, `${devName}.zip`)
+          romFiles.push(rom)
+          addLog(`Slot ROM: ${devName}.zip added`, false)
+        } catch {
+          // If not in local /roms, try auto-download servers
+          if (romSettings.autoDownload && romSettings.downloadServers.length > 0) {
+            let found = false
+            for (const server of romSettings.downloadServers) {
+              try {
+                const downloadUrl = server.replace('{filename}', `${devName}.zip`)
+                const rom = await fetchRom(downloadUrl, effectiveDriver, `${devName}.zip`)
+                romFiles.push(rom)
+                addLog(`Slot ROM Downloaded: ${devName}.zip from ${server}`, false)
+                found = true
+                break
+              } catch { continue }
+            }
+            if (!found) addLog(`Slot ROM not found: ${devName}.zip`, false)
+          } else {
+            addLog(`Slot ROM skipped (missing): ${devName}.zip`, false)
+          }
+        }
+      }
+    }
+
     return romFiles
-  }, [addLog])
+  }, [addLog, machineConfig, slotValues, romSettings])
 
   /**
    * Determine which emulator type a machine belongs to.
@@ -1220,8 +1308,64 @@ function App() {
   }, [selectedMachine, wasmModule, doLaunch, pathSettings, localDirHandleRef, addLog])
 
   const handleStop = useCallback(() => {
-    window.location.href = window.location.pathname
+    // Reloading is the most reliable way to reset MAME WASM state.
+    // Persistence in store ensures we don't lose the configuration.
+    window.location.reload()
   }, [])
+
+  const handleReset = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setSelectedMachine(null)
+    setSlotValues({})
+    setLastMedia({})
+    setMediaFiles({})
+    // Navigate to root without parameters
+    window.location.href = BASE_URL
+  }, [setSelectedMachine, setSlotValues, setLastMedia, setMediaFiles])
+
+  const handleMameUIToggle = useCallback(() => {
+    // Send ScrollLock key to toggle MAME UI mode
+    const canvas = document.getElementById('canvas')
+    if (canvas instanceof HTMLElement) {
+      canvas.focus()
+    }
+    const target = canvas || document
+    const opts = {
+      key: 'ScrollLock',
+      code: 'ScrollLock',
+      keyCode: 145,
+      which: 145,
+      bubbles: true,
+      cancelable: true
+    }
+    target.dispatchEvent(new KeyboardEvent('keydown', opts))
+    setTimeout(() => {
+      target.dispatchEvent(new KeyboardEvent('keyup', opts))
+    }, 50)
+    addLog('Sent ScrollLock (MAME UI Toggle)', false)
+  }, [addLog])
+
+  const handleMameMenu = useCallback(() => {
+    // Send Tab key to canvas to open MAME menu
+    const canvas = document.getElementById('canvas')
+    if (canvas instanceof HTMLElement) {
+      canvas.focus()
+    }
+    const target = canvas || document
+    const opts = {
+      key: 'Tab',
+      code: 'Tab',
+      keyCode: 9,
+      which: 9,
+      bubbles: true,
+      cancelable: true
+    }
+    target.dispatchEvent(new KeyboardEvent('keydown', opts))
+    setTimeout(() => {
+      target.dispatchEvent(new KeyboardEvent('keyup', opts))
+    }, 50)
+    addLog('Sent Tab (MAME Menu)', false)
+  }, [addLog])
 
   const handleToggleCapture = (type: 'avi' | 'wav', enable: boolean) => {
     // Synchronously update state to keep checkbox responsive
@@ -1316,12 +1460,10 @@ function App() {
       const d = params.get('d')
 
       let machineToLaunch: { name: string; description: string } | null = null
+      let slots: Record<string, string> = {}
+
       if (m && d) {
         machineToLaunch = { name: m, description: d }
-        // Restore machine config and slots
-        const config = await dataManager.loadMachine(machineToLaunch.name)
-        setMachineConfig(config)
-        let slots: Record<string, string> = {}
         const slotsParam = params.get('s')
         if (slotsParam) {
           try {
@@ -1331,7 +1473,17 @@ function App() {
             })
           } catch { }
         }
+      } else if (selectedMachine) {
+        // Fallback to persistent store if URL is empty
+        machineToLaunch = selectedMachine
+        slots = slotValues
+      }
 
+      if (machineToLaunch) {
+        // Restore machine config and slots
+        const config = await dataManager.loadMachine(machineToLaunch.name)
+        setMachineConfig(config)
+        
         if (config) {
           slots = fillSlotDefaults(config.slots, slots, config.devices)
           setSlotValues(slots)
@@ -1365,24 +1517,49 @@ function App() {
           return false
         }
 
-        if (findPath(data, m, [])) {
+        if (findPath(data, machineToLaunch.name, [])) {
           setExpandedNodes(prev => new Set([...prev, ...path]))
         }
 
-        // 3. Restore media from IndexedDB
+        // 3. Restore media from IndexedDB or URL (prioritize URL param, then store)
         let restoredMedia: Record<string, File | null> = {}
         const mediaParam = params.get('media')
+        
         if (mediaParam) {
           const pairs = mediaParam.split(',')
           for (const p of pairs) {
-            const [id, name] = p.split(':')
-            if (id && name) {
-              const file = await dataManager.loadMedia(id)
-              if (file) restoredMedia[id] = file
+            const [id, nameOrUrl] = p.split(':')
+            if (id && nameOrUrl) {
+              if (nameOrUrl.startsWith('http')) {
+                // Download from URL
+                try {
+                  addLog(`Downloading media from URL: ${nameOrUrl}...`, false)
+                  const resp = await fetch(nameOrUrl)
+                  if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`)
+                  const blob = await resp.blob()
+                  const filename = nameOrUrl.split('/').pop() || 'downloaded_disk.dsk'
+                  const file = new File([blob], filename)
+                  restoredMedia[id] = file
+                  if (id) await dataManager.saveMedia(id, file)
+                  addLog(`Downloaded and saved: ${filename}`, false)
+                } catch (e: any) {
+                  addLog(`Failed to download media from URL: ${e.message}`, true)
+                }
+              } else {
+                // Load from IndexedDB
+                const file = await dataManager.loadMedia(id)
+                if (file) restoredMedia[id] = file
+              }
             }
           }
-          setMediaFiles(restoredMedia)
+        } else if (lastMedia && Object.keys(lastMedia).length > 0) {
+          // Fallback to store
+          for (const id of Object.keys(lastMedia)) {
+            const file = await dataManager.loadMedia(id)
+            if (file) restoredMedia[id] = file
+          }
         }
+        setMediaFiles(restoredMedia)
 
         // 4. Trigger launch logic
         const shouldLaunch = params.get('launch') === '1' || params.has('autoboot')
@@ -1440,10 +1617,14 @@ function App() {
       if (slotStrings) url.searchParams.set('s', slotStrings)
       else url.searchParams.delete('s')
 
-      // Sync media filenames
+      // Sync media (only sync if it's a small URL or a filename)
       const mediaStrings = Object.entries(mediaFiles)
         .filter(([_, f]) => !!f)
-        .map(([k, f]) => `${k}:${f!.name}`)
+        .map(([k, f]) => {
+           // We can't easily sync large file data in URL, so we just sync the name or a source URL if we had one.
+           // For now, syncing the name is enough for IndexedDB restoration.
+           return `${k}:${f!.name}`
+        })
         .join(',')
       if (mediaStrings) url.searchParams.set('media', mediaStrings)
       else url.searchParams.delete('media')
@@ -1451,6 +1632,15 @@ function App() {
       window.history.replaceState({}, '', url.toString())
     }
   }, [selectedMachine, slotValues, mediaFiles])
+
+  // Sync media to store for persistence across reloads
+  useEffect(() => {
+    const mapping: Record<string, string> = {}
+    Object.entries(mediaFiles).forEach(([id, file]) => {
+      if (file) mapping[id] = file.name
+    })
+    setLastMedia(mapping)
+  }, [mediaFiles, setLastMedia])
 
   /**
    * Full-screen toggle for the emulator
@@ -1566,7 +1756,7 @@ function App() {
       {/* ── Left Sidebar ── */}
       <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
         <div className="sidebar-header">
-          <a href={BASE_URL} className="sidebar-title">
+          <a href={BASE_URL} className="sidebar-title" onClick={handleReset}>
             <span className="sidebar-logo">🍎</span>
             <span>AmpleWeb</span>
           </a>
@@ -2101,24 +2291,44 @@ function App() {
             {/* Config Footer: Launch Controls */}
             <div className="config-footer">
               {launchState === 'running' ? (
-                <div className="btn-group-row" style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                  <button
-                    className="btn btn-primary btn-large"
-                    onClick={handleLaunch}
-                    style={{ flex: 1 }}
-                    title="Restart"
-                  >
-                    <span style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', marginRight: '6px' }}>🔄</span> Restart
-                  </button>
-                  <button
-                    className="btn btn-primary btn-large"
-                    onClick={handleStop}
-                    style={{ flex: 1 }}
-                    title="Stop"
-                  >
-                    <span style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', marginRight: '6px' }}>⏹️</span> Stop
-                  </button>
-                </div>
+                <>
+                  <div className="btn-group-row" style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                    <button
+                      className="btn btn-primary btn-large"
+                      onClick={handleLaunch}
+                      style={{ flex: 1 }}
+                      title="Restart"
+                    >
+                      <span style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', marginRight: '6px' }}>🔄</span> Restart
+                    </button>
+                    <button
+                      className="btn btn-primary btn-large"
+                      onClick={handleStop}
+                      style={{ flex: 1 }}
+                      title="Stop"
+                    >
+                      <span style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', marginRight: '6px' }}>⏹️</span> Stop
+                    </button>
+                  </div>
+                  <div className="btn-group-row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleMameUIToggle}
+                      style={{ flex: '1 1 120px', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 4px' }}
+                      title="Toggle MAME UI Mode (Scroll Lock)"
+                    >
+                      ⌨️ MAME UI (ScrlLk)
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleMameMenu}
+                      style={{ flex: '1 1 120px', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 4px' }}
+                      title="MAME Internal Menu (Tab)"
+                    >
+                      ⌨️ MAME Menu (Tab)
+                    </button>
+                  </div>
+                </>
               ) : (
                 <button
                   className="btn btn-primary btn-large"

@@ -27,7 +27,8 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Visual Precision**: Support for **Window 1x-4x** modes and **Full Screen** (Fit-to-Screen) scaling.
 *   **Comprehensive Library**: Full support for **Apple I, II, III, and Macintosh** families.
 *   **International Localization**: Proper support for localized **Apple IIe/IIee/IIep** variants (DE, FR, ES, SE, UK) with accurate character sets and boot logos.
-*   **Peripheral Support**: Supports auto-injection for **SCSI, CFFA2, and Disk II/III** interfaces. (Work in Progress, some peripherals may still show Missing ROM)
+*   **Peripheral Support**: Supports auto-injection for **SCSI, CFFA2, Mouse cards, and Memory expansion**.
+*   **Dynamic ROM Management**: Automatically fetches required device ROMs (e.g., `a2mouse.zip`) for selected slot peripherals, preventing boot crashes.
 *   **Advanced Video**: Integrated **BGFX screen chains** for authentic retro visuals. (Work in Progress)
 *   **Personalized UI**: Full support for **Dark/Light Mode** switching, faithfully replicating the macOS native visual aesthetics.
 
@@ -36,6 +37,9 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Save back to Local**: Modified virtual disk images are automatically detected and prompted for download upon ejection.
 *   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent browser memory buffer overflow).
 *   **Deep Linking (Instant Sharing)**: Pre-configure machines, slots, and media via URL parameters; supports automatic startup (URL ending with `&autoboot`) for seamless demos and education.
+*   **URL-Based Media Loading**: Mount disks directly from any external URL using `?media=slotId:http://...` parameter.
+*   **Persistent Configuration**: Machine and slot selections are automatically saved in local storage. Refreshing or "Stopping" the emulator no longer loses your current setup.
+*   **Internal Controls**: Dedicated UI buttons for **MAME UI (Scroll Lock)** and **MAME Menu (Tab)** to facilitate easier access to internal emulator settings.
 *   **Zero-Setup ROMs**: Multi-server failover engine for automatic firmware downloading and caching in IndexedDB.
 
 ### ⚠️ Known Limitations
