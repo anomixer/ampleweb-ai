@@ -37,10 +37,14 @@
 *   **變更自動回存**：自動偵測虛擬磁碟映像檔的修改，並在退片時主動提示下載回本機。
 *   **媒體錄製匯出**：可將模擬器產出的 **AVI 影片** 與 **WAV 音訊** 直接匯出至您的本地裝置 (不要錄太久，以免瀏覽器記憶體緩衝區爆滿)。
 *   **即時分享 (Deep Linking)**：透過 URL 參數即可預先設定機型、插槽周邊與載入磁碟，支援自動開機功能 (URL結尾加上`&autoboot`)，非常適合教學展示與快速體驗。
-*   **URL 媒體載入**：支援透過 `?media=slotId:http://...` 參數直接從外部網址掛載磁片影像。
+*   **URL 媒體載入**：支援透過 `?media=slotId:http://...` 參數，或使用 Media 分頁中新增的 **🌐 URL 按鈕** 直接從外部網址掛載磁片影像。
+*   **自動 ZIP 解壓縮**：支援從網址或本地載入 `.zip` 格式的磁碟影像，系統會自動解壓並挑選有效的影像檔 (.dsk, .do, .po 等) 進行掛載。
+*   **遞迴裝置依賴解析**：自動處理插槽周邊的子依賴關係（例如 `a2mouse` 需要 `m68705p3`）。
 *   **設定持久化**：機器與插槽設定會自動儲存於本地。點擊「停止」或重新整理網頁時，目前的配置將完整保留，無須重新設定。
 *   **內建控制鈕**：新增 **MAME UI (Scroll Lock)** 與 **MAME Menu (Tab)** 專用按鈕，方便使用者進入模擬器內部選單進行進階調整。
 *   **零設定 ROMs**：內建多伺服器自動下載引擎，自動處理韌體下載並快取於瀏覽器的 IndexedDB 中。
+*   **智慧型機器重設 (Intelligent Machine Reset)**：切換不同機器時自動清空先前的插槽設定與媒體掛載。這能確保環境純淨，防止從特定 URL 啟動後切換機器造成的「設定污染」。
+*   **Corsfix 贊助代理**：跨來源媒體下載由 [Corsfix](https://corsfix.com/) 提供技術支援。
 
 ### ⚠️ 已知限制
 *   **磁碟掛載限制**：因瀏覽器的 VFS 限制，磁碟掛載僅限於啟動機器之前。啟動後無法動態換片 (替代方案：開啟「Paths」標籤下的本地資料夾映射功能，再透過 MAME 內建 UI 手動從 `/share` 目錄掛載)。
@@ -56,6 +60,10 @@
 
 無需任何設定，直接在瀏覽器中暢享 80 年代的經典電腦體驗：
 👉 **[https://anomixer.github.io/ample/](https://anomixer.github.io/ample/)**
+
+
+雲端直接載入 Apple II Desktop：
+👉 **[點我立即體驗](https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot)**
 
 ---
 

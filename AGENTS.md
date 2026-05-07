@@ -3,95 +3,76 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
-### Recent Updates (2026-05-05)
-- **Automated ROM Management**:
-    - **Multi-threaded CLI Downloader**: Created `rom_manager_cli.py`, a high-performance Python engine for ROM acquisition, featuring 50-thread concurrency and dual-source failover (CallApple/MDK). Supports both `.zip` and automatic `.7z` probing (force-converted or filtered for WASM compatibility).
-    - **PowerShell Wrapper**: Developed `download_roms.ps1` with an interactive source selection menu and specialized patches (e.g., `tk3000` fix via `apple2c.zip` copy).
-    - **One-Click Boot Integration**: Updated `AmpleWeb.bat` and `AmpleWeb.sh` to automatically detect missing ROMs and trigger the downloader, ensuring a "zero-setup" experience for local developers.
-- **Node.js Server Refinement**:
-    - **Optimized Startup**: Cleaned up redundant console output in boot scripts.
-    - **Modern Node.js Compatibility**: Fixed `DeprecationWarning [DEP0190]` and `spawn EINVAL` errors by explicitly using `cmd /c` on Windows, ensuring compatibility with Node v24.2.0+.
-- **VFS & Frontend Fixes**:
-    - **Vite Warning Resolved**: Fixed a "Duplicate key" warning in `App.tsx` by merging redundant `onReady` callbacks.
-    - **Format Standardization**: Forced all ROM downloads to `.zip` format as WASM MAME does not support `.7z`.
-- **Filesystem & Data Persistence**:
-    - **Disk Save Workflow**: Implemented an intelligent "Save back to local" prompt when ejecting modified media. The app now tracks file modification times (`mtime`) within the WASM VFS to detect changes and triggers `showSaveFilePicker` (or fallback download) for data persistence.
-    - **Capture Persistence (AVI/WAV)**: Added support for exporting media captures. When disabling AVI or WAV recording while the emulator is running, the app automatically checks the `/snap` or root VFS directories and prompts the user to save the generated files.
-    - **VFS Infrastructure**: Updated the WASM loader to automatically initialize a `/snap` directory for MAME snapshots/AVI captures.
-- **UI/UX & Interaction Refinement**:
-    - **Compact Media Layout**: Optimized the Media tab spacing by reducing group margins and adjusting slot gaps for a more streamlined, professional appearance.
-    - **Visual Polish**: Removed redundant custom toggle tracks in favor of clean browser checkboxes. Added descriptive instruction hints to the A/V tab regarding recording behavior and WASM memory limits.
-    - **Interaction Fixes**: Resolved a bug where the same disk image could not be re-inserted immediately after ejection by resetting the file input value on change.
-- **Stability & Logic**:
-    - **State Synchronization Fix**: Resolved a critical issue where emulator settings (Video, CPU, A/V, Paths) would sometimes fail to apply on launch due to missing dependencies in the `launchMame` callback.
-    - **Branch Management**: Project branch officially renamed and set as the default branch: `ampleweb`.
-
-### Previous Updates (2026-05-04)
-- **UI/UX Refinement & Interaction**:
-    - **Double-Click to Launch**: Implemented double-click interaction on the machine list, allowing users to bypass the "Launch" button for faster access.
-    - **UI Tab Persistence**: Added `localStorage` synchronization for both System (Video/CPU/Paths) and Machine (Slots/Media/Logs) tab selections, preserving the user's workspace layout across reloads.
-    - **Full-Screen Optimization**: Refactored full-screen handling to use native CSS `:fullscreen` rules. The emulator canvas now correctly expands to fill the screen (Fit-to-Screen) while maintaining aspect ratio via `object-fit: contain`. Standardized the toggle button text to white for clarity.
-- **Bug Fixes & Stability**:
-    - **Selection Logic Correction**: Fixed a typo in `models.plist` where the `Apple IIe (platinum)` group was incorrectly assigned the `apple2p` value, causing a selection conflict with the Apple ][+ machine. Corrected it to `apple2ep` to ensure distinct family highlighting.
-    - **WASM Audio Restored**: Fixed an issue where disk drive sound effects were missing. Now correctly passes the sample file list to the WASM loader during initialization.
-    - **Crash Prevention**: Resolved a "black screen" failure caused by a missing destructuring of the `onLaunch` prop in the recursive tree components.
-
-### Previous Updates (2026-05-03)
+### 📅 2026-05-03 Updates
 - **UI & Feature Overhaul (AmpleWin Parity)**:
     - **Advanced Configuration Tabs**: Fully implemented modular tabs for **Video**, **CPU**, **A/V**, **Paths**, **Slots**, **Media**, and **Logs**.
     - **Video & UX Improvements**:
         - Integrated **BGFX Video Settings**: Added Video Method selection (Software, BGFX, OpenGL) with BGFX Backend (Auto, GLES, Vulkan) and Effects (CRT-Geom, Scanlines, etc.) support.
         - **Window Scaling**: Added CSS-transform based scaling (1x, 2x, 3x, 4x, Fit to Screen).
         - **Mouse Capture**: Implemented Pointer Lock API (Hold Esc to release).
-        - **Square Pixel**: Added UI toggle (disabled/greyed out per design).
     - **Audio & Media Enhancements**:
-        - **Disk Sound Effects**: Implemented loading of floppy drive audio samples from `/samples/floppy/`.
-        - **Peripheral ROMs**: Added support for **a2scsi** (SCSI) and **a2cffa2** (CompactFlash) auxiliary ROMs for the Apple II family.
-        - **Granular Media Management**: Restored and improved the **Media Tab**. Media drives are now grouped by physical type (5.25" Floppies, 3.5" Floppies, Hard Drives, CD-ROMs) to match AmpleWin.
-        - **Media Auto-Eject**: Implemented intelligent media ejection when switching between hardware families (e.g., Apple II to Macintosh or Apple III) to prevent boot crashes.
-        - **Iconic Controls**: Restored 📁 (Choose) and ⏏️ (Eject) iconography for media slots.
+        - **Disk Sound Effects**: Implemented loading of floppy drive audio samples.
+        - **Peripheral ROMs**: Added support for **a2scsi** (SCSI) and **a2cffa2** (CompactFlash) auxiliary ROMs.
+        - **Granular Media Management**: Drive groups by physical type (5.25", 3.5", HD, CD).
+        - **Media Auto-Eject**: Intelligent ejection when switching hardware families.
     - **Path Mapping & Persistence**:
-        - **Local Folder Mapping (/share)**: Since WASM MAME does not support the native `-shared_directory` flag (often used for Booti card USB emulation), we implemented recursive synchronization using the File System Access API. Mapped folders appear as `/share` in the VFS, allowing for dynamic hot-swapping via MAME's File Manager.
-        - **Robust Permission Handling**: Moved directory re-authorization logic to the `handleLaunch` user-gesture context. This ensures that browsers correctly prompt for permission when restarting after a page refresh.
-        - **Auto-Launch Reconnection Pause**: Implemented a safeguard where auto-launch (from URL params) will pause and prompt for a manual "Launch" if a mapped directory requires reconnection, preventing silent synchronization failures.
-    - **Comprehensive ROM Mapping & Dependency Fixes**:
-        - Resolved missing ROM errors for Macintosh LC (520/550/575/475), II (cx, FDHD, ci), and SE (30, FDHD) families by correcting parent ROM dependencies (e.g., adding `maclc.zip`, `macii.zip`, `macse.zip`).
-        - Fixed incorrect driver mapping for Mac IIci/IIcx/IIfx to ensure they are recognized as Macintosh systems rather than defaulting to Apple IIe.
-    - **Localized Driver Refinement (Apple IIe Family)**:
-        - Finalized international variant mappings for IIe/IIee/IIep (ES, FR, SE, DE, UK) to preserve correct localized boot logos and Enhanced/Platinum hardware features.
-        - Standardized UK variants to use the `apple2ee` core to match common ROM set availability.
-    - **Expanded Peripheral & Auxiliary ROM Support**:
-        - Added auto-injection for `a1cass` (Apple I Cassette), `a3fdc` (Disk III FDC), and `apple2e` (Enhanced Character ROM).
-        - Expanded auxiliary ROM loading to include the Macintosh family, enabling Apple IIe PDS cards to work within Mac emulations.
-        - Broadened `isApple2Family` detection to cover over 30+ additional clones and variant machine names.
-    - **Power & State Management**:
-        - Introduced a dedicated **Stop** button that performs a clean page reload without auto-launching, effectively "powering off" the virtual hardware. **Restart** performs a full power cycle (reload with auto-launch) to ensure MAME's global state is completely reset, which is necessary for stable WASM execution.
-    - **Sidebar & UX Polish**:
-        - **Machine Highlighting**: Added visual warning (yellow text) in the sidebar for unstable machine models (PowerBook series, mprof3).
-        - **Visibility Fixes**: Updated dark theme tokens to ensure setting hints are legible.
-        - **Critical Warnings**: Added red-highlighted status messages for non-functional machines.
+        - **Local Folder Mapping (/share)**: Implemented recursive synchronization using the File System Access API.
+        - **Robust Permission Handling**: Directory re-authorization logic in `handleLaunch`.
+    - **ROM Mapping & Stability**:
+        - Resolved missing ROM errors for Macintosh LC, II, and SE families.
+        - Standardized international variant mappings for IIe family (ES, FR, SE, DE, UK).
     - **CPU & Engine Logic**:
         - Added Speed Throttling (100% to 500%, or No Throttle) and Rewind support.
-        - Disabled Debug toggle in UI to match stable build requirements.
-    - **Path Mapping**:
-        - Implemented Local Directory Mapping UI using File System Access API for mapping folders to MAME's `/share` VFS.
-- **Stability & Internal Architecture**:
     - **Zustand Persistence**: Migrated all settings to a persistent store (`ample-app-storage-v2`).
-    - **Robust State Handling**: Added safety guards and optional chaining to prevent "blank screen" failures during WASM initialization and store rehydration.
-    - **Media VFS Hooks**: Updated `wasm_loader.ts` to support injecting multiple media types and audio samples into the virtual filesystem.
-    - Improved visibility of "Slow Boot" notifications and UI hint text in Dark Mode.
-    - Fixed `ReferenceError` when switching to the Media tab.
-- **2026-05-06 Optimization Session**:
-    - **ROM & WASM Stability**:
-        - Fixed `mametiny.wasm` 404 error by removing obsolete engine references.
-        - Implemented **Dynamic Slot ROM Fetching**: Automatically detects and downloads ROMs for selected slot devices (Mouse cards, Memory expansion), preventing "missing ROM" hangs.
-    - **State & URL Persistence**:
-        - Migrated `selectedMachine` and `slotValues` to persistent store; stopping/reloading no longer wipes the current configuration.
-        - Added **URL Media Loading**: Support for `media=slotId:http://...` to auto-download and mount disks from external URLs.
-    - **UX & Control Improvements**:
-        - Added dedicated **MAME UI (ScrlLk)** and **MAME Menu (Tab)** buttons with robust event dispatching to allow easier access to internal settings.
-        - Fixed sidebar button layout issues (overflow/clipping) using responsive flex wrapping and optimized font sizing.
-        - Fixed "blank screen" rendering failure caused by state variable refactoring.        - **Logo Reset**: Clicking the top-left 'AmpleWeb' logo now clears all persistent settings (machine, slots, media) and returns to the home screen.
-        - **Apple Mouse Card Support**: Added 'm68705p3' (bootstrap.bin) to auxiliary ROMs to fix boot errors when using the mouse card on Apple IIe/IIee.
-        - **Recursive Device Dependencies**: Implemented a 'DEVICE_DEPENDENCIES' mapping table and recursive ROM fetching logic. This automatically resolves sub-dependencies (e.g., a2mouse needing m68705p3, diskii needing d2fdc) without manual configuration.
-        - **Slot Validation**: Added robust validation for slot options. The system now filters out invalid or mismatched persistent slot configurations before launching MAME, preventing 'Unknown slot option' exceptions when switching machines.
+
+### 📅 2026-05-04 Updates
+- **UI/UX Refinement & Interaction**:
+    - **Double-Click to Launch**: Faster access by bypassing the Launch button.
+    - **UI Tab Persistence**: `localStorage` synchronization for System and Machine tabs.
+    - **Full-Screen Optimization**: Native CSS `:fullscreen` rules with aspect-ratio preservation.
+- **Bug Fixes & Stability**:
+    - **Selection Logic Correction**: Fixed `apple2p` vs `apple2ep` conflict.
+    - **WASM Audio Restored**: Fixed missing disk drive sound effects.
+    - **Crash Prevention**: Resolved "black screen" failure in recursive tree components.
+
+### 📅 2026-05-05 Updates
+- **Automated ROM Management**:
+    - **Multi-threaded CLI Downloader**: Created `rom_manager_cli.py` (50-thread concurrency) with dual-source failover.
+    - **PowerShell Wrapper**: Developed `download_roms.ps1` with interactive menu and specialized patches.
+    - **One-Click Boot Integration**: `AmpleWeb.bat/sh` automatically triggers downloader for missing ROMs.
+- **Node.js Server Refinement**:
+    - **Modern Node.js Compatibility**: Fixed `DeprecationWarning [DEP0190]` and `spawn EINVAL` on Windows (Node v24+).
+- **Filesystem & Data Persistence**:
+    - **Disk Save Workflow**: Intelligent "Save back to local" prompt via WASM VFS `mtime` detection.
+    - **Capture Persistence (AVI/WAV)**: Automatic export prompts for generated media captures.
+- **UI/UX & Interaction Refinement**:
+    - **Compact Media Layout**: Optimized spacing and adjusted slot gaps for a professional appearance.
+    - **Visual Polish**: Replaced custom toggle tracks with clean browser checkboxes.
+
+### 📅 2026-05-07 Updates (Current Session)
+- **ROM & WASM Stability**:
+    - Fixed `mametiny.wasm` 404 error and implemented **Dynamic Slot ROM Fetching**.
+    - **Recursive Device Dependencies**: Implemented `DEVICE_DEPENDENCIES` table for automatic sub-ROM resolution (e.g., a2mouse needing m68705p3).
+- **Media & External Resources**:
+    - **ZIP Disk Support**: Integrated JSZip for automatic extraction of .zip disk images from URLs and local files.
+    - **URL Media UI**: Added a 🌐 button in media settings for direct URL insertion.
+    - **CORS Proxy Strategy**: Standardized on **proxy.corsfix.com** (with fallback logic) to support downloads from restricted sources like GitHub.
+- **UX & Control Improvements**:
+    - Added dedicated **MAME UI (ScrlLk)** and **MAME Menu (Tab)** buttons.
+    - **Logo Reset**: Clicking the 'AmpleWeb' logo clears persistent settings and returns home.
+    - **Sponsorship UI**: Acknowledged **Corsfix** sponsorship on the welcome screen with theme-aware SVG logo and links.
+- **Stability & Bug Fixes**:
+    - Fixed sidebar layout overflow and "blank screen" rendering issues.
+    - Resolved duplicate identifier `theme` error in `App.tsx`.
+    - Corrected slot validation to prevent "Unknown slot option" crashes during machine switching.
+- **Deep Linking & Boot Stability (Session 2)**:
+    - **Hierarchical Slot Parsing**: Fixed lastIndexOf(':') bug in URL parameter parsing to support deep slot paths (e.g., sl7:cffa2:cffa2_ata:0:hdd).
+    - **Robust Media URL Support**: Fixed colon truncation in media parameters; added automatic slot assignment for ID-less URLs (e.g., .zip defaults to hard1).
+    - **URL State Synchronization**: After successful download, the browser address bar is automatically updated from a long URL to a clean media=slot:filename format using history.replaceState.
+    - **Initialization Race Condition Fix**: Introduced isInitializing state to prevent the UI Sync to URL mechanism from clobbering deep link parameters with stale store data during the initial boot sequence.
+    - **Demo Link Optimization**: Updated README.md and README_tw.md with a stabilized Apple II Desktop cloud demo link utilizing the new CFFA2/HDD mapping.
+- **UX & Machine Switching Optimization**: 
+    - **Aggressive State Clearing**: Modified doSelectMachine to always reset mediaFiles and slotValues when manually switching between different machines. This prevents incompatible configuration remnants (e.g., from a URL-based Apple IIgs session) from breaking subsequent machine launches.
+    - **Code Cleanup**: Removed obsolete family-tracking logic (prevFamilyRef) in favor of explicit machine name comparison for state resets.
+- **Media Format Compatibility**: Expanded automatic slot identification to include .woz, .2mg, and .hdv. .woz and standard image types default to lop1, while block-based images like .2mg and .hdv default to hard1.
+- **Bug Fix (Restart ROM Errors)**: Fixed a race condition where clicking 'Restart' (which reloads the page) would fail to find device ROMs (like the Mouse card). This was caused by doLaunch relying on potentially stale machineConfig state during initialization. Now, doLaunch and etchAllRoms accept explicit configuration and slot parameters to ensure robust ROM resolution during both manual and automated boots.

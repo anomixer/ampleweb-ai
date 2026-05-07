@@ -1295,3 +1295,35 @@ body {
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }
+/* --- Sponsorship --- */
+.sponsor-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 20px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.sponsor-tag:hover {
+  opacity: 1;
+}
+
+.sponsor-tag a {
+  color: var(--text2);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.sponsor-tag a:hover {
+  text-decoration: underline;
+  color: var(--accent);
+}
+
+.sponsor-logo {
+  height: 12px;
+  width: auto;
+  opacity: 0.6;
+}

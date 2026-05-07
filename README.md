@@ -37,12 +37,16 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Save back to Local**: Modified virtual disk images are automatically detected and prompted for download upon ejection.
 *   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent browser memory buffer overflow).
 *   **Deep Linking (Instant Sharing)**: Pre-configure machines, slots, and media via URL parameters; supports automatic startup (URL ending with `&autoboot`) for seamless demos and education.
-*   **URL-Based Media Loading**: Mount disks directly from any external URL using `?media=slotId:http://...` parameter.
+*   **URL-Based Media Loading**: Mount disks directly from any external URL using the `?media=slotId:http://...` parameter or via the new **🌐 URL Button** in the Media tab.
+*   **Automatic ZIP Unzipping**: Support for loading `.zip` disk images from URLs or local selection. Automatically extracts valid images (.dsk, .do, .po, etc.) for mounting.
+*   **Recursive Device Dependencies**: Automatically resolves sub-dependencies for slot peripherals (e.g., `a2mouse` needing `m68705p3`).
 *   **Persistent Configuration**: Machine and slot selections are automatically saved in local storage. Refreshing or "Stopping" the emulator no longer loses your current setup.
 *   **Internal Controls**: Dedicated UI buttons for **MAME UI (Scroll Lock)** and **MAME Menu (Tab)** to facilitate easier access to internal emulator settings.
 *   **Zero-Setup ROMs**: Multi-server failover engine for automatic firmware downloading and caching in IndexedDB.
+*   **Intelligent Machine Reset**: Automatically clears previous slot configurations and media mounts when switching between different machines. This ensures a clean slate and prevents "configuration pollution" when transitioning from specialized URL-based sessions.
+*   **Corsfix Sponsored Proxy**: Cross-origin media downloads are proudly powered by [Corsfix](https://corsfix.com/).
 
-### ⚠️ Known Limitations
+## ⚠️ Known Limitations
 *   **Disk Mounting Limits**: Due to browser VFS limitations, disks can only be mounted before launching the machine. Real-time disk swapping is not supported (Alternative: Use the "Local Directory Mapping" feature in the Paths tab and mount via MAME's internal UI from the `/share` directory).
 *   **Core Stability**: Machines highlighted in **yellow** may not function correctly due to underlying emulation core limitations.
 *   **Audio Latency**: There may be slight audio lag, which is a known limitation of MAME WASM.
@@ -55,7 +59,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 ### 1. Instant Online Experience (Recommended)
 
 No setup required. Enjoy the classic 80s computing experience directly in your browser:
-👉 **[https://anomixer.github.io/ample/](https://anomixer.github.io/ample/)**
+👉 **[Main Site](https://anomixer.github.io/ample/)** | **[Launch Apple II Desktop (Cloud)](https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot)**
 
 ---
 

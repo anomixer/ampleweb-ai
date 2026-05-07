@@ -578,8 +578,8 @@ function App() {
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
   const hasAutoLaunched = useRef(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
-  const prevFamilyRef = useRef<string | null>(null)
   const mountTimeRef = useRef<number>(0)
 
   const getMachineFamily = useCallback((machineName: string): string => {
@@ -739,21 +739,16 @@ function App() {
   }, [])
 
   const doSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
-    // Check family switch
-    const currentFamily = getMachineFamily(machine.name)
-    if (prevFamilyRef.current && prevFamilyRef.current !== currentFamily) {
-      // Auto-eject all media if family changed
+    if (selectedMachine && selectedMachine.name !== machine.name) {
+      // Clear all media and custom slots if switching machines
       setMediaFiles({})
-      // Also clear in DataManager for persistence consistency
-      // (Simplified: clear first 16 generic slots, usually enough for auto-eject)
       for (let i = 1; i <= 16; i++) {
         dataManager.clearMedia(`flop${i}`)
         dataManager.clearMedia(`hard${i}`)
         dataManager.clearMedia(`cdrom${i}`)
       }
-      addLog(`Family changed (${prevFamilyRef.current} → ${currentFamily}): All media ejected`, false)
+      addLog(`Machine changed to ${machine.name}: Media and slot settings reset`, false)
     }
-    prevFamilyRef.current = currentFamily
 
     setSelectedMachine(machine)
     setErrorText(null)
@@ -765,13 +760,13 @@ function App() {
       const defaults = fillSlotDefaults(config.slots, {}, config.devices)
       setSlotValues(defaults)
     }
-  }, [fillSlotDefaults, getMachineFamily, addLog])
+  }, [fillSlotDefaults, selectedMachine, addLog])
 
   const handleSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
     doSelectMachine(machine)
   }, [doSelectMachine])
 
-  const fetchAllRoms = useCallback(async (machineName: string, effectiveDriver: string): Promise<RomFile[]> => {
+  const fetchAllRoms = useCallback(async (machineName: string, effectiveDriver: string, configOverride?: MachineConfig | null, slotsOverride?: Record<string, string>): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
 
     // 1. Main machine ROM — look up from DRIVER_ROM_MAP
@@ -870,7 +865,10 @@ function App() {
     }
 
     // 3. Dynamic Slot ROMs - Check selected slots for additional devices
-    if (machineConfig) {
+    const currentConfig = configOverride ?? machineConfig
+    const currentSlotValues = slotsOverride ?? slotValues
+
+    if (currentConfig) {
       const addedSlotRoms = new Set<string>()
       
       const checkSlots = (slots: Slot[], currentValues: Record<string, string>) => {
@@ -888,9 +886,9 @@ function App() {
         }
       }
 
-      checkSlots(machineConfig.slots, slotValues)
-      if (machineConfig.devices) {
-        machineConfig.devices.forEach(dev => checkSlots(dev.slots, slotValues))
+      checkSlots(currentConfig.slots, currentSlotValues)
+      if (currentConfig.devices) {
+        currentConfig.devices.forEach(dev => checkSlots(dev.slots, currentSlotValues))
       }
 
       // 3.1 Handle Recursive Device Dependencies
@@ -1068,7 +1066,8 @@ function App() {
   const doLaunch = useCallback(async (
     machine: { name: string; description: string },
     slotsParam?: Record<string, string>,
-    mediaParam?: Record<string, File | null>
+    mediaParam?: Record<string, File | null>,
+    configParam?: MachineConfig | null
   ) => {
     setWasmModule(null)
     setErrorText(null)
@@ -1116,7 +1115,7 @@ function App() {
 
     let romFiles: RomFile[] = []
     try {
-      romFiles = await fetchAllRoms(machine.name, mameDriver)
+      romFiles = await fetchAllRoms(machine.name, mameDriver, configParam, slotsParam)
     } catch (e) {
       addLog(`ROM fetch failed: ${e}`, true)
     }
@@ -1304,8 +1303,8 @@ function App() {
       return
     }
 
-    doLaunch(selectedMachine)
-  }, [selectedMachine, wasmModule, doLaunch, pathSettings, localDirHandleRef, addLog])
+    doLaunch(selectedMachine, slotValues, mediaFiles, machineConfig)
+  }, [selectedMachine, wasmModule, doLaunch, pathSettings, localDirHandleRef, addLog, slotValues, mediaFiles, machineConfig])
 
   const handleStop = useCallback(() => {
     // Reloading is the most reliable way to reset MAME WASM state.
@@ -1322,6 +1321,80 @@ function App() {
     // Navigate to root without parameters
     window.location.href = BASE_URL
   }, [setSelectedMachine, setSlotValues, setLastMedia, setMediaFiles])
+
+  const handleZipFile = async (file: File): Promise<File> => {
+    if (!file.name.toLowerCase().endsWith('.zip')) return file
+    // @ts-ignore
+    const JSZip = window.JSZip
+    if (!JSZip) {
+      addLog('JSZip not loaded yet, skipping unzip', true)
+      return file
+    }
+    try {
+      addLog(`Unzipping ${file.name}...`, false)
+      const zip = await JSZip.loadAsync(file)
+      const diskExts = ['.dsk', '.do', '.po', '.nib', '.2mg', '.hdv', '.img', '.woz', '.chd', '.iso', '.toast']
+      let diskFile: any = null
+      let diskName = ''
+
+      zip.forEach((relativePath: string, file: any) => {
+        if (!diskFile && !file.dir) {
+          const lower = relativePath.toLowerCase()
+          if (diskExts.some(ext => lower.endsWith(ext))) {
+            diskFile = file
+            diskName = relativePath.split('/').pop() || 'disk.dsk'
+          }
+        }
+      })
+
+      if (diskFile) {
+        const content = await diskFile.async('blob')
+        addLog(`Extracted: ${diskName}`, false)
+        return new File([content], diskName)
+      } else {
+        addLog('No disk image found in ZIP, using raw ZIP', true)
+        return file
+      }
+    } catch (e: any) {
+      addLog(`Zip error: ${e.message}`, true)
+      return file
+    }
+  }
+
+  const handleInsertUrl = useCallback(async (id: string) => {
+    const url = prompt('Enter disk image URL (supports .zip, .dsk, .do, .po, etc.):')
+    if (!url || !url.trim()) return
+
+    try {
+      addLog(`Downloading media from URL: ${url}...`, false)
+      let resp: Response | null = null
+      
+      try {
+        resp = await fetch(url)
+      } catch (e) {}
+
+      if (!resp || !resp.ok) {
+        addLog(`Direct fetch failed (CORS?), trying corsfix...`, false)
+        try {
+          resp = await fetch(`https://proxy.corsfix.com/?${url}`)
+        } catch (e) { resp = null }
+      }
+      
+      if (!resp || !resp.ok) throw new Error(`Fetch failed: ${resp?.status || 'Network Error'}`)
+      const blob = await resp.blob()
+      const filename = url.split('/').pop() || 'downloaded_disk.dsk'
+      let file = new File([blob], filename)
+      if (filename.toLowerCase().endsWith('.zip')) {
+        file = await handleZipFile(file)
+      }
+      setMediaFiles(prev => ({ ...prev, [id]: file }))
+      await dataManager.saveMedia(id, file)
+      addLog(`Inserted from URL: ${file.name}`, false)
+    } catch (e: any) {
+      addLog(`Failed to download media: ${e.message}`, true)
+      alert(`Failed to download media: ${e.message}`)
+    }
+  }, [addLog, handleZipFile])
 
   const handleMameUIToggle = useCallback(() => {
     // Send ScrollLock key to toggle MAME UI mode
@@ -1468,8 +1541,12 @@ function App() {
         if (slotsParam) {
           try {
             slotsParam.split(',').forEach(p => {
-              const [k, v] = p.split(':')
-              if (k && v) slots[k] = v
+              const lastColon = p.lastIndexOf(':')
+              if (lastColon !== -1) {
+                const k = p.substring(0, lastColon)
+                const v = p.substring(lastColon + 1)
+                slots[k] = v
+              }
             })
           } catch { }
         }
@@ -1528,20 +1605,67 @@ function App() {
         if (mediaParam) {
           const pairs = mediaParam.split(',')
           for (const p of pairs) {
-            const [id, nameOrUrl] = p.split(':')
+            const protocolIndex = p.indexOf('://')
+            const firstColon = p.indexOf(':')
+            let id = ''
+            let nameOrUrl = ''
+
+            if (protocolIndex !== -1 && (firstColon === -1 || firstColon === protocolIndex)) {
+              // No ID before protocol, or no colon at all (URL-only)
+              nameOrUrl = p
+              // Default to hard1 for most images, or flop1 for others
+              const lower = p.toLowerCase()
+              if (lower.endsWith('.dsk') || lower.endsWith('.po') || lower.endsWith('.do') || lower.endsWith('.nib') || lower.endsWith('.woz')) {
+                id = 'flop1'
+              } else {
+                id = 'hard1'
+              }
+            } else if (firstColon !== -1) {
+              id = p.substring(0, firstColon)
+              nameOrUrl = p.substring(firstColon + 1)
+            }
+
             if (id && nameOrUrl) {
               if (nameOrUrl.startsWith('http')) {
                 // Download from URL
                 try {
                   addLog(`Downloading media from URL: ${nameOrUrl}...`, false)
-                  const resp = await fetch(nameOrUrl)
-                  if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`)
+                  let resp: Response | null = null
+                  
+                  try {
+                    resp = await fetch(nameOrUrl)
+                  } catch (e) {}
+
+                  if (!resp || !resp.ok) {
+                    addLog(`Direct fetch failed (CORS?), trying corsfix...`, false)
+                    try {
+                      resp = await fetch(`https://proxy.corsfix.com/?${nameOrUrl}`)
+                    } catch (e) { resp = null }
+                  }
+
+                  if (!resp || !resp.ok) throw new Error(`Fetch failed: ${resp?.status || 'Network Error'}`)
                   const blob = await resp.blob()
                   const filename = nameOrUrl.split('/').pop() || 'downloaded_disk.dsk'
-                  const file = new File([blob], filename)
+                  let file = new File([blob], filename)
+                  if (filename.toLowerCase().endsWith('.zip')) {
+                    file = await handleZipFile(file)
+                  }
                   restoredMedia[id] = file
                   if (id) await dataManager.saveMedia(id, file)
                   addLog(`Downloaded and saved: ${filename}`, false)
+                  
+                  // Update URL to replace the long download link with the local filename for clarity/persistence
+                  try {
+                    const newParams = new URLSearchParams(window.location.search)
+                    const currentMedia = newParams.get('media') || ''
+                    const mediaPairs = currentMedia.split(',')
+                    const updatedPairs = mediaPairs.map(mp => {
+                      if (mp.includes(nameOrUrl)) return `${id}:${filename}`
+                      return mp
+                    })
+                    newParams.set('media', updatedPairs.join(','))
+                    window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`)
+                  } catch (e) {}
                 } catch (e: any) {
                   addLog(`Failed to download media from URL: ${e.message}`, true)
                 }
@@ -1582,18 +1706,19 @@ function App() {
             if (isAutoBoot) {
               addLog('Autoboot sequence initiated (2s delay)...', false)
               setTimeout(() => {
-                doLaunch(machineToLaunch!, slots, restoredMedia)
+                doLaunch(machineToLaunch!, slots, restoredMedia, config)
               }, 2000)
             } else {
-              doLaunch(machineToLaunch!, slots, restoredMedia)
+              doLaunch(machineToLaunch!, slots, restoredMedia, config)
             }
           }
         }
       }
+      setIsInitializing(false)
     }
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Mount only
+  }, [])
 
   useEffect(() => {
     if (showLogs) {
@@ -1604,7 +1729,7 @@ function App() {
 
   // Sync selection to URL (without reloading)
   useEffect(() => {
-    if (selectedMachine) {
+    if (!isInitializing && selectedMachine) {
       const url = new URL(window.location.href)
       url.searchParams.set('m', selectedMachine.name)
       url.searchParams.set('d', selectedMachine.description)
@@ -2234,8 +2359,11 @@ function App() {
                                     {mediaFiles[item.id]?.name || 'Empty'}
                                   </span>
                                   <div className="media-actions">
-                                    <button className="btn btn-ghost btn-icon" onClick={() => fileInputRefs.current[item.id]?.click()} title="Select File">
+                                    <button className="btn btn-ghost btn-icon" onClick={() => fileInputRefs.current[item.id]?.click()} title="Select Local File">
                                       📁
+                                    </button>
+                                    <button className="btn btn-ghost btn-icon" onClick={() => handleInsertUrl(item.id)} title="Insert from URL">
+                                      🌐
                                     </button>
                                     {mediaFiles[item.id] && (
                                       <button className="btn btn-ghost btn-icon" onClick={() => handleEject(item.id)} title="Eject">
@@ -2247,9 +2375,12 @@ function App() {
                                     type="file"
                                     ref={el => { fileInputRefs.current[item.id] = el }}
                                     style={{ display: 'none' }}
-                                    onChange={e => {
-                                      const file = e.target.files?.[0]
-                                      if (file) {
+                                    onChange={async e => {
+                                      if (e.target.files) {
+                                        let file = e.target.files[0]
+                                        if (file.name.toLowerCase().endsWith('.zip')) {
+                                          file = await handleZipFile(file)
+                                        }
                                         setMediaFiles(prev => ({ ...prev, [item.id]: file }))
                                         dataManager.saveMedia(item.id, file)
                                       }
@@ -2350,12 +2481,10 @@ function App() {
               by <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer">anomixer</a>
             </div>
             <p>Browser-based Apple II &amp; Macintosh emulation</p>
-            {wasmTarget && (
-              <p style={{ fontSize: '12px', opacity: 0.5 }}>
-                WASM target: {wasmTarget}
-              </p>
-            )}
             <p className="welcome-sub">Select a machine from the sidebar to begin</p>
+            <p className="welcome-sub" style={{ color: theme === 'dark' ? '#fff' : '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              CORS Proxy sponsored by <img src={`${BASE_URL}corsfix.svg`} alt="Corsfix Logo" style={{ height: '16px' }} /> <a href="https://corsfix.com/" target="_blank" rel="noopener noreferrer" style={{ color: theme === 'dark' ? '#fff' : '#000', textDecoration: 'underline' }}>Corsfix</a>
+            </p>
             <div className="welcome-port-link">
               For macOS, Windows, Linux port, click <a href="https://github.com/ksherlock/ample" target="_blank" rel="noopener noreferrer">HERE</a>.
             </div>
