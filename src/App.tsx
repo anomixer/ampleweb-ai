@@ -558,6 +558,8 @@ function App() {
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
   const [isConfigResizing, setIsConfigResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true)
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths'>(() => {
     return (localStorage.getItem('ample-system-tab') as any) || 'video'
@@ -574,6 +576,16 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ample-machine-tab', machineTab)
   }, [machineTab])
+
+  // Force MAME to recalculate window/canvas scaling when sidebars toggle
+  useEffect(() => {
+    // Wait a brief moment for DOM layout to settle
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'))
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [isLeftSidebarOpen, isRightSidebarOpen])
+
   const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
@@ -612,41 +624,75 @@ function App() {
 
   // ── Canvas Scaling ──
   useEffect(() => {
-    if (!videoSettings) return
+    if (!videoSettings || launchState !== 'running') return
     const c = document.getElementById('canvas') as HTMLCanvasElement | null
     if (!c) return
 
-    if (videoSettings.windowMode === 'fit') {
-      c.style.width = '100%'
-      c.style.height = '100%'
-      c.style.objectFit = 'contain'
-      c.style.transform = ''
-    } else {
-      const scale = parseInt(videoSettings.windowMode) || 1
-      
-      if (selectedMachine) {
-        const machineName = selectedMachine.name
-        const driverName = DRIVER_MAP[machineName] || ''
-        const familyName = getMachineFamily(machineName)
-        
-        const res = DEFAULT_RESOLUTIONS[machineName] || 
-                    DEFAULT_RESOLUTIONS[driverName] || 
-                    DEFAULT_RESOLUTIONS[familyName] || 
-                    '640x480'
-        const [w, h] = res.split('x').map(n => parseInt(n))
-        
-        c.style.width = `${w * scale}px`
-        c.style.height = `${h * scale}px`
+    const applyScale = (shouldDispatch = false) => {
+      if (videoSettings.windowMode === 'fit') {
+        c.style.width = '100%'
+        c.style.height = '100%'
         c.style.objectFit = 'contain'
         c.style.transform = ''
-      } else {
-        c.style.width = ''
-        c.style.height = ''
-        c.style.objectFit = ''
+        c.style.imageRendering = 'auto' // Smooth for high-res fit
+        if (shouldDispatch) {
+          window.dispatchEvent(new Event('resize'))
+        }
+        return
+      }
+
+      const scale = parseInt(videoSettings.windowMode) || 1
+      let baseW = c.width
+      let baseH = c.height
+
+      if (machineConfig?.resolution && machineConfig.resolution[0] > 0) {
+        baseW = machineConfig.resolution[0]
+        baseH = machineConfig.resolution[1]
+      }
+
+      if (baseW > 0 && baseH > 0) {
+        c.style.width = `${baseW * scale}px`
+        c.style.height = `${baseH * scale}px`
+        c.style.objectFit = 'contain'
         c.style.transform = ''
+        c.style.imageRendering = 'pixelated' // Sharp for fixed scale
+        if (shouldDispatch) {
+          window.dispatchEvent(new Event('resize'))
+        }
       }
     }
-  }, [videoSettings?.windowMode, launchState, selectedMachine])
+
+    // Handle window resize events
+    const onWindowResize = () => {
+      if (videoSettings.windowMode === 'fit') {
+        applyScale(true)
+      }
+    }
+
+    // Apply immediately and dispatch ONCE when mode changes
+    applyScale(true)
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === 'attributes' && (m.attributeName === 'width' || m.attributeName === 'height')) {
+          applyScale(false)
+        }
+      }
+    })
+
+    observer.observe(c, { attributes: true })
+    window.addEventListener('resize', onWindowResize)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', onWindowResize)
+      c.style.width = ''
+      c.style.height = ''
+      c.style.objectFit = ''
+      c.style.transform = ''
+      c.style.imageRendering = ''
+    }
+  }, [videoSettings?.windowMode, launchState, machineConfig])
 
   // ── Mouse Capture ──
   useEffect(() => {
@@ -1874,12 +1920,15 @@ function App() {
     })
   }, [])
 
-  const isLoading = launchState === 'fetching-rom' || launchState === 'loading-wasm' || (launchState === 'running' && !!statusText)
+  const isLoading = launchState === 'fetching-rom' || launchState === 'loading-wasm' || 
+    (launchState === 'running' && !!statusText && wasmProgress < 100)
 
   return (
     <div className={`app ${theme}`}>
       {/* ── Left Sidebar ── */}
-      <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
+      {isLeftSidebarOpen && (
+        <>
+          <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
         <div className="sidebar-header">
           <a href={BASE_URL} className="sidebar-title" onClick={handleReset}>
             <span className="sidebar-logo">🍎</span>
@@ -1984,12 +2033,14 @@ function App() {
           </button>
         </div>
       </div>
-
+      
       {/* ── Sidebar Resize Handle ── */}
       <div
         className={`resize-handle ${isSidebarResizing ? 'active' : ''}`}
         onMouseDown={() => setIsSidebarResizing(true)}
       />
+        </>
+      )}
 
       {/* ── Right Main Panel ── */}
       <div className="main">
@@ -1998,11 +2049,21 @@ function App() {
             <div className="machine-panel">
             {/* Machine header */}
             <div className="machine-header">
-              <div>
-                <h2 className="machine-title">{selectedMachine.description}</h2>
-                <code className="machine-id">{selectedMachine.name}</code>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <button 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+                  title="Toggle Machine List"
+                  style={{ marginRight: '12px', fontSize: '18px', padding: '2px 8px' }}
+                >
+                  ☰
+                </button>
+                <div>
+                  <h2 className="machine-title">{selectedMachine.description}</h2>
+                  <code className="machine-id">{selectedMachine.name}</code>
+                </div>
               </div>
-              <div className="header-badges" style={{ marginLeft: 'auto' }}>
+              <div className="header-badges" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                 {launchState === 'running' && (
                   <>
                     <button 
@@ -2019,6 +2080,14 @@ function App() {
                 {launchState === 'error' && (
                   <span className="badge badge-error">● Error</span>
                 )}
+                <button 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+                  title="Toggle Settings Panel"
+                  style={{ marginLeft: '8px', fontSize: '16px', padding: '2px 8px' }}
+                >
+                  ⚙️
+                </button>
               </div>
             </div>
 
@@ -2078,14 +2147,16 @@ function App() {
               </div>
             </div>
 
-          {/* ── Config Resize Handle ── */}
-          <div
-            className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
-            onMouseDown={() => setIsConfigResizing(true)}
-          />
+          {/* ── Config Resize Handle & Area ── */}
+          {isRightSidebarOpen && (
+            <>
+              <div
+                className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
+                onMouseDown={() => setIsConfigResizing(true)}
+              />
 
-          {/* Config area (Full height) */}
-          <div className="config-area" style={{ width: configWidth ?? 320 }}>
+              {/* Config area (Full height) */}
+              <div className="config-area" style={{ width: configWidth ?? 320 }}>
             {/* Top Frame: System Settings */}
             <div className="config-frame top">
               <div className="frame-header">
@@ -2471,7 +2542,9 @@ function App() {
                 </button>
               )}
             </div>
-          </div>
+            </div>
+          </>
+        )}
         </>
       ) : (
           <div className="welcome">

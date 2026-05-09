@@ -2,13 +2,19 @@
 
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
+# AmpleWeb Development Log
+
+## Status: Active
+## Project: AmpleWeb (MAME WASM Frontend)
 
 ### 📅 2026-05-03 Updates
 - **UI & Feature Overhaul (AmpleWin Parity)**:
     - **Advanced Configuration Tabs**: Fully implemented modular tabs for **Video**, **CPU**, **A/V**, **Paths**, **Slots**, **Media**, and **Logs**.
     - **Video & UX Improvements**:
         - Integrated **BGFX Video Settings**: Added Video Method selection (Software, BGFX, OpenGL) with BGFX Backend (Auto, GLES, Vulkan) and Effects (CRT-Geom, Scanlines, etc.) support.
-        - **Window Scaling**: Added CSS-transform based scaling (1x, 2x, 3x, 4x, Fit to Screen).
+        - **Window Scaling**: Support for **Window 1x-4x** modes and **Full Screen** (Fit-to-Screen) scaling. Uses **MutationObserver-based Integer Scaling** to ensure pixel-perfect rendering without artifacting.
+        - **Collapsible UI**: Fully **Collapsible Sidebars** (Left: Machine list, Right: Settings) with quick-access `☰` and `⚙️` toggle buttons.
+        - **Mobile Optimized**: Responsive layout that automatically stacks and optimizes for touch devices and small screens.
         - **Mouse Capture**: Implemented Pointer Lock API (Hold Esc to release).
     - **Audio & Media Enhancements**:
         - **Disk Sound Effects**: Implemented loading of floppy drive audio samples.
@@ -49,7 +55,7 @@
     - **Compact Media Layout**: Optimized spacing and adjusted slot gaps for a professional appearance.
     - **Visual Polish**: Replaced custom toggle tracks with clean browser checkboxes.
 
-### 📅 2026-05-07 Updates (Current Session)
+### 📅 2026-05-07 Updates
 - **ROM & WASM Stability**:
     - Fixed `mametiny.wasm` 404 error and implemented **Dynamic Slot ROM Fetching**.
     - **Recursive Device Dependencies**: Implemented `DEVICE_DEPENDENCIES` table for automatic sub-ROM resolution (e.g., a2mouse needing m68705p3).
@@ -74,5 +80,20 @@
 - **UX & Machine Switching Optimization**: 
     - **Aggressive State Clearing**: Modified doSelectMachine to always reset mediaFiles and slotValues when manually switching between different machines. This prevents incompatible configuration remnants (e.g., from a URL-based Apple IIgs session) from breaking subsequent machine launches.
     - **Code Cleanup**: Removed obsolete family-tracking logic (prevFamilyRef) in favor of explicit machine name comparison for state resets.
-- **Media Format Compatibility**: Expanded automatic slot identification to include .woz, .2mg, and .hdv. .woz and standard image types default to lop1, while block-based images like .2mg and .hdv default to hard1.
-- **Bug Fix (Restart ROM Errors)**: Fixed a race condition where clicking 'Restart' (which reloads the page) would fail to find device ROMs (like the Mouse card). This was caused by doLaunch relying on potentially stale machineConfig state during initialization. Now, doLaunch and etchAllRoms accept explicit configuration and slot parameters to ensure robust ROM resolution during both manual and automated boots.
+- **Media Format Compatibility**: Expanded automatic slot identification to include .woz, .2mg, and .hdv. .woz and standard image types default to flop1, while block-based images like .2mg and .hdv default to hard1.
+- **Bug Fix (Restart ROM Errors)**: Fixed a race condition where clicking 'Restart' (which reloads the page) would fail to find device ROMs (like the Mouse card). This was caused by doLaunch relying on potentially stale machineConfig state during initialization. Now, doLaunch and fetchAllRoms accept explicit configuration and slot parameters to ensure robust ROM resolution during both manual and automated boots.
+- **Mobile UX & Pixel-Perfect Fixes**: Addressed feedback from inexorabletash.
+    - **Mobile Responsiveness**: Implemented a responsive layout that stacks vertically on screens under 800px.
+    - **Collapsible Sidebars**: Added visibility toggles (`isLeftSidebarOpen`, `isRightSidebarOpen`) with `☰` and `⚙️` buttons to provide more space for the emulator area.
+    - **UI Stability**: Added automatic `resize` event dispatching when toggling lanes to ensure MAME/SDL correctly recalculates the viewport and mouse scaling.
+
+### 📅 2026-05-09 Updates (Current Session)
+- **Pixel-Perfect Scaling Fix**:
+    - Replaced hardcoded resolution scaling with a **MutationObserver** that dynamically tracks the actual canvas intrinsic dimensions set by MAME.
+    - This ensures CSS width/height are always exact integer multiples of the internal resolution, completely resolving the vertical/horizontal pixel striping artifacts (pixel artifacting) reported on mobile and desktop.
+- **Collapsible UI Enhancements**:
+    - Finalized the **Collapsible Lane Design** for both left (Machine List) and right (Settings/Slots) panels.
+    - Integrated quick-toggle buttons in the machine header to allow users to maximize the emulator workspace.
+- **Bug Fixes**:
+    - Fixed a JSX syntax error (mismatched tags) in `App.tsx` introduced during sidebar refactoring.
+    - Verified build stability with `tsc -b && vite build`.
