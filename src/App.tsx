@@ -1290,16 +1290,20 @@ function App() {
           addLog(`Error: ${err}`, true)
         },
         onLog: addLog,
+        // onStart fires in onRuntimeInitialized — the exact moment MAME starts
+        // its game loop (audio + video together). Reveal canvas here for sync.
+        onStart: () => {
+          setLaunchState('running')
+        },
         onReady: (m) => {
+          // Canvas is already in #canvas-host from wasm_loader init; appendChild is idempotent.
+          // Do NOT set width/height here — the canvas scaling effect (MutationObserver) owns
+          // all size management. Setting 100% here would override the correct 1x pixel size.
           if (m.canvas && canvasContainerRef.current) {
             canvasContainerRef.current.appendChild(m.canvas)
             m.canvas.style.display = 'block'
-            m.canvas.style.width = '100%'
-            m.canvas.style.height = '100%'
-            m.canvas.style.objectFit = 'contain'
           }
           setWasmModule(m)
-          setLaunchState('running')
           if (NOT_WORKING_MACHINES.includes(machine.name)) {
             setStatusText('This machine may not work...')
           } else if (SLOW_BOOT_MACHINES.includes(machine.name)) {
@@ -2091,18 +2095,6 @@ function App() {
               </div>
             </div>
 
-            {/* Progress bar (top of panel, before layout split) */}
-            <div className="progress-container">
-              {isLoading && (
-                <div className="progress-wrap">
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
-                  </div>
-                  <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
-                </div>
-              )}
-            </div>
-
             {/* Error banner */}
             {errorText && (
               <div className="error-banner">
@@ -2115,20 +2107,42 @@ function App() {
               {/* Left: emulator canvas */}
               <div className="emulator-area">
                 <div className={`emulator-container ${launchState === 'running' ? 'active' : ''} mode-${videoSettings?.windowMode || 'fit'}`}>
+                  {/* Progress bar — position:absolute overlay, never shifts layout */}
+                  {isLoading && (
+                    <div className="progress-container">
+                      <div className="progress-wrap">
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
+                        </div>
+                        <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Canvas container — always display:flex so MAME renders immediately
+                      in sync with audio. Placeholder overlays on top until running. */}
                   <div
+                    id="canvas-host"
                     ref={canvasContainerRef}
                     style={{
+                      flex: 1,
                       width: '100%',
-                      height: '100%',
-                      display: launchState === 'running' ? 'flex' : 'none',
+                      minHeight: 0,
+                      display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      position: 'relative',
                     }}
                   />
 
+                  {/* Placeholder — position:absolute overlay on top of canvas.
+                      Disappears when running so the already-rendering canvas is revealed. */}
                   {launchState !== 'running' && (
-                    <div className="emulator-placeholder">
-                      {launchState === 'idle' && (
+                    <div
+                      className="emulator-placeholder"
+                      style={{ position: 'absolute', inset: 0 }}
+                    >
+                      {(launchState === 'idle' || launchState === 'fetching-rom' || launchState === 'loading-wasm') && (
                         <div className="welcome-inner">
                           <div className="welcome-badge">MAME {selectedMachine.name}</div>
                           <p>Press Launch to start emulation</p>

@@ -708,9 +708,11 @@ body {
 }
 
 /* ─── Progress ─── */
+/* Overlay inside .emulator-container (position: relative),
+   so it never affects the surrounding flex layout. */
 .progress-container {
   position: absolute;
-  top: 80px;
+  top: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;

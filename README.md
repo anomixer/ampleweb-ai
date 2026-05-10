@@ -44,6 +44,8 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Internal Controls**: Dedicated UI buttons for **MAME UI (Scroll Lock)** and **MAME Menu (Tab)** to facilitate easier access to internal emulator settings.
 *   **Zero-Setup ROMs**: Multi-server failover engine for automatic firmware downloading and caching in IndexedDB.
 *   **Intelligent Machine Reset**: Automatically clears previous slot configurations and media mounts when switching between different machines. This ensures a clean slate and prevents "configuration pollution" when transitioning from specialized URL-based sessions.
+*   **Stable Emulator Canvas**: The emulator canvas is always anchored in the correct centered position from startup. No layout shifts or jumps when the loading bar appears or disappears.
+*   **Audio/Video Synchronization**: Screen and sound now start simultaneously. The emulator overlay is removed the instant MAME's runtime initializes (`onRuntimeInitialized`), the same moment audio begins, eliminating the previous 1–2 second audio-before-video gap.
 *   **Corsfix Sponsored Proxy**: Cross-origin media downloads are proudly powered by [Corsfix](https://corsfix.com/).
 
 ## ⚠️ Known Limitations

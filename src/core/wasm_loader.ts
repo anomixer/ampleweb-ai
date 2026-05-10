@@ -64,6 +64,8 @@ export interface WasmLoaderOptions {
   /** Audio samples to mount into VFS (default /samples) */
   sampleFiles?: RomFile[]
   onReady?: (module: MameWasmModule) => void
+  /** Fires the moment MAME's runtime initializes — same instant audio/video start. Use this to reveal the canvas in sync. */
+  onStart?: () => void
   onProgress?: (loaded: number, total: number) => void
   onError?: (error: string) => void
   onLog?: (line: string, isError: boolean) => void
@@ -87,6 +89,7 @@ export function loadMameWasm(
       romPath = '/roms',
       mediaPath = '/media',
       onReady,
+      onStart,
       onProgress,
       onError,
       onLog,
@@ -107,10 +110,11 @@ export function loadMameWasm(
     })()
 
     // Keep canvas in DOM (Emscripten SDL needs getElementById('canvas')).
-    // It stays display:none until onReady moves it into the React container.
-    // If not already in the container, place it there so flexbox centers it.
+    // Use #canvas-host (the flex-centered canvasContainerRef div) so the canvas
+    // is never a raw child of emulator-container (which would push it to the bottom).
     if (!canvas.parentElement) {
-      const container = document.querySelector('.emulator-container') as HTMLElement | null
+      const host = document.getElementById('canvas-host') as HTMLElement | null
+      const container = host ?? document.querySelector('.emulator-container') as HTMLElement | null
       if (container) {
         container.appendChild(canvas)
       } else {
@@ -346,9 +350,11 @@ export function loadMameWasm(
 
       onRuntimeInitialized: function () {
         console.log('[WasmLoader] Runtime initialized.')
-        // Don't show canvas here — onReady moves it into the flex container first, then shows it.
-        // Showing it here would flash it at the bottom of the page.
         onProgress?.(100, 100)
+        // Fire onStart immediately — this is the exact moment MAME begins its game loop
+        // (audio + video start together). The UI should reveal the canvas right here
+        // so screen and sound are in sync.
+        onStart?.()
       },
 
       onAbort: (what: string) => {

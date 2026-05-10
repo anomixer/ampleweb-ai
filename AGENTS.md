@@ -97,3 +97,10 @@
 - **Bug Fixes**:
     - Fixed a JSX syntax error (mismatched tags) in `App.tsx` introduced during sidebar refactoring.
     - Verified build stability with `tsc -b && vite build`.
+
+### 📅 2026-05-10 Updates
+- **Emulator Canvas Jump + Audio/Video Sync Fix**:
+    - **Root Cause (canvas jump)**: The canvas was being appended to `.emulator-container` (the flex column root) by `wasm_loader.ts`, making it the last flex child and pushing it to the bottom. When `onReady` fired (after a 2-second timeout), the canvas was `appendChild`-ed into `canvasContainerRef` — this DOM move was the visual "jump" users saw.
+    - **Fix (positioning)**: Added `id="canvas-host"` to `canvasContainerRef` div. `wasm_loader.ts` now prioritises `#canvas-host` over `.emulator-container` as the initial canvas destination, so the canvas is in the correct centered position from the start. Canvas container uses `flex: 1` (not `height: 100%`) for stable flex sizing.
+    - **Root Cause (audio/video desync)**: `setLaunchState('running')` was called in `onReady` (2-second timeout after MAME starts), while MAME's audio began in `onRuntimeInitialized`. The `emulator-placeholder` overlay covered the canvas during this 2-second gap, causing sound to play with no visible screen.
+    - **Fix (sync)**: Added `onStart` callback to `WasmLoaderOptions`, fired inside `onRuntimeInitialized` — the exact moment MAME's game loop begins (audio + video together). `setLaunchState('running')` now happens in `onStart`, removing the overlay in sync with audio. `emulator-placeholder` changed to `position: absolute` overlay so the canvas container (`#canvas-host`) is always `display: flex` and never needs a display toggle.
