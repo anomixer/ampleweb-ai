@@ -31,6 +31,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Dynamic ROM Management**: Automatically fetches required device ROMs (e.g., `a2mouse.zip`) for selected slot peripherals, preventing boot crashes.
 *   **Advanced Video**: Integrated **BGFX screen chains** for authentic retro visuals. (Work in Progress)
 *   **Personalized UI**: Full support for **Dark/Light Mode** switching, faithfully replicating the macOS native visual aesthetics.
+*   **Slot Configuration Consistency**: Improved slot initialization logic to respect "None" (empty) selections across UI refreshes, matching the high standards of the native macOS and Windows/Linux ports.
 
 ### 🌐 Web-Specific Features
 *   **Local Directory Mapping (/share)**: Map any local host folder directly to the emulator's VFS for seamless data exchange.
