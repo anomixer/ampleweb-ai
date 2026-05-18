@@ -452,17 +452,6 @@ body {
   box-shadow: 0 0 8px rgba(79, 142, 247, 0.3);
 }
 
-@media (max-width: 800px) {
-  .drawer-toggle {
-    display: none !important;
-  }
-  .sidebar.collapsed {
-    display: none !important;
-  }
-  .config-area.collapsed {
-    display: none !important;
-  }
-}
 
 /* ═══════════════════════════════════════
    MAIN PANEL
@@ -1430,38 +1419,99 @@ body {
 ---------------------------------------- */
 @media (max-width: 800px) {
   .app {
-    flex-direction: column;
-    height: auto !important;
-    min-height: 100dvh;
-    overflow-y: auto !important;
-    overflow-x: hidden;
+    flex-direction: row !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
   }
-  .sidebar, .config-area {
-    width: 100% !important;
-    max-height: none !important;
-    flex-shrink: 0;
-  }
+
   .sidebar {
-    height: 400px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100dvh !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    z-index: 9999 !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5) !important;
+    margin-left: 0 !important;
+    transform: translateX(0) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-right: 1px solid var(--border) !important;
+    border-bottom: none !important;
   }
-  .main {
-    flex: none;
-    flex-direction: column;
-    overflow: visible;
+
+  .sidebar.collapsed {
+    transform: translateX(-100%) !important;
+    display: flex !important;
   }
-  .resize-handle {
-    display: none;
+
+  .left-toggle {
+    position: fixed !important;
+    z-index: 10000 !important;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
-  .machine-panel {
-    min-height: 500px;
-    overflow: visible;
+
+  .left-toggle.embedded {
+    left: 264px !important; /* 280px - 16px */
   }
+
+  .left-toggle:not(.embedded) {
+    left: 0px !important;
+  }
+
   .config-area {
-    border-left: none;
-    border-top: 1px solid var(--border);
-    overflow: visible !important;
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    height: 100dvh !important;
+    width: 320px !important;
+    min-width: 320px !important;
+    z-index: 9999 !important;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.5) !important;
+    margin-right: 0 !important;
+    transform: translateX(0) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-left: 1px solid var(--border) !important;
+    border-top: none !important;
+  }
+
+  .config-area.collapsed {
+    transform: translateX(100%) !important;
+    display: flex !important;
+  }
+
+  .right-toggle {
+    position: fixed !important;
+    z-index: 10000 !important;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .right-toggle.embedded {
+    right: 304px !important; /* 320px - 16px */
+  }
+
+  .right-toggle:not(.embedded) {
+    right: 0px !important;
+  }
+
+  .main {
+    flex: 1 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    flex-direction: row !important;
+  }
+
+  .resize-handle {
+    display: none !important;
+  }
+
+  .machine-panel {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
   }
 }
 
