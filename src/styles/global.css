@@ -588,6 +588,20 @@ body {
   border-radius: 99px;
 }
 
+button.badge {
+  transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+button.badge:hover {
+  background: rgba(62, 201, 138, 0.28) !important;
+  transform: scale(1.04);
+}
+
+button.badge:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
 .badge-running {
   background: rgba(62, 201, 138, 0.15);
   color: var(--green);

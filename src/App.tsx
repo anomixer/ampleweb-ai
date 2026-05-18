@@ -2112,7 +2112,7 @@ function App() {
                       className="badge badge-running" 
                       onClick={toggleFullScreen}
                       title="Full Screen"
-                      style={{ cursor: 'pointer', border: 'none', marginRight: '6px', color: '#fff' }}
+                      style={{ cursor: 'pointer', border: 'none', marginRight: '6px' }}
                     >
                       📺 Full Screen
                     </button>
