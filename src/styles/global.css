@@ -428,9 +428,21 @@ body {
   border-left: none;
 }
 
+.left-toggle.embedded {
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: none;
+  border-left: 1px solid var(--border-strong);
+}
+
 .right-toggle {
   border-radius: var(--radius) 0 0 var(--radius);
   border-right: none;
+}
+
+.right-toggle.embedded {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+  border-right: 1px solid var(--border-strong);
 }
 
 .drawer-toggle:hover {

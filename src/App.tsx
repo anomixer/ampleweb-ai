@@ -1931,11 +1931,11 @@ function App() {
     <div className={`app ${theme}`}>
       {/* ── Left Drawer Toggle ── */}
       <div 
-        className={`drawer-toggle left-toggle ${!isLeftSidebarOpen ? 'collapsed' : ''}`}
+        className={`drawer-toggle left-toggle ${isLeftSidebarOpen ? 'embedded' : ''}`}
         onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
         title={isLeftSidebarOpen ? "Hide Machine List" : "Show Machine List"}
         style={{
-          left: isLeftSidebarOpen ? `${sidebarWidth}px` : '0px',
+          left: isLeftSidebarOpen ? `${sidebarWidth - 16}px` : '0px',
         }}
       >
         {isLeftSidebarOpen ? '◀' : '▶'}
@@ -1944,11 +1944,11 @@ function App() {
       {/* ── Right Drawer Toggle ── */}
       {selectedMachine && (
         <div 
-          className={`drawer-toggle right-toggle ${!isRightSidebarOpen ? 'collapsed' : ''}`}
+          className={`drawer-toggle right-toggle ${isRightSidebarOpen ? 'embedded' : ''}`}
           onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
           title={isRightSidebarOpen ? "Hide Settings Panel" : "Show Settings Panel"}
           style={{
-            right: isRightSidebarOpen ? `${configWidth ?? 320}px` : '0px',
+            right: isRightSidebarOpen ? `${(configWidth ?? 320) - 16}px` : '0px',
           }}
         >
           {isRightSidebarOpen ? '▶' : '◀'}
