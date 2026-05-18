@@ -108,3 +108,8 @@
 ### 📅 2026-05-11 Updates
 - **[AmpleWin/Linux] Slot Initialization Fix**: Corrected logic in `initialize_default_slots` to use `slot_name not in self.current_slots` instead of truthiness check. This allows slots to be set to "None" (empty string) without being overwritten by defaults during UI refresh, while still ensuring new nested slots get their defaults correctly.
 - **[AmpleWeb] Slot Logic Audit**: Verified `fillSlotDefaults` in TypeScript. Since it uses object-based comparisons, it already correctly handles empty string values as valid selections, maintaining parity with the native ports without requiring code changes.
+
+### 📅 2026-05-19 Updates
+- **[AmpleWin/Linux/Web] Empty Slot (None) Command Line Argument Fix**:
+    - **Issue**: Although setting a slot to "None" (empty string `""`) in the UI was preserved, MAME was not receiving the `-slot ""` argument because the launcher was filtering out empty string values using a truthiness check (`if option:` / `if (value)`). As a result, MAME fell back to its internal defaults (e.g. including the Disk II interface in slot 6) even though the user chose "None".
+    - **Fix**: Updated `mame_launcher.py` in `AmpleWin` and `AmpleLinux` to check `if option is not None:`, and updated `wasm_loader.ts` in `AmpleWeb` to check `if (value !== undefined && value !== null)`. This ensures that explicit empty string arguments (`-slot ""`) are passed to MAME, disabling/emptying the slot as expected.

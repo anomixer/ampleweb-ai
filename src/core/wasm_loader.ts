@@ -484,7 +484,7 @@ export function buildMameArgs(
 
   if (options.slots) {
     for (const [slot, value] of Object.entries(options.slots)) {
-      if (value) args.push(`-${slot}`, value)
+      if (value !== undefined && value !== null) args.push(`-${slot}`, value)
     }
   }
 
