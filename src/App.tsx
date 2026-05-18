@@ -1231,6 +1231,10 @@ function App() {
       return /:[0-9]+$/.test(path)
     }
 
+    const defaultSlots = (configParam ?? machineConfig)
+      ? fillSlotDefaults((configParam ?? machineConfig)!.slots, {}, (configParam ?? machineConfig)!.devices)
+      : {}
+
     for (const [path, value] of Object.entries(finalSlots)) {
       if (path === 'ramsize') {
         ramsizeArg = value
@@ -1239,6 +1243,16 @@ function App() {
       // If it's a media drive slot (like sl6:0), don't pass as a slot argument
       // MAME usually handles these via -flop1, etc.
       if (isMediaSlot(path)) continue
+
+      // KEY FIX: If slot value is empty (""), only pass it to MAME if the slot's default
+      // was NOT empty. This prevents disabling MAME's critical internal default motherboard devices
+      // (like 'smartport' on apple2gs or floppy controllers) when they default to empty in the UI plist.
+      if (value === '') {
+        const defaultValue = defaultSlots[path] || ''
+        if (defaultValue === '') {
+          continue
+        }
+      }
 
       filteredSlots[path] = value
     }
@@ -2108,6 +2122,11 @@ function App() {
               <div className="header-badges" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                 {launchState === 'running' && (
                   <>
+                    {statusText && (
+                      <span className={`badge ${statusText.includes('longer time') ? 'badge-warning' : 'badge-error'}`} style={{ marginRight: '6px' }}>
+                        ⚠️ {statusText}
+                      </span>
+                    )}
                     <button 
                       className="badge badge-running" 
                       onClick={toggleFullScreen}

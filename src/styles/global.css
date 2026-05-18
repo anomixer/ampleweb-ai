@@ -612,6 +612,11 @@ button.badge:active {
   color: var(--red);
 }
 
+.badge-warning {
+  background: rgba(252, 211, 77, 0.15);
+  color: #fcd34d;
+}
+
 .emulator-area {
   flex: 1;
   min-width: 0;
