@@ -558,8 +558,8 @@ function App() {
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
   const [isConfigResizing, setIsConfigResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true)
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => window.innerWidth > 800)
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(() => window.innerWidth > 800)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths'>(() => {
     return (localStorage.getItem('ample-system-tab') as any) || 'video'
@@ -576,6 +576,21 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ample-machine-tab', machineTab)
   }, [machineTab])
+
+  // Collapse sidebars when transitioning to mobile mode (<= 800px)
+  useEffect(() => {
+    let prevWidth = window.innerWidth
+    const handleResize = () => {
+      const currentWidth = window.innerWidth
+      if (currentWidth <= 800 && prevWidth > 800) {
+        setIsLeftSidebarOpen(false)
+        setIsRightSidebarOpen(false)
+      }
+      prevWidth = currentWidth
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Force MAME to recalculate window/canvas scaling when sidebars toggle
   useEffect(() => {
