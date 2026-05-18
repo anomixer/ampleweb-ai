@@ -2085,14 +2085,6 @@ function App() {
             {/* Machine header */}
             <div className="machine-header">
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <button 
-                  className="btn btn-ghost btn-sm" 
-                  onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-                  title="Toggle Machine List"
-                  style={{ marginRight: '12px', fontSize: '18px', padding: '2px 8px' }}
-                >
-                  ☰
-                </button>
                 <div>
                   <h2 className="machine-title">{selectedMachine.description}</h2>
                   <code className="machine-id">{selectedMachine.name}</code>
@@ -2115,14 +2107,6 @@ function App() {
                 {launchState === 'error' && (
                   <span className="badge badge-error">● Error</span>
                 )}
-                <button 
-                  className="btn btn-ghost btn-sm" 
-                  onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-                  title="Toggle Settings Panel"
-                  style={{ marginLeft: '8px', fontSize: '16px', padding: '2px 8px' }}
-                >
-                  ⚙️
-                </button>
               </div>
             </div>
 
