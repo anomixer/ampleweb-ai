@@ -2250,10 +2250,13 @@ function App() {
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Video Method</label>
-                        <select className="slot-select" value="soft" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                        <select
+                          className="slot-select"
+                          value={videoSettings?.videoMethod || 'soft'}
+                          onChange={e => setVideoSettings({ videoMethod: e.target.value as any })}
+                        >
                           <option value="soft">Software</option>
                           <option value="bgfx">BGFX (Hardware Accel)</option>
-                          <option value="opengl">OpenGL</option>
                         </select>
                       </div>
                       {videoSettings?.videoMethod === 'bgfx' && (

@@ -29,7 +29,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **International Localization**: Proper support for localized **Apple IIe/IIee/IIep** variants (DE, FR, ES, SE, UK) with accurate character sets and boot logos.
 *   **Peripheral Support**: Supports auto-injection for **SCSI, CFFA2, Mouse cards, and Memory expansion**.
 *   **Dynamic ROM Management**: Automatically fetches required device ROMs (e.g., `a2mouse.zip`) for selected slot peripherals, preventing boot crashes.
-*   **Advanced Video**: Integrated **BGFX screen chains** for authentic retro visuals. (Work in Progress)
+*   **Advanced Video**: Fully enabled and operational **BGFX screen chains** (including scanline and CRT Geom filters), utilizing WebGL hardware acceleration for authentic retro visuals.
 *   **Personalized UI**: Full support for **Dark/Light Mode** switching, faithfully replicating the macOS native visual aesthetics.
 *   **Slot Configuration Consistency**: Improved slot initialization logic to respect "None" (empty) selections across UI refreshes, matching the high standards of the native macOS and Windows/Linux ports.
 ### 🌐 Web-Specific Features
@@ -57,7 +57,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Core Stability**: Machines highlighted in **yellow** may not function correctly due to underlying emulation core limitations.
 *   **Audio Latency**: There may be slight audio lag, which is a known limitation of MAME WASM.
 *   **Execution Speed**: Speed gains are limited by the WASM architecture; settings like 500% or Max speed may not be achievable.
-*   **Disabled Features**: Due to compatibility issues, the following features are currently disabled: Debug, Square Pixel, Video Method, and Generate VGM.
+*   **Disabled Features**: Due to compatibility issues, the following features are currently disabled: Debug, Square Pixel, and Generate VGM.
 *   **Browser Limits**: Large AVI captures may exceed browser memory buffers if recorded for extended periods.
 
 ## 🛠️ Quick Start
