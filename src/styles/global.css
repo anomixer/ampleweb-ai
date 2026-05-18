@@ -389,6 +389,69 @@ body {
   background: var(--accent);
 }
 
+/* ─── Drawer Collapsing Utilities & Drawer Toggles ─── */
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.config-area.collapsed {
+  transform: translateX(100%);
+}
+
+.resize-handle.collapsed {
+  display: none !important;
+}
+
+/* Sleek modern floating drawer toggles */
+.drawer-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 48px;
+  background: var(--bg2);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text1);
+  font-size: 10px;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  user-select: none;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), right 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.left-toggle {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+
+.right-toggle {
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: none;
+}
+
+.drawer-toggle:hover {
+  background: var(--bg3);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(79, 142, 247, 0.3);
+}
+
+@media (max-width: 800px) {
+  .drawer-toggle {
+    display: none !important;
+  }
+  .sidebar.collapsed {
+    display: none !important;
+  }
+  .config-area.collapsed {
+    display: none !important;
+  }
+}
+
 /* ═══════════════════════════════════════
    MAIN PANEL
 ════════════════════════════════════════ */

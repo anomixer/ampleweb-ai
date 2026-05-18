@@ -1929,10 +1929,43 @@ function App() {
 
   return (
     <div className={`app ${theme}`}>
+      {/* ── Left Drawer Toggle ── */}
+      <div 
+        className={`drawer-toggle left-toggle ${!isLeftSidebarOpen ? 'collapsed' : ''}`}
+        onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+        title={isLeftSidebarOpen ? "Hide Machine List" : "Show Machine List"}
+        style={{
+          left: isLeftSidebarOpen ? `${sidebarWidth}px` : '0px',
+        }}
+      >
+        {isLeftSidebarOpen ? '◀' : '▶'}
+      </div>
+
+      {/* ── Right Drawer Toggle ── */}
+      {selectedMachine && (
+        <div 
+          className={`drawer-toggle right-toggle ${!isRightSidebarOpen ? 'collapsed' : ''}`}
+          onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+          title={isRightSidebarOpen ? "Hide Settings Panel" : "Show Settings Panel"}
+          style={{
+            right: isRightSidebarOpen ? `${configWidth ?? 320}px` : '0px',
+          }}
+        >
+          {isRightSidebarOpen ? '▶' : '◀'}
+        </div>
+      )}
+
       {/* ── Left Sidebar ── */}
-      {isLeftSidebarOpen && (
-        <>
-          <div className="sidebar" style={{ width: sidebarWidth, flexShrink: 0, minWidth: '200px' }}>
+      <div 
+        className={`sidebar ${!isLeftSidebarOpen ? 'collapsed' : ''}`} 
+        style={{ 
+          width: sidebarWidth, 
+          marginLeft: isLeftSidebarOpen ? 0 : -sidebarWidth,
+          flexShrink: 0, 
+          minWidth: isLeftSidebarOpen ? '200px' : '0px',
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
         <div className="sidebar-header">
           <a href={BASE_URL} className="sidebar-title" onClick={handleReset}>
             <span className="sidebar-logo">🍎</span>
@@ -2040,11 +2073,9 @@ function App() {
       
       {/* ── Sidebar Resize Handle ── */}
       <div
-        className={`resize-handle ${isSidebarResizing ? 'active' : ''}`}
-        onMouseDown={() => setIsSidebarResizing(true)}
+        className={`resize-handle ${isSidebarResizing ? 'active' : ''} ${!isLeftSidebarOpen ? 'collapsed' : ''}`}
+        onMouseDown={() => isLeftSidebarOpen && setIsSidebarResizing(true)}
       />
-        </>
-      )}
 
       {/* ── Right Main Panel ── */}
       <div className="main">
@@ -2162,15 +2193,20 @@ function App() {
             </div>
 
           {/* ── Config Resize Handle & Area ── */}
-          {isRightSidebarOpen && (
-            <>
-              <div
-                className={`resize-handle ${isConfigResizing ? 'active' : ''}`}
-                onMouseDown={() => setIsConfigResizing(true)}
-              />
+          <div
+            className={`resize-handle ${isConfigResizing ? 'active' : ''} ${!isRightSidebarOpen ? 'collapsed' : ''}`}
+            onMouseDown={() => isRightSidebarOpen && setIsConfigResizing(true)}
+          />
 
-              {/* Config area (Full height) */}
-              <div className="config-area" style={{ width: configWidth ?? 320 }}>
+          {/* Config area (Full height) */}
+          <div 
+            className={`config-area ${!isRightSidebarOpen ? 'collapsed' : ''}`} 
+            style={{ 
+              width: configWidth ?? 320,
+              marginRight: isRightSidebarOpen ? 0 : -(configWidth ?? 320),
+              transition: 'margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+          >
             {/* Top Frame: System Settings */}
             <div className="config-frame top">
               <div className="frame-header">
@@ -2558,8 +2594,6 @@ function App() {
             </div>
             </div>
           </>
-        )}
-        </>
       ) : (
           <div className="welcome">
             <img src={`${BASE_URL}icon-256.png`} className="welcome-icon" alt="Ample Logo" />
