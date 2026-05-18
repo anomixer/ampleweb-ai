@@ -32,8 +32,11 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Advanced Video**: Integrated **BGFX screen chains** for authentic retro visuals. (Work in Progress)
 *   **Personalized UI**: Full support for **Dark/Light Mode** switching, faithfully replicating the macOS native visual aesthetics.
 *   **Slot Configuration Consistency**: Improved slot initialization logic to respect "None" (empty) selections across UI refreshes, matching the high standards of the native macOS and Windows/Linux ports.
-
 ### 🌐 Web-Specific Features
+*   **Premium Collapsible Drawers**: Both left (Machine List) and right (Settings Panel) lanes utilize smooth CSS hardware-accelerated transitions and absolute floating drawer pull handles (`◀` / `▶`) that automatically nest into sidebar inner edges when expanded.
+*   **Mobile Overlay Drawers & Auto-Collapse**: On phone screens (width <= 800px), sidebars transition to fixed overlay drawer panels with rich box-shadows, leaving the emulator canvas at 100% fullscreen height. Includes auto-collapsing states triggered dynamically on window resize or initial load to keep the UI clean and focused.
+*   **Unconfigurable Slot Dropdowns Cleanup**: Automatically hides blank, useless select dropdowns for built-in/unchangeable slot lanes (where `options.length <= 1`), turning their labels into clean bold section headers while keeping selectable sub-slots (e.g. floppy drives) perfectly functional underneath.
+*   **Light Theme Contrast & Interactive Polish**: Fixed the high-contrast visibility issue of the "📺 Full Screen" badge button in light theme, replacing hardcoded styles with dynamic theme-aware coloring, and added smooth micro-animations (scale/fade transitions) on hover and active click actions.
 *   **Local Directory Mapping (/share)**: Map any local host folder directly to the emulator's VFS for seamless data exchange.
 *   **Save back to Local**: Modified virtual disk images are automatically detected and prompted for download upon ejection.
 *   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent browser memory buffer overflow).
