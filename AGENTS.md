@@ -124,3 +124,9 @@
 - **[AmpleWeb] Unconfigurable Slot Dropdowns Cleanup**:
     - **Issue**: Built-in unchangeable slots (such as the motherboard-level Apple IIgs "Disk Drives" SmartPort controller) only have a single option available, but the UI rendered a redundant, empty `<select>` dropdown next to them.
     - **Fix**: Updated `renderSlots` recursion to automatically hide the select dropdown for any slots with only 1 or 0 options (`options.length <= 1`), turning their label into a clean bold section title while preserving all selectable sub-slots (e.g. floppy drives) underneath.
+- **[AmpleWeb] Slow Boot Warning & Header Badges Fix**:
+    - **Issue**: The slow boot warning (`This takes longer time to boot...`) was historically rendered inside the loading overlay. When the audio/video sync improvement was made (which hides the overlay instantly upon MAME startup), the warning was also hidden before users could read it.
+    - **Fix**: Moved the warning logic to render as a distinct yellow `badge-warning` in the `.machine-header` (next to the "Running" and "Full Screen" badges). Swapped its position to sit gracefully before the "Full Screen" button.
+- **[AmpleWeb] Vertically Resizable Config Area**:
+    - **Feature**: Added a vertical drag handle (`.resize-handle-h`) between the "System Settings" (Top Frame) and "Machine Configuration" (Bottom Frame) in the right sidebar.
+    - **Implementation**: Utilizes `e.clientY` to accurately map mouse positions to the top frame's `flex-basis` (since the config area scales 100% of the viewport height). Heights are constrained safely between 150px and `window.innerHeight - 200px` and persisted securely in `localStorage`.

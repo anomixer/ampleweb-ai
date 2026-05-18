@@ -389,6 +389,22 @@ body {
   background: var(--accent);
 }
 
+.resize-handle-h {
+  height: 4px;
+  cursor: row-resize;
+  background: transparent;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.15s;
+  z-index: 10;
+  width: 100%;
+}
+
+.resize-handle-h:hover,
+.resize-handle-h.active {
+  background: var(--accent);
+}
+
 /* ─── Drawer Collapsing Utilities & Drawer Toggles ─── */
 .sidebar.collapsed {
   transform: translateX(-100%);

@@ -557,6 +557,11 @@ function App() {
   const [search, setSearch] = useState('')
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
   const [isConfigResizing, setIsConfigResizing] = useState(false)
+  const [configTopHeight, setConfigTopHeight] = useState(() => {
+    const saved = localStorage.getItem('ample-config-top-height')
+    return saved ? parseInt(saved, 10) : 320
+  })
+  const [isConfigVResizing, setIsConfigVResizing] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => window.innerWidth > 800)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(() => window.innerWidth > 800)
@@ -763,6 +768,30 @@ function App() {
       document.body.style.userSelect = ''
     }
   }, [isConfigResizing])
+
+  // ── Config area vertical resize ──
+  useEffect(() => {
+    if (!isConfigVResizing) return
+    const onMove = (e: MouseEvent) => {
+      // The config-area spans the full height of the window, so clientY is the exact height needed.
+      const h = Math.max(150, e.clientY)
+      setConfigTopHeight(Math.min(window.innerHeight - 200, h))
+    }
+    const onUp = () => {
+      setIsConfigVResizing(false)
+      localStorage.setItem('ample-config-top-height', String(configTopHeight))
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isConfigVResizing, configTopHeight])
 
   const addLog = useCallback((text: string, isError: boolean) => {
     setLogs(prev => {
@@ -2226,7 +2255,7 @@ function App() {
             }}
           >
             {/* Top Frame: System Settings */}
-            <div className="config-frame top">
+            <div className="config-frame top" style={{ flex: `0 0 ${configTopHeight}px` }}>
               <div className="frame-header">
                 <button className={`tab-btn ${systemTab === 'video' ? 'active' : ''}`} onClick={() => setSystemTab('video')}>Video</button>
                 <button className={`tab-btn ${systemTab === 'cpu' ? 'active' : ''}`} onClick={() => setSystemTab('cpu')}>CPU</button>
@@ -2403,6 +2432,11 @@ function App() {
                 )}
               </div>
             </div>
+
+            <div
+              className={`resize-handle-h ${isConfigVResizing ? 'active' : ''}`}
+              onMouseDown={() => setIsConfigVResizing(true)}
+            />
 
             {/* Bottom Frame: Machine Configuration */}
             <div className="config-frame">
