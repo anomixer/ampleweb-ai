@@ -2410,29 +2410,33 @@ function App() {
 
                               const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
 
+                              const hasMultipleOptions = Array.isArray(slot.options) && slot.options.length > 1;
+
                               return (
                                 <React.Fragment key={`${fullPath}-${depth}-${idx}`}>
                                   <div className="slot-row" style={{ paddingLeft: depth * 16 }}>
-                                    <label className="slot-label" title={fullPath}>
+                                    <label className="slot-label" title={fullPath} style={!hasMultipleOptions ? { fontWeight: 600, opacity: 0.85 } : undefined}>
                                       {depth > 0 ? '↳ ' : ''}{slot.description}
                                     </label>
-                                    <select
-                                      className="slot-select"
-                                      value={selectedValue}
-                                      onChange={e => {
-                                        const newVal = e.target.value
-                                        setSlotValues(prev => {
-                                          const next = { ...prev, [fullPath]: newVal }
-                                          return fillSlotDefaults(machineConfig!.slots, next, machineConfig!.devices)
-                                        })
-                                      }}
-                                    >
-                                      {slot.options?.map((opt: SlotOption, i: number) => (
-                                        <option key={i} value={opt.value} disabled={opt.disabled}>
-                                          {opt.description}
-                                        </option>
-                                      ))}
-                                    </select>
+                                    {hasMultipleOptions && (
+                                      <select
+                                        className="slot-select"
+                                        value={selectedValue}
+                                        onChange={e => {
+                                          const newVal = e.target.value
+                                          setSlotValues(prev => {
+                                            const next = { ...prev, [fullPath]: newVal }
+                                            return fillSlotDefaults(machineConfig!.slots, next, machineConfig!.devices)
+                                          })
+                                        }}
+                                      >
+                                        {slot.options?.map((opt: SlotOption, i: number) => (
+                                          <option key={i} value={opt.value} disabled={opt.disabled}>
+                                            {opt.description}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
                                   </div>
                                   {Array.isArray(selectedOption?.slots) && renderSlots(selectedOption.slots, depth + 1, nextPath)}
                                   {selectedOption?.devname && machineConfig?.devices && (() => {
