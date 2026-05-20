@@ -733,8 +733,12 @@ function App() {
     const onMove = (e: MouseEvent) => {
       const w = Math.max(200, Math.min(500, e.clientX))
       setSidebarWidth(w)
+      window.dispatchEvent(new Event('resize'))
     }
-    const onUp = () => setIsSidebarResizing(false)
+    const onUp = () => {
+      setIsSidebarResizing(false)
+      window.dispatchEvent(new Event('resize'))
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     document.body.style.cursor = 'col-resize'
@@ -755,8 +759,12 @@ function App() {
       const rightEdge = window.innerWidth - e.clientX
       const w = Math.max(200, Math.min(800, rightEdge))
       setConfigWidth(w)
+      window.dispatchEvent(new Event('resize'))
     }
-    const onUp = () => setIsConfigResizing(false)
+    const onUp = () => {
+      setIsConfigResizing(false)
+      window.dispatchEvent(new Event('resize'))
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     document.body.style.cursor = 'col-resize'
