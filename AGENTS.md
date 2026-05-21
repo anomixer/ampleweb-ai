@@ -3,6 +3,10 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
+### 📅 2026-05-21 Updates
+- **UX & Terminology Polish**:
+    - **Rename Video Method to Video Shader**: Rebranded the "Video Method" UI label in the Settings panel to "Video Shader" to align closer with modern user expectations and shader effects, while preserving backend command arguments mapping.
+
 ### 📅 2026-05-20 Updates
 - **Canvas Scaling & Resizing Sync (inexorabletash feedback)**:
     - **Sidebar Dragging Resize Fix**: Resolved the issue where MAME was unaware of layout size changes during manual dragging of sidebars. Added real-time and post-drag `resize` event dispatching (`window.dispatchEvent(new Event('resize'))`) inside left sidebar manual resizing (`isSidebarResizing`) and right config area width dragging (`isConfigResizing`) handlers. This ensures WASM/SDL viewport scaling and coordinates mapping stay perfectly synchronized.
@@ -112,7 +116,7 @@
 - **UI & Feature Overhaul (AmpleWin Parity)**:
     - **Advanced Configuration Tabs**: Fully implemented modular tabs for **Video**, **CPU**, **A/V**, **Paths**, **Slots**, **Media**, and **Logs**.
     - **Video & UX Improvements**:
-        - Integrated **BGFX Video Settings**: Added Video Method selection (Software, BGFX, OpenGL) with BGFX Backend (Auto, GLES, Vulkan) and Effects (CRT-Geom, Scanlines, etc.) support.
+        - Integrated **BGFX Video Settings**: Added Video Shader selection (Software, BGFX, OpenGL) with BGFX Backend (Auto, GLES, Vulkan) and Effects (CRT-Geom, Scanlines, etc.) support.
         - **Window Scaling**: Support for **Window 1x-4x** modes and **Full Screen** (Fit-to-Screen) scaling. Uses **MutationObserver-based Integer Scaling** to ensure pixel-perfect rendering without artifacting.
         - **Collapsible UI**: Fully **Collapsible Sidebars** (Left: Machine list, Right: Settings) with quick-access `☰` and `⚙️` toggle buttons.
         - **Mobile Optimized**: Responsive layout that automatically stacks and optimizes for touch devices and small screens.

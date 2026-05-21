@@ -2305,7 +2305,7 @@ function App() {
                         <span className="settings-hint">Requires restart to take effect</span>
                       </div>
                       <div className="slot-row">
-                        <label className="slot-label">Video Method</label>
+                        <label className="slot-label">Video Shader</label>
                         <select
                           className="slot-select"
                           value={videoSettings?.videoMethod || 'soft'}
