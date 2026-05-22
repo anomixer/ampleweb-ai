@@ -1307,6 +1307,19 @@ function App() {
       filteredSlots[path] = value
     }
 
+    // Read arbitrary extra MAME parameters from URL (e.g. ?extra=-monitor,video7)
+    const urlParams = new URLSearchParams(window.location.search)
+    const extraParam = urlParams.get('extra')
+    const extraArgsFromUrl: string[] = []
+    if (extraParam) {
+      try {
+        extraParam.split(',').forEach(arg => {
+          const trimmed = arg.trim()
+          if (trimmed) extraArgsFromUrl.push(trimmed)
+        })
+      } catch (e) {}
+    }
+
     const args = buildMameArgs(mameDriver, {
       slots: filteredSlots,
       cpuSpeed: cpuSettings?.speed,
@@ -1324,7 +1337,8 @@ function App() {
         ...(ramsizeArg ? ['-ramsize', ramsizeArg] : []),
         '-resolution', resolution,
         '-rompath', romPathArg,
-        ...(mediaList.map(m => [`-${m.type}`, `/media/${m.name}`]).flat())
+        ...(mediaList.map(m => [`-${m.type}`, `/media/${m.name}`]).flat()),
+        ...extraArgsFromUrl
       ]
     })
     addLog(`args: ${args.join(' ')}`, false)

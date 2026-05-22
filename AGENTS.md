@@ -9,6 +9,7 @@
     - **Square Pixel UI Tweaks**: Swapped the positions of "Capture Mouse" and "Square Pixel" for better visual alignment, and added a "Requires restart to take effect" hint next to Square Pixel to set proper user expectations.
     - **Integer Fit (Sharp) Scaling Mode**: Added a new "Integer Fit (Sharp)" (`integer-fit`) option to the Window Mode dropdown. This dynamically calculates the maximum integer scaling factor fitting within the current container and locks the canvas to that exact integer multiplier, maintaining absolute pixel sharpness during viewport resize or sidebar toggling.
     - **Prevent Layout Squashing in Fixed Modes**: Refactored global CSS so that when exact discrete scaling modes (1x, 2x, 3x, 4x) are selected, the canvas is allowed to render at its exact target dimensions (`max-width: none !important; max-height: none !important;`) and the container handles overflow using standard scrollbars (`overflow: auto`) instead of squashing the canvas fractionally.
+    - **MAME Extra URL Params Pass-through**: Added support for passing arbitrary extra arguments directly to MAME WASM core via the `?extra=` URL parameter (e.g. `?extra=-monitor,video7`). This elegantly fulfills inexorabletash's request to configure specialized OSD properties like Video-7 RGB Monitor directly through URL parameters, bypassing browser-level storage and WASM virtual file persistence limitations.
 
 ### 📅 2026-05-21 Updates
 - **UX & Terminology Polish**:
