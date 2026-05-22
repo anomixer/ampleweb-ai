@@ -7,7 +7,7 @@ interface RomSettings {
 }
 
 export interface VideoSettings {
-  windowMode: '1x' | '2x' | '3x' | '4x' | 'fit'
+  windowMode: '1x' | '2x' | '3x' | '4x' | 'fit' | 'integer-fit'
   captureMouse: boolean
   videoMethod: 'soft' | 'bgfx' | 'opengl'
   bgfxBackend: 'auto' | 'opengl' | 'gles' | 'vulkan'

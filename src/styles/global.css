@@ -1002,6 +1002,23 @@ button.badge:active {
   max-height: 100%;
 }
 
+.emulator-container.mode-1x,
+.emulator-container.mode-2x,
+.emulator-container.mode-3x,
+.emulator-container.mode-4x,
+.emulator-container.mode-integer-fit {
+  overflow: auto;
+}
+
+.emulator-container.mode-1x canvas,
+.emulator-container.mode-2x canvas,
+.emulator-container.mode-3x canvas,
+.emulator-container.mode-4x canvas,
+.emulator-container.mode-integer-fit canvas {
+  max-width: none !important;
+  max-height: none !important;
+}
+
 .emulator-container.mode-1x canvas {
   width: auto;
   height: auto;
@@ -1017,7 +1034,8 @@ button.badge:active {
 
 .emulator-container.mode-2x canvas,
 .emulator-container.mode-3x canvas,
-.emulator-container.mode-4x canvas {
+.emulator-container.mode-4x canvas,
+.emulator-container.mode-integer-fit canvas {
   /* Dimensions handled by JS for pixel accuracy */
   object-fit: contain;
 }

@@ -24,7 +24,8 @@
 ## 🌟 核心功能
 
 ### 🍏 忠實體驗 (功能對等)
-*   **精確縮放**：支援 **視窗 1x-4x** 模式與 **全螢幕** (Fit-to-Screen) 自動縮放。
+*   **精確縮放**：支援 **視窗 1x-4x** 模式、**Integer Fit (Sharp) 像素整數倍縮放** 與 **全螢幕** (Fit-to-Screen) 自動縮放。
+*   **完美 1:1 像素 (Square Pixel) 支援**：解鎖並完整啟用「Square Pixel」功能，停用 aspect-ratio 比例校正並傳遞 `-nokeepaspect` 至 MAME WASM 核心，實現純淨 1:1 硬體原始像素網格渲染。
 *   **完整機型**：全面支援 **Apple I, II, III 以及 Macintosh** 家族。
 *   **多國語系**：完整支援 **Apple IIe/IIee/IIep** 等多國語言版本 (DE, FR, ES, SE, UK) 及其正確的字集與開機 Logo。
 *   **周邊支援**：支援自動注入 **SCSI, CFFA2, 滑鼠卡 (Mouse card) 以及記憶體擴充卡 (Memory expansion)** 介面。
@@ -60,7 +61,7 @@
 *   **核心穩定性**：側邊欄標示**黃字**的機器因模擬核心核心限制，可能無法正常運作。
 *   **音訊延遲**：聲音可能會有輕微延遲 (此為 MAME WASM 的限制)。
 *   **執行速度**：受限於 WASM 核心架構，速度提升幅度有限，因此 CPU 調整至 500% 或 Max 可能無法達到預期速度。
-*   **停用功能**：因相容性問題，目前禁用以下功能：Debug, Square Pixel, Generate VGM。
+*   **停用功能**：因相容性問題，目前禁用以下功能：Debug 與 Generate VGM。
 *   **瀏覽器限制**：若錄製時間過長，大型 AVI 檔案可能會超出瀏覽器的記憶體緩衝區。
 
 ## 🛠️ 快速開始

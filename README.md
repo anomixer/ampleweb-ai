@@ -24,7 +24,8 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 ## 🌟 Key Features
 
 ### 🍏 Faithful Experience (Feature Parity)
-*   **Visual Precision**: Support for **Window 1x-4x** modes and **Full Screen** (Fit-to-Screen) scaling.
+*   **Visual Precision**: Support for **Window 1x-4x** modes, **Integer Fit (Sharp)** mode, and **Full Screen** (Fit-to-Screen) scaling.
+*   **Square Pixel Support**: Fully enabled and operational "Square Pixel" mode which disables aspect-ratio correction, passing `-nokeepaspect` to the WASM core for a perfect 1:1 hardware pixel grid rendering.
 *   **Comprehensive Library**: Full support for **Apple I, II, III, and Macintosh** families.
 *   **International Localization**: Proper support for localized **Apple IIe/IIee/IIep** variants (DE, FR, ES, SE, UK) with accurate character sets and boot logos.
 *   **Peripheral Support**: Supports auto-injection for **SCSI, CFFA2, Mouse cards, and Memory expansion**.
@@ -59,7 +60,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Core Stability**: Machines highlighted in **yellow** may not function correctly due to underlying emulation core limitations.
 *   **Audio Latency**: There may be slight audio lag, which is a known limitation of MAME WASM.
 *   **Execution Speed**: Speed gains are limited by the WASM architecture; settings like 500% or Max speed may not be achievable.
-*   **Disabled Features**: Due to compatibility issues, the following features are currently disabled: Debug, Square Pixel, and Generate VGM.
+*   **Disabled Features**: Due to compatibility issues, the following features are currently disabled: Debug and Generate VGM.
 *   **Browser Limits**: Large AVI captures may exceed browser memory buffers if recorded for extended periods.
 
 ## 🛠️ Quick Start

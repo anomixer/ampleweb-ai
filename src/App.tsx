@@ -661,13 +661,26 @@ function App() {
         return
       }
 
-      const scale = parseInt(videoSettings.windowMode) || 1
       let baseW = c.width
       let baseH = c.height
 
       if (machineConfig?.resolution && machineConfig.resolution[0] > 0) {
         baseW = machineConfig.resolution[0]
         baseH = machineConfig.resolution[1]
+      }
+
+      let scale = 1
+      if (videoSettings.windowMode === 'integer-fit') {
+        const container = canvasContainerRef.current
+        if (container && baseW > 0 && baseH > 0) {
+          const containerW = container.clientWidth
+          const containerH = container.clientHeight
+          const scaleW = Math.floor(containerW / baseW)
+          const scaleH = Math.floor(containerH / baseH)
+          scale = Math.max(1, Math.min(scaleW, scaleH))
+        }
+      } else {
+        scale = parseInt(videoSettings.windowMode) || 1
       }
 
       if (baseW > 0 && baseH > 0) {
@@ -684,7 +697,7 @@ function App() {
 
     // Handle window resize events
     const onWindowResize = () => {
-      if (videoSettings.windowMode === 'fit') {
+      if (videoSettings.windowMode === 'fit' || videoSettings.windowMode === 'integer-fit') {
         applyScale(true)
       }
     }
@@ -2282,12 +2295,13 @@ function App() {
                           <option value="3x">3x</option>
                           <option value="4x">4x</option>
                           <option value="fit">Fit to Screen</option>
+                          <option value="integer-fit">Integer Fit (Sharp)</option>
                         </select>
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Square Pixel</label>
-                        <label className="settings-toggle-wrap" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                          <input type="checkbox" disabled checked={!videoSettings?.keepAspect} />
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!videoSettings?.keepAspect} onChange={e => setVideoSettings({ keepAspect: !e.target.checked })} />
                         </label>
                       </div>
                       <div className="slot-row">

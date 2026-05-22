@@ -3,6 +3,12 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
+### 📅 2026-05-22 Updates
+- **Uneven Scaling & Pixel-Perfect Grid Resolution (inexorabletash feedback)**:
+    - **Square Pixel Toggle Unlocked**: Enabled and unblocked the "Square Pixel" checkbox. Clicking it toggles MAME's aspect ratio correction (`keepAspect: false`), which passes `-nokeepaspect` to MAME, ensuring a perfect 1:1 hardware pixel grid rendering without internal nearest-neighbor pixel dropping.
+    - **Integer Fit (Sharp) Scaling Mode**: Added a new "Integer Fit (Sharp)" (`integer-fit`) option to the Window Mode dropdown. This dynamically calculates the maximum integer scaling factor fitting within the current container and locks the canvas to that exact integer multiplier, maintaining absolute pixel sharpness during viewport resize or sidebar toggling.
+    - **Prevent Layout Squashing in Fixed Modes**: Refactored global CSS so that when exact discrete scaling modes (1x, 2x, 3x, 4x) are selected, the canvas is allowed to render at its exact target dimensions (`max-width: none !important; max-height: none !important;`) and the container handles overflow using standard scrollbars (`overflow: auto`) instead of squashing the canvas fractionally.
+
 ### 📅 2026-05-21 Updates
 - **UX & Terminology Polish**:
     - **Rename Video Method to Video Shader**: Rebranded the "Video Method" UI label in the Settings panel to "Video Shader" to align closer with modern user expectations and shader effects, while preserving backend command arguments mapping.
