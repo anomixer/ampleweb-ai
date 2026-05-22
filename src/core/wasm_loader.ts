@@ -49,6 +49,8 @@ export interface MediaFile {
 }
 
 export interface WasmLoaderOptions {
+  /** MAME custom cfg files to write to VFS /cfg/ */
+  cfgFiles?: Array<{ name: string; data: string }>
   /** MAME args (driver + flags), -rompath is added automatically */
   driverArgs?: string[]
   /** Pre-fetched ROM ZIP files to inject into VFS */
@@ -86,6 +88,7 @@ export function loadMameWasm(
       romFiles = [],
       mediaFiles = [],
       sampleFiles = [],
+      cfgFiles = [],
       romPath = '/roms',
       mediaPath = '/media',
       onReady,
@@ -307,8 +310,25 @@ export function loadMameWasm(
 
         const sharePath = '/share'
         const snapPath = '/snap'
+        const cfgPath = '/cfg'
         try { FS.mkdir(sharePath) } catch { /* exists */ }
         try { FS.mkdir(snapPath) } catch { /* exists */ }
+        try { FS.mkdir(cfgPath) } catch { /* exists */ }
+
+        if (cfgFiles.length > 0) {
+          Module.addRunDependency('cfg-write')
+          try {
+            for (const cfg of cfgFiles) {
+              const dest = `${cfgPath}/${cfg.name}`
+              FS.writeFile(dest, cfg.data)
+              console.log('[WasmLoader] Wrote custom cfg:', dest)
+              onLog?.(`[FS] Custom config ${dest} written`, false)
+            }
+          } catch (e: any) {
+            console.error('[WasmLoader] Custom cfg write failed:', e)
+          }
+          Module.removeRunDependency('cfg-write')
+        }
 
         if (localDirHandle) {
           Module.addRunDependency('local-dir-sync')

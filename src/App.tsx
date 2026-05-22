@@ -1320,6 +1320,55 @@ function App() {
       } catch (e) {}
     }
 
+    const cfgFiles: Array<{ name: string; data: string }> = []
+    let monitorIdx: number
+    while ((monitorIdx = extraArgsFromUrl.indexOf('-monitor')) !== -1) {
+      let valStr = '3'
+      if (monitorIdx + 1 < extraArgsFromUrl.length) {
+        const monitorVal = extraArgsFromUrl[monitorIdx + 1].toLowerCase()
+        if (monitorVal === 'video7' || monitorVal === 'video-7' || monitorVal === '3' || monitorVal.includes('video7') || monitorVal === 'rgb') {
+          valStr = '3'
+        } else if (monitorVal === 'color' || monitorVal === '0') {
+          valStr = '0'
+        } else if (monitorVal === 'mono' || monitorVal === 'monochrome' || monitorVal === 'green' || monitorVal === '1') {
+          valStr = '1'
+        } else if (monitorVal === 'amber' || monitorVal === '2') {
+          valStr = '2'
+        } else if (!isNaN(Number(monitorVal))) {
+          valStr = monitorVal
+        } else {
+          valStr = monitorVal.startsWith('-') ? '3' : '3'
+        }
+        
+        if (!extraArgsFromUrl[monitorIdx + 1].startsWith('-')) {
+          extraArgsFromUrl.splice(monitorIdx, 2)
+        } else {
+          extraArgsFromUrl.splice(monitorIdx, 1)
+        }
+      } else {
+        extraArgsFromUrl.splice(monitorIdx, 1)
+      }
+
+      const cfgContent = `<?xml version="1.0"?>
+<mameconfig version="10">
+    <system name="${mameDriver}">
+        <input>
+            <port tag=":a2video:a2_video_config" type="CONFIG" mask="7" defvalue="0" value="${valStr}" />
+        </input>
+    </system>
+</mameconfig>`
+
+      const existingCfgIdx = cfgFiles.findIndex(f => f.name === `${mameDriver}.cfg`)
+      if (existingCfgIdx !== -1) {
+        cfgFiles[existingCfgIdx].data = cfgContent
+      } else {
+        cfgFiles.push({
+          name: `${mameDriver}.cfg`,
+          data: cfgContent
+        })
+      }
+    }
+
     const args = buildMameArgs(mameDriver, {
       slots: filteredSlots,
       cpuSpeed: cpuSettings?.speed,
@@ -1368,6 +1417,7 @@ function App() {
         romFiles: romFiles,
         mediaFiles: mediaList,
         sampleFiles: sampleList,
+        cfgFiles: cfgFiles,
         jsUrl: `${BASE_URL}wasm/${wasmInfo.js}`,
         localDirHandle: pathSettings?.mapLocalDir ? localDirHandleRef.current : undefined,
         onProgress: (loaded, total) => {
