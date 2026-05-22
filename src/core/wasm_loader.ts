@@ -315,14 +315,45 @@ export function loadMameWasm(
         try { FS.mkdir(snapPath) } catch { /* exists */ }
         try { FS.mkdir(cfgPath) } catch { /* exists */ }
 
+        // Also create a relative 'cfg' directory and cwd-based 'cfg' directory just in case MAME resolves relative to FS.cwd()
+        let cwd = '/'
+        try {
+          cwd = FS.cwd ? FS.cwd() : '/'
+          console.log('[WasmLoader] FS.cwd is:', cwd)
+          try { FS.mkdir('cfg') } catch { /* exists */ }
+          if (cwd && cwd !== '/') {
+            try { FS.mkdir(`${cwd}/cfg`) } catch { /* exists */ }
+          }
+        } catch (e) {
+          console.warn('[WasmLoader] Failed to create relative/cwd cfg directories:', e)
+        }
+
         if (cfgFiles.length > 0) {
           Module.addRunDependency('cfg-write')
           try {
             for (const cfg of cfgFiles) {
-              const dest = `${cfgPath}/${cfg.name}`
-              FS.writeFile(dest, cfg.data)
-              console.log('[WasmLoader] Wrote custom cfg:', dest)
-              onLog?.(`[FS] Custom config ${dest} written`, false)
+              // 1. Absolute /cfg/[name]
+              const dest1 = `${cfgPath}/${cfg.name}`
+              FS.writeFile(dest1, cfg.data)
+              console.log('[WasmLoader] Wrote custom cfg (absolute):', dest1)
+
+              // 2. Relative cfg/[name]
+              try {
+                const dest2 = `cfg/${cfg.name}`
+                FS.writeFile(dest2, cfg.data)
+                console.log('[WasmLoader] Wrote custom cfg (relative):', dest2)
+              } catch (e) {}
+
+              // 3. Absolute cwd/cfg/[name]
+              if (cwd && cwd !== '/') {
+                try {
+                  const dest3 = `${cwd}/cfg/${cfg.name}`
+                  FS.writeFile(dest3, cfg.data)
+                  console.log('[WasmLoader] Wrote custom cfg (cwd absolute):', dest3)
+                } catch (e) {}
+              }
+
+              onLog?.(`[FS] Custom config ${cfg.name} written`, false)
             }
           } catch (e: any) {
             console.error('[WasmLoader] Custom cfg write failed:', e)

@@ -1386,7 +1386,7 @@ function App() {
       diskSound: avSettings?.diskSound,
       extraArgs: [
         '-verbose',
-        '-cfg_directory', '/cfg',
+        '-cfg_directory', 'cfg',
         ...(ramsizeArg ? ['-ramsize', ramsizeArg] : []),
         '-resolution', resolution,
         '-rompath', romPathArg,
@@ -1450,6 +1450,39 @@ function App() {
             canvasContainerRef.current.appendChild(m.canvas)
             m.canvas.style.display = 'block'
           }
+
+          // VFS Diagnostic Check
+          try {
+            const FS = (window as any).FS
+            if (FS) {
+              const cwd = FS.cwd ? FS.cwd() : '/'
+              console.log('[VFS Diagnostic] Current working directory (FS.cwd()):', cwd)
+              
+              const absPath = `/cfg/${mameDriver}.cfg`
+              const relPath = `cfg/${mameDriver}.cfg`
+              const cwdAbsPath = `${cwd}/cfg/${mameDriver}.cfg`
+              
+              console.log('[VFS Diagnostic] Absolute path exists?', FS.analyzePath(absPath).exists)
+              console.log('[VFS Diagnostic] Relative path exists?', FS.analyzePath(relPath).exists)
+              console.log('[VFS Diagnostic] CWD absolute path exists?', FS.analyzePath(cwdAbsPath).exists)
+
+              if (FS.analyzePath(relPath).exists) {
+                const content = FS.readFile(relPath, { encoding: 'utf8' })
+                console.log('[VFS Diagnostic] Content of relative cfg:', content)
+              } else if (FS.analyzePath(absPath).exists) {
+                const content = FS.readFile(absPath, { encoding: 'utf8' })
+                console.log('[VFS Diagnostic] Content of absolute cfg:', content)
+              } else if (FS.analyzePath(cwdAbsPath).exists) {
+                const content = FS.readFile(cwdAbsPath, { encoding: 'utf8' })
+                console.log('[VFS Diagnostic] Content of CWD absolute cfg:', content)
+              }
+            } else {
+              console.warn('[VFS Diagnostic] FS object not found on window!')
+            }
+          } catch (e) {
+            console.error('[VFS Diagnostic] Error performing diagnostic:', e)
+          }
+
           setWasmModule(m)
           if (NOT_WORKING_MACHINES.includes(machine.name)) {
             setStatusText('This machine may not work...')
