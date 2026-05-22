@@ -18,8 +18,9 @@
 | **MAME 整合** | 內建自訂核心 | **MAME WASM (通用型)** | 高效能 Emscripten 編譯二進位檔 |
 | **介面 UI** | 原生 macOS 元件 | **像素級 CSS 復刻** | 包含 **深/淺色模式** 與分頁狀態記憶 |
 | **檔案系統** | 原生 HFS/ProDOS 存取 | **VFS + 本地資料夾映射** | 支援透過 File System Access API 掛載本地資料夾 |
-| **資料持久化** | 直接寫入磁碟 | **退片即儲存流程** | 自動偵測 VFS 變更並提示儲存至本地 |
+| **資料持久化** | 直接寫入磁碟 | **換磁片寫入本地防護** | 自動偵測 VFS 變更，並於退片、更換本地檔案或從網址載入時，主動提示儲存至本地 |
 | **顯示支援** | Metal / OpenGL / BGFX | **WebGL / BGFX WASM** | 完整支援 BGFX 特效 (CRT-Geom, Scanlines 等) |
+| **XML 配置檔 (.cfg)** | Plist / 原生 MAME .cfg | **解耦式 LocalStorage + VFS 映射** | 內建 **XML Configuration Editor**，支援即時編輯、本地導入/導出，且針對克隆機型（如 `macpd280` 與 `macpd280c`）採獨立解耦持久化儲存，防止配置污染。 |
 
 ## 🌟 核心功能
 
@@ -42,7 +43,7 @@
 *   **配置面板冗餘下拉框清理 (Clean Slots Grid)**：自動偵測並隱藏只有單一或無可選選項（`options.length <= 1`）的固定式主板插槽選單（例如 Apple IIgs 的 Disk Drives 控制器），轉換為清晰的分組標題，只保留下方可變動的子插槽，畫面極致簡潔。
 *   **亮色模式高對比度優化 (Light Theme Contrast & Interactive Polish)**：修復全螢幕按鈕在亮色模式下的白色字體隱形問題，自動呈現動態高對比度主題色，並加入精細的滑鼠懸停與點擊縮放微動畫。
 *   **本地目錄映射 (/share)**：可將電腦上的任何資料夾直接映射至模擬器的虛擬檔案系統，實現無縫資料交換。
-*   **變更自動回存**：自動偵測虛擬磁碟映像檔的修改，並在退片時主動提示下載回本機。
+*   **儲存回本地（換磁片/硬碟寫入防護）**：自動追蹤模擬器運行期間對虛擬磁碟或硬碟的任何寫入操作。不論是點擊**退片 (⏏️)**、選取**本地檔案 (📁)** 或是從**網址載入 (🌐)**，系統都會主動進行安全檢查並提示您先將修改儲存回本地檔案系統，完美防止資料意外遺失。
 *   **媒體錄製匯出**：可將模擬器產出的 **AVI 影片** 與 **WAV 音訊** 直接匯出至您的本地裝置 (不要錄太久，以免瀏覽器記憶體緩衝區爆滿)。
 *   **即時分享 (Deep Linking)**：透過 URL 參數即可預先設定機型、插槽周邊與載入磁碟，支援自動開機功能 (URL結尾加上`&autoboot`)，非常適合教學展示與快速體驗。
 *   **URL 媒體載入**：支援透過 `?media=slotId:http://...` 參數，或使用 Media 分頁中新增的 **🌐 URL 按鈕** 直接從外部網址掛載磁片影像。
@@ -54,7 +55,50 @@
 *   **智慧型機器重設 (Intelligent Machine Reset)**：切換不同機器時自動清空先前的插槽設定與媒體掛載。這能確保環境純淨，防止從特定 URL 啟動後切換機器造成的「設定污染」。
 *   **模擬器畫面穩定**：模擬器 Canvas 從啟動起就固定在正確的置中位置，載入進度條出現 or 消失時畫面不再跳動。
 *   **音畫同步**：畫面與聲音現在同時出現。覆蓋層在 MAME Runtime 初始化（`onRuntimeInitialized`）的瞬間移除，與音效啟動時間完全一致，徹底消除先有聲音、後有畫面的 1–2 秒落差。
+*   **內建 XML 配置編輯器 (Built-in XML Configuration Editor)**：可直接在瀏覽器 UI 介面上編輯與調整 MAME 底層低階系統配置 XML。具備語法自動保留、`<system name="...">` 標籤智慧校正自動對齊、啟動時動態對齊克隆機型驅動程式（例如 `macpd280` / `macpd280c`）的解耦獨立儲存功能，並提供單行等寬（Save, Export, Import, Reset）居中對齊操作。
 *   **Corsfix 贊助代理**：跨來源媒體下載由 [Corsfix](https://corsfix.com/) 提供技術支援。
+
+## 🔗 即時分享 URL 參數規範
+
+AmpleWeb 內建強大的網址參數映射引擎（Deep Linking），允許您預先配置並分享精準的模擬器運行環境、周邊插槽、外接磁碟媒體、視窗大小比例與著色器濾鏡特效。
+
+### 核心驅動參數
+
+| 參數鍵名 | 別名 / 替代字 | 預期值範例 | 說明 |
+| :--- | :--- | :--- | :--- |
+| **`m`** | — | 機器內部識別碼 (例如 `apple2ee`, `apple2gsr1`) | 設定要啟動的 Apple / Macintosh 主機系統類型。 |
+| **`d`** | — | URL 編碼字串 (例如 `Apple+%2F%2Fe+%28enhanced%29`) | 設定 UI 頂部與列表中顯示的機器中文/英文友善名稱。 |
+| **`s`** | — | 以逗號分隔的插槽配置值 (例如 `ramsize:64K,sl4:mouse,sl6:diskiing`) | 預先配置系統記憶體大小、滑鼠卡、磁碟卡或各式自訂插槽周邊。 |
+| **`media`** | — | `slotId:網址` 或 `slotId:檔案名稱` | 直接掛載外部 URL 上的虛擬磁碟鏡像檔，支援 `.zip`、`.dsk`、`.2mg`、`.hdv`、`.woz` 等。 |
+| **`extra`** 或 **`?extra`** | — | 原始 MAME OSD 引數串 (例如 `-port,:a2video:a2_video_config,3`) | 直接為模擬核心注入低階命令參數或硬體覆寫配置（支援拼接打錯 `&?extra=` 智慧相容防錯）。 |
+| **`autoboot`** | — | 無需值 (例如 `&autoboot`) | 立即啟用自動開機引導，開啟精美的置中 2 秒倒數計時遮罩。 |
+
+### 視訊與著色器（Shader）參數
+
+您可以透過以下參數，在啟動時直接定義模擬器畫面的呈現效果。請注意，**選擇任何著色器特效時，系統會自動將顯示渲染引擎切換為 WebGL 硬體加速的 BGFX 模式**：
+
+| 參數鍵名 | 別名 / 替代字 | 允許的可選值 | 說明 |
+| :--- | :--- | :--- | :--- |
+| **`windowMode`** | `window_mode`, `wm`, `w` | `1x`, `2x`, `3x`, `4x`, `fit`, `integer-fit` | **視窗縮放比例**。`fit` 為自適應寬度，`integer-fit` 為完美像素整數倍銳化縮放。 |
+| **`videoShader`** | `video_shader`, `shader`, `effect`, `bgfxEffect`, `bgfx_effect` | `none`, `scanlines`, `crt-geom`, `crt-geom-deluxe`, `hq2x`, `lcd-grid` | **畫面著色器濾鏡**。參數值中的底線 `_` 與連字號 `-` 可完美互通。 |
+| **`videoMethod`** | `video_method`, `vm` | `soft`, `bgfx`, `opengl` | **顯示渲染引擎後端**。 |
+
+### 網址即時分享完整範例
+
+為了讓您能直觀體驗網址配置的強大組合能力，以下提供了多款具體的主機啟動實例：
+
+1. **Apple IIe Enhanced (搭載 BGFX CRT 掃描線特效、64K RAM、滑鼠卡、Video-7 RGB 與自動開機)：**
+   ```
+   https://anomixer.github.io/ample/?m=apple2ee&d=Apple+%2F%2Fe+%28enhanced%29&s=ramsize%3A64K%2Csl4%3Amouse%2Csl6%3Adiskiing%2Csl6%3Adiskiing%3A0%3A525%2Csl6%3Adiskiing%3A1%3A525%2Csl7%3Acffa202%2Caux%3Aext80%2Csl7%3Acffa202%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa202%3Acffa2_ata%3A1%3Ahdd&extra=-port,:a2video:a2_video_config,3&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot&w=fit&shader=crt-geom
+   ```
+   *(此網址展示了：以 `m` 指定機型、`s` 映射插槽、`extra` 注入低階 Video-7 配置、`media` 掛載雲端硬碟 ZIP 映像、`autoboot` 2 秒開機、`w` 自適應視窗，以及 `shader` 自動調用 WebGL BGFX 映像著色器)*
+
+2. **Apple IIgs ROM 01 (搭載 1.25MB RAM、5.25/3.5 雙軟碟、CFFA2 大容量硬碟與自動開機)：**
+   ```
+   https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot
+   ```
+
+---
 
 ### ⚠️ 已知限制
 *   **磁碟掛載限制**：因瀏覽器的 VFS 限制，磁碟掛載僅限於啟動機器之前。啟動後無法動態換片 (替代方案：開啟「Paths」標籤下的本地資料夾映射功能，再透過 MAME 內建 UI 手動從 `/share` 目錄掛載)。
@@ -69,11 +113,11 @@
 ### 1. 線上立即體驗 (推薦)
 
 無需任何設定，直接在瀏覽器中暢享 80 年代的經典電腦體驗：
-👉 **[https://anomixer.github.io/ample/](https://anomixer.github.io/ample/)**
+👉 **[主站入口](https://anomixer.github.io/ample/)**
 
-
-雲端直接載入 Apple II Desktop：
-👉 **[點我立即體驗](https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot)**
+我們為您預先配置了兩個包含 Apple II Desktop 系統的即時啟動網址：
+*   **[立即體驗 Apple IIe (enhanced)](https://anomixer.github.io/ample/?m=apple2ee&d=Apple+%2F%2Fe+%28enhanced%29&s=ramsize%3A64K%2Csl4%3Amouse%2Csl6%3Adiskiing%2Csl6%3Adiskiing%3A0%3A525%2Csl6%3Adiskiing%3A1%3A525%2Csl7%3Acffa202%2Caux%3Aext80%2Csl7%3Acffa202%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa202%3Acffa2_ata%3A1%3Ahdd&extra=-port,:a2video:a2_video_config,3&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot&windowMode=fit&videoMethod=bgfx)** (搭載 Video-7 RGB 顯卡、BGFX 硬體加速與自動開機)
+*   **[立即體驗 Apple IIgs (ROM01)](https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot)** (搭載 1.25MB 記憶體、CFFA2 硬碟控制器與自動開機)
 
 ---
 

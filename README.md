@@ -18,8 +18,9 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 | **MAME Integration** | Built-in Custom Core | **MAME WASM (Universal)** | High-performance Emscripten-compiled binary |
 | **UI** | Native macOS Components | **Pixel-Perfect CSS Replica** | Includes **Dark/Light Mode** & Tab Persistence |
 | **File System** | Native HFS/ProDOS Access | **VFS + Local Folder Mapping** | Support for mounting local folders via File System Access API |
-| **Data Persistence** | Direct Disk Write | **Save-on-Eject Workflow** | Detects changes in VFS and prompts local save |
+| **Data Persistence** | Direct Disk Write | **Save-on-Change Guard** | Detects VFS changes and prompts to save locally when ejecting, changing files, or loading URLs |
 | **Video Support** | Metal / OpenGL / BGFX | **WebGL / BGFX WASM** | Full BGFX effects (CRT-Geom, Scanlines, etc.) |
+| **XML Config (.cfg)** | Plist / Native MAME .cfg | **Decoupled LocalStorage + VFS mapping** | Built-in **XML Configuration Editor** supporting instant editing, direct local import/export, and decoupled persistence per specific clone model (e.g. `macpd280` / `macpd280c`) |
 
 ## 🌟 Key Features
 
@@ -41,7 +42,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Unconfigurable Slot Dropdowns Cleanup**: Automatically hides blank, useless select dropdowns for built-in/unchangeable slot lanes (where `options.length <= 1`), turning their labels into clean bold section headers while keeping selectable sub-slots (e.g. floppy drives) perfectly functional underneath.
 *   **Light Theme Contrast & Interactive Polish**: Fixed the high-contrast visibility issue of the "📺 Full Screen" badge button in light theme, replacing hardcoded styles with dynamic theme-aware coloring, and added smooth micro-animations (scale/fade transitions) on hover and active click actions.
 *   **Local Directory Mapping (/share)**: Map any local host folder directly to the emulator's VFS for seamless data exchange.
-*   **Save back to Local**: Modified virtual disk images are automatically detected and prompted for download upon ejection.
+*   **Save back to Local (Save-on-Change Guard)**: Any write operations to virtual disks/hard disks during emulator runtime are automatically tracked. Clicking **Eject (⏏️)**, selecting a **Local File (📁)**, or inserting a **URL (🌐)** will trigger a safety check, prompting you to save changes back to your local filesystem first, preventing accidental data loss.
 *   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent browser memory buffer overflow).
 *   **Deep Linking (Instant Sharing)**: Pre-configure machines, slots, and media via URL parameters; supports automatic startup (URL ending with `&autoboot`) for seamless demos and education.
 *   **URL-Based Media Loading**: Mount disks directly from any external URL using the `?media=slotId:http://...` parameter or via the new **🌐 URL Button** in the Media tab.
@@ -53,7 +54,50 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Intelligent Machine Reset**: Automatically clears previous slot configurations and media mounts when switching between different machines. This ensures a clean slate and prevents "configuration pollution" when transitioning from specialized URL-based sessions.
 *   **Stable Emulator Canvas**: The emulator canvas is always anchored in the correct centered position from startup. No layout shifts or jumps when the loading bar appears or disappears.
 *   **Audio/Video Synchronization**: Screen and sound now start simultaneously. The emulator overlay is removed the instant MAME's runtime initializes (`onRuntimeInitialized`), the same moment audio begins, eliminating the previous 1–2 second audio-before-video gap.
+*   **Built-in XML Configuration Editor**: Edit and tweak MAME's low-level system configuration XML directly from the UI. Features intelligent syntax preservation, auto-correction of the target `<system name="...">` tags, dynamic on-launch driver translation (e.g. `macpd280` / `macpd280c`), and fully responsive equal-width operations (Save, Export, Import, Reset) presented in a single centered row.
 *   **Corsfix Sponsored Proxy**: Cross-origin media downloads are proudly powered by [Corsfix](https://corsfix.com/).
+
+## 🔗 Deep Link URL Parameter Specification
+
+AmpleWeb features a powerful URL parameter mapping engine (Deep Linking) that allows you to pre-configure and share precise emulator environments, peripherals, disk media, window dimensions, and shader effects.
+
+### Core Parameters
+
+| Parameter | Alias | Expected Values | Description |
+| :--- | :--- | :--- | :--- |
+| **`m`** | — | Machine identifier (e.g., `apple2ee`, `apple2gsr1`) | Sets the target Apple/Macintosh model system to load. |
+| **`d`** | — | Encoded string (e.g., `Apple+%2F%2Fe+%28enhanced%29`) | Sets the human-readable description shown in the UI. |
+| **`s`** | — | Comma-separated slot-value pairs (e.g., `ramsize:64K,sl4:mouse,sl6:diskiing`) | Pre-configures slot peripherals, memory cards, and internal settings. |
+| **`media`** | — | `slotId:URL` or `slotId:filename` | Mounts external disk images directly from a URL. Supports `.zip`, `.dsk`, `.2mg`, `.hdv`, `.woz`, etc. |
+| **`extra`** or **`?extra`** | — | Raw MAME OSD arguments (e.g., `-port,:a2video:a2_video_config,3`) | Inject custom low-level MAME options or port overrides (with automatic query string typos handling). |
+| **`autoboot`** | — | No value required (e.g., `&autoboot`) | Triggers automated machine launch with a sleek 2-second centered loading countdown. |
+
+### Video & Shader Settings Parameters
+
+You can pass these to configure display settings on startup. Note that choosing any shader effect automatically switches the rendering method to hardware-accelerated **BGFX WebGL**:
+
+| Parameter | Alias / Synonyms | Allowed Values | Description |
+| :--- | :--- | :--- | :--- |
+| **`windowMode`** | `window_mode`, `wm`, `w` | `1x`, `2x`, `3x`, `4x`, `fit`, `integer-fit` | **Window scale**. `fit` fits to screen; `integer-fit` locks scaling to exact integer multipliers for ultra-sharp pixels. |
+| **`videoShader`** | `video_shader`, `shader`, `effect`, `bgfxEffect`, `bgfx_effect` | `none`, `scanlines`, `crt-geom`, `crt-geom-deluxe`, `hq2x`, `lcd-grid` | **Display filter**. Values can use underscores or hyphens interchangeably. |
+| **videoMethod** | `video_method`, `vm` | `soft`, `bgfx`, `opengl` | **Rendering backend engine**. |
+
+### Complete URL Sharing Examples
+
+Here are some real-world combination examples to demonstrate the URL deep linking capabilities:
+
+1. **Apple IIe Enhanced with BGFX CRT Shader, 64K RAM, Mouse Card, Video-7 configuration & Auto-boot:**
+   ```
+   https://anomixer.github.io/ample/?m=apple2ee&d=Apple+%2F%2Fe+%28enhanced%29&s=ramsize%3A64K%2Csl4%3Amouse%2Csl6%3Adiskiing%2Csl6%3Adiskiing%3A0%3A525%2Csl6%3Adiskiing%3A1%3A525%2Csl7%3Acffa202%2Caux%3Aext80%2Csl7%3Acffa202%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa202%3Acffa2_ata%3A1%3Ahdd&extra=-port,:a2video:a2_video_config,3&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot&w=fit&shader=crt-geom
+   ```
+   *(Features demonstrated: `m` for model, `s` slots mapping, `extra` for Video-7 OSD settings, `media` for external .zip HDD image, `autoboot` timer, `w` window mode override, and `shader` for BGFX CRT display filter)*
+
+2. **Apple IIgs ROM 01 with 1.25MB RAM, Floppy & CFFA2 HDD drives & Auto-boot:**
+   ```
+   https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot
+   ```
+
+---
 
 ## ⚠️ Known Limitations
 *   **Disk Mounting Limits**: Due to browser VFS limitations, disks can only be mounted before launching the machine. Real-time disk swapping is not supported (Alternative: Use the "Local Directory Mapping" feature in the Paths tab and mount via MAME's internal UI from the `/share` directory).
@@ -68,9 +112,11 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 ### 1. Instant Online Experience (Recommended)
 
 No setup required. Enjoy the classic 80s computing experience directly in your browser:
-👉 **[Main Site](https://anomixer.github.io/ample/)** | **[Launch Apple II Desktop (Cloud)](https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot)**
+👉 **[Main Site](https://anomixer.github.io/ample/)**
 
----
+We have pre-configured two instant-launch retro systems containing Apple II Desktop for you:
+*   **[Launch Apple IIe (enhanced)](https://anomixer.github.io/ample/?m=apple2ee&d=Apple+%2F%2Fe+%28enhanced%29&s=ramsize%3A64K%2Csl4%3Amouse%2Csl6%3Adiskiing%2Csl6%3Adiskiing%3A0%3A525%2Csl6%3Adiskiing%3A1%3A525%2Csl7%3Acffa202%2Caux%3Aext80%2Csl7%3Acffa202%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa202%3Acffa2_ata%3A1%3Ahdd&extra=-port,:a2video:a2_video_config,3&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot&windowMode=fit&videoMethod=bgfx)** (with Video-7 RGB, BGFX Hardware Acceleration & Autoboot)
+*   **[Launch Apple IIgs (ROM01)](https://anomixer.github.io/ample/?m=apple2gsr1&d=Apple+IIgs+%28ROM01%29&s=ramsize%3A1280K%2Csmartport%3Afdc%3A0%3A525%2Csmartport%3Afdc%3A1%3A525%2Csmartport%3Afdc%3A2%3A35dd%2Csmartport%3Afdc%3A3%3A35dd%2Csl7%3Acffa2%2Csl7%3Acffa2%3Acffa2_ata%3A0%3Ahdd%2Csl7%3Acffa2%3Acffa2_ata%3A1%3Ahdd&media=hard1:https://github.com/a2stuff/a2d/releases/download/v1.6-alpha2/A2DeskTop-1.6-alpha2-en.zip&autoboot)** (with 1.25MB RAM, CFFA2 HDD controller & Autoboot)
 
 ### 2. Running Locally (Developers/Offline Use)
 

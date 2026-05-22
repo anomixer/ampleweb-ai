@@ -11,8 +11,46 @@ import {
   type RomFile,
   type MediaFile,
 } from './core/wasm_loader'
-import { useStore } from './core/store'
+import { useStore, type VideoSettings } from './core/store'
 const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+
+function getDefaultCfgTemplate(mameDriver: string): string {
+  return `<?xml version="1.0"?>
+<mameconfig version="10">
+    <system name="${mameDriver}">
+        <input>
+        </input>
+    </system>
+</mameconfig>`
+}
+
+function updateSystemNameInXml(xml: string, mameDriver: string): string {
+  return xml.replace(/<system\s+name\s*=\s*['"][^'"]*['"]>/i, `<system name="${mameDriver}">`)
+}
+
+function injectPortsIntoXml(xml: string, ports: Record<string, string>): string {
+  let result = xml
+  if (!result.includes('<input>')) {
+    if (result.includes('</system>')) {
+      result = result.replace('</system>', '    <input>\n        </input>\n    </system>')
+    } else {
+      return xml // Fallback if XML is corrupted
+    }
+  }
+  for (const [tag, value] of Object.entries(ports)) {
+    const tagEscaped = tag.replace(/[^a-zA-Z0-9]/g, '\\$&')
+    // Super robust regex matching port node with any attributes order, quotes, spaces, self-closing or not
+    const regex = new RegExp(`<port\\s+[^>]*tag\\s*=\\s*['"]${tagEscaped}['"][^>]*\\/?>|<port\\s+tag\\s*=\\s*['"]${tagEscaped}['"][^>]*\\/?>`, 'i')
+    const newPortNode = `<port tag="${tag}" type="CONFIG" mask="7" defvalue="0" value="${value}" />`
+    if (regex.test(result)) {
+      result = result.replace(regex, newPortNode)
+    } else {
+      result = result.replace('<input>', `<input>\n            ${newPortNode}`)
+    }
+  }
+  return result
+}
+
 
 /**
  * Emulator type → WASM file info.
@@ -566,9 +604,96 @@ function App() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => window.innerWidth > 800)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(() => window.innerWidth > 800)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths'>(() => {
+  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths' | 'config'>(() => {
     return (localStorage.getItem('ample-system-tab') as any) || 'video'
   })
+  const [editorCfgText, setEditorCfgText] = useState('')
+
+  const currentMameDriver = selectedMachine
+    ? (DRIVER_MAP[selectedMachine.name] || selectedMachine.name)
+    : 'apple2ee'
+
+  const currentMachineName = selectedMachine
+    ? selectedMachine.name
+    : 'apple2ee'
+
+  useEffect(() => {
+    let saved = localStorage.getItem('ample_cfg_' + currentMachineName) || getDefaultCfgTemplate(currentMachineName)
+    // Ensure the system name matches the user-visible machine name in UI & localStorage
+    saved = updateSystemNameInXml(saved, currentMachineName)
+    
+    // Parse URL parameters for port overrides on load, accommodating both 'extra' and potential malformed '&?extra' keys
+    const urlParams = new URLSearchParams(window.location.search)
+    const extraParam = urlParams.get('extra') || urlParams.get('?extra')
+    const extraArgsFromUrl: string[] = []
+    if (extraParam) {
+      try {
+        extraParam.split(',').forEach(arg => {
+          const trimmed = arg.trim()
+          if (trimmed) extraArgsFromUrl.push(trimmed)
+        })
+      } catch (e) {}
+    }
+
+    const portsToInject: Record<string, string> = {}
+    let idx = 0
+    while (idx < extraArgsFromUrl.length) {
+      const arg = extraArgsFromUrl[idx]
+      if (arg === '-port') {
+        if (idx + 2 < extraArgsFromUrl.length) {
+          const tag = extraArgsFromUrl[idx + 1]
+          const val = extraArgsFromUrl[idx + 2]
+          portsToInject[tag] = val
+          idx += 3
+        } else {
+          idx += 1
+        }
+      } else if (arg === '-monitor' || arg === '-cfg') {
+        if (idx + 1 < extraArgsFromUrl.length) {
+          const monitorVal = extraArgsFromUrl[idx + 1].toLowerCase()
+          let valStr = '3'
+          if (monitorVal === 'video7' || monitorVal === 'video-7' || monitorVal === '3' || monitorVal.includes('video7') || monitorVal === 'rgb') {
+            valStr = '3'
+          } else if (monitorVal === 'color' || monitorVal === '0') {
+            valStr = '0'
+          } else if (monitorVal === 'mono' || monitorVal === 'monochrome' || monitorVal === 'green' || monitorVal === '1') {
+            valStr = '1'
+          } else if (monitorVal === 'amber' || monitorVal === '2') {
+            valStr = '2'
+          } else if (!isNaN(Number(monitorVal))) {
+            valStr = monitorVal
+          }
+          
+          portsToInject[':a2video:a2_video_config'] = valStr
+          idx += 2
+        } else {
+          idx += 1
+        }
+      } else {
+        idx++
+      }
+    }
+
+    if (Object.keys(portsToInject).length > 0) {
+      let mergedCfg = injectPortsIntoXml(saved, portsToInject)
+      // Ensure the system name matches currentMachineName after URL ports injection
+      mergedCfg = updateSystemNameInXml(mergedCfg, currentMachineName)
+      localStorage.setItem('ample_cfg_' + currentMachineName, mergedCfg)
+      setEditorCfgText(mergedCfg)
+      
+      // Clean up the extra parameter from URL query string so it doesn't override manual updates
+      try {
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('extra')
+        newUrl.searchParams.delete('?extra')
+        window.history.replaceState({}, '', newUrl.toString())
+      } catch (e) {}
+    } else {
+      // Ensure the corrected XML is saved back to localStorage under currentMachineName for seamless synchronization
+      localStorage.setItem('ample_cfg_' + currentMachineName, saved)
+      setEditorCfgText(saved)
+    }
+  }, [currentMachineName, currentMameDriver])
   const [machineTab, setMachineTab] = useState<'slots' | 'media' | 'logs'>(() => {
     return (localStorage.getItem('ample-machine-tab') as any) || 'slots'
   })
@@ -1309,7 +1434,7 @@ function App() {
 
     // Read arbitrary extra MAME parameters from URL (e.g. ?extra=-monitor,video7)
     const urlParams = new URLSearchParams(window.location.search)
-    const extraParam = urlParams.get('extra')
+    const extraParam = urlParams.get('extra') || urlParams.get('?extra')
     const extraArgsFromUrl: string[] = []
     if (extraParam) {
       try {
@@ -1320,14 +1445,23 @@ function App() {
       } catch (e) {}
     }
 
-    const cfgFiles: Array<{ name: string; data: string }> = []
-    let monitorIdx: number
-    const targetParams = ['-monitor', '-cfg']
-    for (const paramName of targetParams) {
-      while ((monitorIdx = extraArgsFromUrl.indexOf(paramName)) !== -1) {
-        let valStr = '3'
-        if (monitorIdx + 1 < extraArgsFromUrl.length) {
-          const monitorVal = extraArgsFromUrl[monitorIdx + 1].toLowerCase()
+    const portsToInject: Record<string, string> = {}
+    let idx = 0
+    while (idx < extraArgsFromUrl.length) {
+      const arg = extraArgsFromUrl[idx]
+      if (arg === '-port') {
+        if (idx + 2 < extraArgsFromUrl.length) {
+          const tag = extraArgsFromUrl[idx + 1]
+          const val = extraArgsFromUrl[idx + 2]
+          portsToInject[tag] = val
+          extraArgsFromUrl.splice(idx, 3)
+        } else {
+          extraArgsFromUrl.splice(idx, 1)
+        }
+      } else if (arg === '-monitor' || arg === '-cfg') {
+        if (idx + 1 < extraArgsFromUrl.length) {
+          const monitorVal = extraArgsFromUrl[idx + 1].toLowerCase()
+          let valStr = '3'
           if (monitorVal === 'video7' || monitorVal === 'video-7' || monitorVal === '3' || monitorVal.includes('video7') || monitorVal === 'rgb') {
             valStr = '3'
           } else if (monitorVal === 'color' || monitorVal === '0') {
@@ -1342,40 +1476,37 @@ function App() {
             valStr = monitorVal.startsWith('-') ? '3' : '3'
           }
           
-          if (!extraArgsFromUrl[monitorIdx + 1].startsWith('-')) {
-            extraArgsFromUrl.splice(monitorIdx, 2)
+          portsToInject[':a2video:a2_video_config'] = valStr
+
+          if (!extraArgsFromUrl[idx + 1].startsWith('-')) {
+            extraArgsFromUrl.splice(idx, 2)
           } else {
-            extraArgsFromUrl.splice(monitorIdx, 1)
+            extraArgsFromUrl.splice(idx, 1)
           }
         } else {
-          extraArgsFromUrl.splice(monitorIdx, 1)
+          extraArgsFromUrl.splice(idx, 1)
         }
-
-        const cfgContent = `<?xml version="1.0"?>
-<mameconfig version="10">
-    <system name="${mameDriver}">
-        <input>
-            <port tag=":a2video:a2_video_config" type="CONFIG" mask="7" defvalue="0" value="${valStr}" />
-        </input>
-    </system>
-</mameconfig>`
-
-        const existingCfgIdx = cfgFiles.findIndex(f => f.name === `${mameDriver}.cfg`)
-        if (existingCfgIdx !== -1) {
-          cfgFiles[existingCfgIdx].data = cfgContent
-        } else {
-          cfgFiles.push({
-            name: `${mameDriver}.cfg`,
-            data: cfgContent
-          })
-        }
+      } else {
+        idx++
       }
     }
+
+    let savedCfg = localStorage.getItem('ample_cfg_' + machine.name) || getDefaultCfgTemplate(mameDriver)
+    // Ensure the system name is fully aligned with mameDriver before writing to VFS
+    savedCfg = updateSystemNameInXml(savedCfg, mameDriver)
+    const finalCfgContent = updateSystemNameInXml(injectPortsIntoXml(savedCfg, portsToInject), mameDriver)
+    const cfgFiles: Array<{ name: string; data: string }> = [
+      {
+        name: `${mameDriver}.cfg`,
+        data: finalCfgContent
+      }
+    ]
 
     console.log('[App.tsx] extraParam is:', extraParam)
     console.log('[App.tsx] parsed extraArgsFromUrl:', extraArgsFromUrl)
     console.log('[App.tsx] generated cfgFiles:', cfgFiles)
 
+    const currentVideoSettings = useStore.getState().videoSettings
     const args = buildMameArgs(mameDriver, {
       slots: filteredSlots,
       cpuSpeed: cpuSettings?.speed,
@@ -1383,10 +1514,10 @@ function App() {
       rewind: cpuSettings?.rewind,
       aviWrite: avSettings?.generateAvi,
       wavWrite: avSettings?.generateWav,
-      videoMethod: videoSettings?.videoMethod,
-      bgfxBackend: videoSettings?.bgfxBackend,
-      bgfxEffect: videoSettings?.bgfxEffect,
-      keepAspect: videoSettings?.keepAspect,
+      videoMethod: currentVideoSettings?.videoMethod,
+      bgfxBackend: currentVideoSettings?.bgfxBackend,
+      bgfxEffect: currentVideoSettings?.bgfxEffect,
+      keepAspect: currentVideoSettings?.keepAspect,
       diskSound: avSettings?.diskSound,
       extraArgs: [
         '-verbose',
@@ -1595,7 +1726,90 @@ function App() {
     }
   }
 
+  const saveFileToLocal = useCallback(async (filename: string, data: Uint8Array) => {
+    try {
+      // @ts-ignore
+      if ((window as any).showSaveFilePicker) {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: filename,
+        })
+        const writable = await handle.createWritable()
+        await writable.write(data)
+        await writable.close()
+        addLog(`Saved ${filename} to local filesystem`, false)
+      } else {
+        const blob = new Blob([data], { type: 'application/octet-stream' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+        addLog(`Downloaded ${filename}`, false)
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        addLog(`Save failed: ${e.message}`, true)
+      }
+      throw e
+    }
+  }, [addLog])
+
+  const checkAndPromptSaveDisk = useCallback(async (slotId: string): Promise<boolean> => {
+    const file = mediaFiles[slotId]
+    if (!file) return true
+
+    if (launchState === 'running') {
+      const virtualPath = `/media/${file.name}`
+      const stat = getVirtualFileStat(virtualPath)
+      
+      if (stat) {
+        const data = getVirtualFile(virtualPath)
+        if (data) {
+          const mtime = stat.mtime?.getTime ? stat.mtime.getTime() : (Number(stat.mtime) * 1000)
+          if (mtime > mountTimeRef.current) {
+            const save = window.confirm(`Disk "${file.name}" has been modified. Save back to local before changing/ejecting?`)
+            if (save) {
+              try {
+                await saveFileToLocal(file.name, data)
+                addLog(`Saved modified disk "${file.name}" back to local successfully.`, false)
+                return true
+              } catch (e: any) {
+                if (e.name !== 'AbortError') {
+                  addLog(`Save failed: ${e.message}`, true)
+                  const continueAnyway = window.confirm(`Failed to save disk. Abandon changes and proceed?`)
+                  return continueAnyway
+                } else {
+                  return false
+                }
+              }
+            } else {
+              const abandon = window.confirm(`Abandon changes and proceed?`)
+              return abandon
+            }
+          }
+        }
+      }
+    }
+    return true
+  }, [mediaFiles, launchState, saveFileToLocal, addLog])
+
+  const handleEject = useCallback(async (slotId: string) => {
+    const proceed = await checkAndPromptSaveDisk(slotId)
+    if (!proceed) return
+
+    setMediaFiles(prev => {
+      const next = { ...prev }
+      delete next[slotId]
+      return next
+    })
+    dataManager.clearMedia(slotId)
+  }, [checkAndPromptSaveDisk])
+
   const handleInsertUrl = useCallback(async (id: string) => {
+    const proceed = await checkAndPromptSaveDisk(id)
+    if (!proceed) return
+
     const url = prompt('Enter disk image URL (supports .zip, .dsk, .do, .po, etc.):')
     if (!url || !url.trim()) return
 
@@ -1628,7 +1842,7 @@ function App() {
       addLog(`Failed to download media: ${e.message}`, true)
       alert(`Failed to download media: ${e.message}`)
     }
-  }, [addLog, handleZipFile])
+  }, [addLog, handleZipFile, checkAndPromptSaveDisk])
 
   const handleMameUIToggle = useCallback(() => {
     // Send ScrollLock key to toggle MAME UI mode
@@ -1695,67 +1909,6 @@ function App() {
     }
   }
 
-  const saveFileToLocal = async (filename: string, data: Uint8Array) => {
-    try {
-      // @ts-ignore
-      if ((window as any).showSaveFilePicker) {
-        const handle = await (window as any).showSaveFilePicker({
-          suggestedName: filename,
-        })
-        const writable = await handle.createWritable()
-        await writable.write(data)
-        await writable.close()
-        addLog(`Saved ${filename} to local filesystem`, false)
-      } else {
-        const blob = new Blob([data], { type: 'application/octet-stream' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        a.click()
-        URL.revokeObjectURL(url)
-        addLog(`Downloaded ${filename}`, false)
-      }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        addLog(`Save failed: ${e.message}`, true)
-      }
-    }
-  }
-
-  const handleEject = async (slotId: string) => {
-    const file = mediaFiles[slotId]
-    if (!file) return
-
-    if (launchState === 'running') {
-      const virtualPath = `/media/${file.name}`
-      const stat = getVirtualFileStat(virtualPath)
-      
-      // If file exists and mtime is newer than mountTime, it was modified
-      // Emscripten mtime is in seconds or milliseconds depending on version, 
-      // but usually we can check if it changed at all.
-      if (stat) {
-        const data = getVirtualFile(virtualPath)
-        if (data) {
-          const mtime = stat.mtime?.getTime ? stat.mtime.getTime() : (Number(stat.mtime) * 1000)
-          if (mtime > mountTimeRef.current) {
-            const save = window.confirm(`Disk "${file.name}" has been modified. Save back to local?`)
-            if (save) {
-              await saveFileToLocal(file.name, data)
-            }
-          }
-        }
-      }
-    }
-
-    setMediaFiles(prev => {
-      const next = { ...prev }
-      delete next[slotId]
-      return next
-    })
-    dataManager.clearMedia(slotId)
-  }
-
   useEffect(() => {
     const init = async () => {
       const data = await dataManager.loadModels()
@@ -1765,6 +1918,44 @@ function App() {
       const params = new URLSearchParams(window.location.search)
       const m = params.get('m')
       const d = params.get('d')
+
+      // Parse video settings from URL overrides if present
+      const wmParam = params.get('windowMode') || params.get('window_mode') || params.get('wm') || params.get('w')
+      const shaderParam = params.get('videoShader') || params.get('video_shader') || params.get('shader') || params.get('effect') || params.get('bgfxEffect') || params.get('bgfx_effect')
+      const vmParam = params.get('videoMethod') || params.get('video_method') || params.get('vm')
+
+      const videoOverrides: Partial<VideoSettings> = {}
+
+      if (wmParam) {
+        const val = wmParam.toLowerCase()
+        if (['1x', '2x', '3x', '4x', 'fit', 'integer-fit'].includes(val)) {
+          videoOverrides.windowMode = val as any
+        }
+      }
+
+      if (shaderParam) {
+        const val = shaderParam.toLowerCase()
+        const validEffects = ['none', 'scanlines', 'crt-geom', 'crt-geom-deluxe', 'hq2x', 'lcd-grid']
+        const normalizedVal = val.replace(/_/g, '-')
+        if (validEffects.includes(normalizedVal)) {
+          videoOverrides.bgfxEffect = normalizedVal as any
+          if (normalizedVal !== 'none') {
+            videoOverrides.videoMethod = 'bgfx'
+          }
+        }
+      }
+
+      if (vmParam) {
+        const val = vmParam.toLowerCase()
+        if (['soft', 'bgfx', 'opengl'].includes(val)) {
+          videoOverrides.videoMethod = val as any
+        }
+      }
+
+      if (Object.keys(videoOverrides).length > 0) {
+        setVideoSettings(videoOverrides)
+        addLog(`Applied video settings overrides from URL: ${JSON.stringify(videoOverrides)}`, false)
+      }
 
       let machineToLaunch: { name: string; description: string } | null = null
       let slots: Record<string, string> = {}
@@ -1928,6 +2119,19 @@ function App() {
           const newUrl = new URL(window.location.href)
           newUrl.searchParams.delete('launch')
           newUrl.searchParams.delete('autoboot')
+          newUrl.searchParams.delete('windowMode')
+          newUrl.searchParams.delete('window_mode')
+          newUrl.searchParams.delete('wm')
+          newUrl.searchParams.delete('w')
+          newUrl.searchParams.delete('videoShader')
+          newUrl.searchParams.delete('video_shader')
+          newUrl.searchParams.delete('shader')
+          newUrl.searchParams.delete('effect')
+          newUrl.searchParams.delete('bgfxEffect')
+          newUrl.searchParams.delete('bgfx_effect')
+          newUrl.searchParams.delete('videoMethod')
+          newUrl.searchParams.delete('video_method')
+          newUrl.searchParams.delete('vm')
           window.history.replaceState({}, '', newUrl.toString())
 
           // If mapping is enabled, we CANNOT auto-launch because we need a user gesture for the folder.
@@ -1939,9 +2143,18 @@ function App() {
           } else {
             if (isAutoBoot) {
               addLog('Autoboot sequence initiated (2s delay)...', false)
-              setTimeout(() => {
-                doLaunch(machineToLaunch!, slots, restoredMedia, config)
-              }, 2000)
+              setLaunchState('fetching-rom')
+              setStatusText('Autoboot in 2 sec...')
+              let timeLeft = 2
+              const timer = setInterval(() => {
+                timeLeft--
+                if (timeLeft > 0) {
+                  setStatusText(`Autoboot in ${timeLeft} sec...`)
+                } else {
+                  clearInterval(timer)
+                  doLaunch(machineToLaunch!, slots, restoredMedia, config)
+                }
+              }, 1000)
             } else {
               doLaunch(machineToLaunch!, slots, restoredMedia, config)
             }
@@ -2387,6 +2600,7 @@ function App() {
                 <button className={`tab-btn ${systemTab === 'cpu' ? 'active' : ''}`} onClick={() => setSystemTab('cpu')}>CPU</button>
                 <button className={`tab-btn ${systemTab === 'av' ? 'active' : ''}`} onClick={() => setSystemTab('av')}>A/V</button>
                 <button className={`tab-btn ${systemTab === 'paths' ? 'active' : ''}`} onClick={() => setSystemTab('paths')}>Paths</button>
+                <button className={`tab-btn ${systemTab === 'config' ? 'active' : ''}`} onClick={() => setSystemTab('config')}>Config</button>
               </div>
               <div className="frame-content">
                 {systemTab === 'video' && (
@@ -2558,6 +2772,136 @@ function App() {
                     </div>
                   </div>
                 )}
+
+                {systemTab === 'config' && (
+                  <div className="section no-border" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '8px' }}>
+                    <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                      <label className="slot-label" style={{ marginBottom: '4px', minWidth: 'auto', maxWidth: 'none', whiteSpace: 'normal', overflow: 'visible' }}>XML Configuration Editor</label>
+                      <textarea
+                        className="slot-select"
+                        style={{
+                          flex: '1 1 auto',
+                          fontFamily: 'Consolas, Monaco, monospace',
+                          fontSize: '11px',
+                          whiteSpace: 'pre',
+                          overflow: 'auto',
+                          resize: 'none',
+                          lineHeight: '1.4',
+                          width: '100%',
+                          minHeight: '150px',
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          color: '#e2e8f0',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px',
+                          padding: '8px'
+                        }}
+                        value={editorCfgText}
+                        onChange={e => setEditorCfgText(e.target.value)}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        onClick={() => {
+                          const corrected = updateSystemNameInXml(editorCfgText, currentMachineName)
+                          localStorage.setItem('ample_cfg_' + currentMachineName, corrected)
+                          setEditorCfgText(corrected)
+                          addLog(`Saved custom configuration for ${currentMachineName} to localStorage`, false)
+                        }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        onClick={async () => {
+                          try {
+                            const FS = (window as any).FS
+                            if (!FS) {
+                              addLog('Emulator filesystem (FS) is not available. Launch the emulator first!', true)
+                              return
+                            }
+                            
+                            const relPath = `cfg/${currentMameDriver}.cfg`
+                            const absPath = `/cfg/${currentMameDriver}.cfg`
+                            let fileData: string | null = null
+
+                            if (FS.analyzePath(relPath).exists) {
+                              fileData = FS.readFile(relPath, { encoding: 'utf8' })
+                            } else if (FS.analyzePath(absPath).exists) {
+                              fileData = FS.readFile(absPath, { encoding: 'utf8' })
+                            } else {
+                              const cwd = FS.cwd ? FS.cwd() : '/'
+                              const cwdAbsPath = `${cwd}/cfg/${currentMameDriver}.cfg`
+                              if (FS.analyzePath(cwdAbsPath).exists) {
+                                fileData = FS.readFile(cwdAbsPath, { encoding: 'utf8' })
+                              }
+                            }
+
+                            if (!fileData) {
+                              addLog(`Could not find live config file for ${currentMameDriver} in virtual filesystem. Modify settings in emulator first!`, true)
+                              return
+                            }
+
+                            const blob = new Blob([fileData], { type: 'text/xml' })
+                            const url = URL.createObjectURL(blob)
+                            const link = document.createElement('a')
+                            link.href = url
+                            link.download = `${currentMameDriver}.cfg`
+                            document.body.appendChild(link)
+                            link.click()
+                            document.body.removeChild(link)
+                            URL.revokeObjectURL(url)
+                            addLog(`Exported live configuration to ${currentMameDriver}.cfg`, false)
+                          } catch (err: any) {
+                            addLog(`Failed to export configuration: ${err.message || err}`, true)
+                          }
+                        }}
+                      >
+                        Export
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        onClick={() => {
+                          const fileInput = document.createElement('input')
+                          fileInput.type = 'file'
+                          fileInput.accept = '.cfg,text/xml,application/xml'
+                          fileInput.onchange = (e: any) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (evt) => {
+                                const text = evt.target?.result as string
+                                if (text) {
+                                  setEditorCfgText(text)
+                                  addLog(`Imported configuration file: ${file.name}`, false)
+                                }
+                              }
+                              reader.readAsText(file)
+                            }
+                          }
+                          fileInput.click()
+                        }}
+                      >
+                        Import
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        onClick={() => {
+                          localStorage.removeItem('ample_cfg_' + currentMachineName)
+                          const defaultTemplate = getDefaultCfgTemplate(currentMachineName)
+                          setEditorCfgText(defaultTemplate)
+                          addLog(`Reset configuration for ${currentMachineName} to defaults`, false)
+                        }}
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2684,7 +3028,12 @@ function App() {
                                     ref={el => { fileInputRefs.current[item.id] = el }}
                                     style={{ display: 'none' }}
                                     onChange={async e => {
-                                      if (e.target.files) {
+                                      if (e.target.files && e.target.files[0]) {
+                                        const proceed = await checkAndPromptSaveDisk(item.id)
+                                        if (!proceed) {
+                                          e.target.value = ''
+                                          return
+                                        }
                                         let file = e.target.files[0]
                                         if (file.name.toLowerCase().endsWith('.zip')) {
                                           file = await handleZipFile(file)
