@@ -1372,6 +1372,10 @@ function App() {
       }
     }
 
+    console.log('[App.tsx] extraParam is:', extraParam)
+    console.log('[App.tsx] parsed extraArgsFromUrl:', extraArgsFromUrl)
+    console.log('[App.tsx] generated cfgFiles:', cfgFiles)
+
     const args = buildMameArgs(mameDriver, {
       slots: filteredSlots,
       cpuSpeed: cpuSettings?.speed,
