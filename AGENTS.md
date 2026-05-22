@@ -6,6 +6,7 @@
 ### 📅 2026-05-22 Updates
 - **Uneven Scaling & Pixel-Perfect Grid Resolution (inexorabletash feedback)**:
     - **Square Pixel Toggle Unlocked**: Enabled and unblocked the "Square Pixel" checkbox. Clicking it toggles MAME's aspect ratio correction (`keepAspect: false`), which passes `-nokeepaspect` to MAME, ensuring a perfect 1:1 hardware pixel grid rendering without internal nearest-neighbor pixel dropping.
+    - **Square Pixel UI Tweaks**: Swapped the positions of "Capture Mouse" and "Square Pixel" for better visual alignment, and added a "Requires restart to take effect" hint next to Square Pixel to set proper user expectations.
     - **Integer Fit (Sharp) Scaling Mode**: Added a new "Integer Fit (Sharp)" (`integer-fit`) option to the Window Mode dropdown. This dynamically calculates the maximum integer scaling factor fitting within the current container and locks the canvas to that exact integer multiplier, maintaining absolute pixel sharpness during viewport resize or sidebar toggling.
     - **Prevent Layout Squashing in Fixed Modes**: Refactored global CSS so that when exact discrete scaling modes (1x, 2x, 3x, 4x) are selected, the canvas is allowed to render at its exact target dimensions (`max-width: none !important; max-height: none !important;`) and the container handles overflow using standard scrollbars (`overflow: auto`) instead of squashing the canvas fractionally.
 

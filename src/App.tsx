@@ -2299,17 +2299,18 @@ function App() {
                         </select>
                       </div>
                       <div className="slot-row">
-                        <label className="slot-label">Square Pixel</label>
-                        <label className="settings-toggle-wrap">
-                          <input type="checkbox" checked={!videoSettings?.keepAspect} onChange={e => setVideoSettings({ keepAspect: !e.target.checked })} />
-                        </label>
-                      </div>
-                      <div className="slot-row">
                         <label className="slot-label">Capture Mouse</label>
                         <label className="settings-toggle-wrap">
                           <input type="checkbox" checked={!!videoSettings?.captureMouse} onChange={e => setVideoSettings({ captureMouse: e.target.checked })} />
                         </label>
                         <span className="settings-hint">Lock cursor on click, hold Esc to release</span>
+                      </div>
+                      <div className="slot-row">
+                        <label className="slot-label">Square Pixel</label>
+                        <label className="settings-toggle-wrap">
+                          <input type="checkbox" checked={!videoSettings?.keepAspect} onChange={e => setVideoSettings({ keepAspect: !e.target.checked })} />
+                        </label>
+                        <span className="settings-hint">Requires restart to take effect</span>
                       </div>
                       <div className="slot-row">
                         <label className="slot-label">Disk Sound Effects</label>
