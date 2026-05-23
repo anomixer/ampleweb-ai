@@ -500,9 +500,9 @@ export async function fetchRom(
   try {
     if (typeof window !== 'undefined' && 'caches' in window) {
       const cache = await caches.open('rom-cache')
-      // Strip CORS proxy prefix for clean consistent keys
-      const cleanKey = url.replace('https://proxy.corsfix.com/?', '')
-      const cachedResp = await cache.match(cleanKey)
+      // CRITICAL OPTIMIZATION: Use filename as the unique key via a virtual local URL.
+      // This immediately bypasses all failed/slow server attempts once any server successfully caches the ROM!
+      const cachedResp = await cache.match(new Request(`https://rom-cache.local/${name}`))
       if (cachedResp) {
         const buf = await cachedResp.arrayBuffer()
         // Double-check Magic Bytes for absolute safety (PK..)
@@ -542,9 +542,8 @@ export async function fetchRom(
       try {
         if (typeof window !== 'undefined' && 'caches' in window) {
           const cache = await caches.open('rom-cache')
-          const cleanKey = url.replace('https://proxy.corsfix.com/?', '')
-          // We must store a new Response object with a copy of the buffer
-          await cache.put(cleanKey, new Response(buf))
+          // Save using the virtual local filename URL
+          await cache.put(new Request(`https://rom-cache.local/${name}`), new Response(buf))
           console.log(`[WasmLoader] Persisted downloaded ROM in Cache Storage: ${name}`)
         }
       } catch (cacheStoreErr) {
