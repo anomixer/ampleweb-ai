@@ -1176,6 +1176,15 @@ function App() {
   const fetchAllRoms = useCallback(async (machineName: string, effectiveDriver: string, configOverride?: MachineConfig | null, slotsOverride?: Record<string, string>): Promise<RomFile[]> => {
     const romFiles: RomFile[] = []
 
+    const BUILTIN_ROM_SERVERS = [
+      'https://www.callapple.org/roms/{filename}',
+      'https://mdk.cab/download/split/{filename}'
+    ]
+    const effectiveServers = [
+      ...romSettings.downloadServers,
+      ...BUILTIN_ROM_SERVERS
+    ]
+
     // 1. Main machine ROM — look up from DRIVER_ROM_MAP
     const rawMapValue = DRIVER_ROM_MAP[machineName] || (machineName.startsWith('apple2gs') ? DRIVER_ROM_MAP['apple2gs_shared'] : null)
     const romFilesToFetch = rawMapValue ? rawMapValue.split(';') : [machineName + '.zip']
@@ -1197,29 +1206,45 @@ function App() {
             rom.data = cleaned
           }
         }
-        romFiles.push(rom)
-        addLog(`ROM: ${romFile} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
+
+        // Verify ZIP Magic Bytes (PK..)
+        if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
+          romFiles.push(rom)
+          addLog(`ROM: ${romFile} (${(rom.data.length / 1024).toFixed(0)} KB)`, false)
+        } else {
+          throw new Error('Invalid local ROM file (not a ZIP)')
+        }
       } catch {
-        // Fallback: try auto-download servers if configured
-        if (romSettings.autoDownload && romSettings.downloadServers.length > 0) {
-          let found = false
-          for (const server of romSettings.downloadServers) {
+        // Fallback: try auto-download servers
+        let found = false
+        for (const server of effectiveServers) {
+          try {
+            const downloadUrl = server.replace('{filename}', romFile)
+            addLog(`Attempting download: ${downloadUrl}`, false)
+            
+            let rom: RomFile
             try {
-              const downloadUrl = server.replace('{filename}', romFile)
-              addLog(`Attempting download: ${downloadUrl}`, false)
-              const rom = await fetchRom(downloadUrl, effectiveDriver, romFile)
+              rom = await fetchRom(downloadUrl, effectiveDriver, romFile)
+            } catch (directErr) {
+              // If direct fetch fails (likely CORS), try corsfix proxy
+              addLog(`Direct fetch failed (CORS?), trying proxy: ${downloadUrl}`, false)
+              rom = await fetchRom(`https://proxy.corsfix.com/?${downloadUrl}`, effectiveDriver, romFile)
+            }
+
+            // Verify ZIP Magic Bytes (PK..)
+            if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
               romFiles.push(rom)
               addLog(`Downloaded: ${romFile} from ${server}`, false)
               found = true
               break
-            } catch {
-              continue
+            } else {
+              addLog(`Downloaded ROM ${romFile} was invalid (not a ZIP)`, true)
             }
+          } catch {
+            continue
           }
-          if (!found) addLog(`ROM not found: ${romFile}`, true)
-        } else {
-          addLog(`ROM not found: ${romFile}`, true)
         }
+        if (!found) addLog(`ROM not found: ${romFile}`, true)
       }
     }
 
@@ -1274,12 +1299,19 @@ function App() {
         }
 
         // 2. Try remote download servers fallback if local failed
-        if (!success && romSettings.autoDownload && romSettings.downloadServers.length > 0) {
-          for (const server of romSettings.downloadServers) {
+        if (!success) {
+          for (const server of effectiveServers) {
             try {
               const downloadUrl = server.replace('{filename}', romFile)
               addLog(`Attempting download for Aux ROM: ${downloadUrl}`, false)
-              const rom = await fetchRom(downloadUrl, aux.romSet, romFile)
+              
+              let rom: RomFile
+              try {
+                rom = await fetchRom(downloadUrl, aux.romSet, romFile)
+              } catch (directErr) {
+                addLog(`Direct fetch failed for Aux ROM (CORS?), trying proxy...`, false)
+                rom = await fetchRom(`https://proxy.corsfix.com/?${downloadUrl}`, aux.romSet, romFile)
+              }
               
               // Verify ZIP Magic Bytes (PK..)
               if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
@@ -1365,29 +1397,31 @@ function App() {
         }
 
         if (!success) {
-          // If not in local /roms, try auto-download servers
-          if (romSettings.autoDownload && romSettings.downloadServers.length > 0) {
-            let found = false
-            for (const server of romSettings.downloadServers) {
+          let found = false
+          for (const server of effectiveServers) {
+            try {
+              const downloadUrl = server.replace('{filename}', romFile)
+              addLog(`Attempting download for Slot ROM: ${downloadUrl}`, false)
+              
+              let rom: RomFile
               try {
-                const downloadUrl = server.replace('{filename}', romFile)
-                addLog(`Attempting download for Slot ROM: ${downloadUrl}`, false)
-                const rom = await fetchRom(downloadUrl, effectiveDriver, romFile)
-                
-                if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
-                  romFiles.push(rom)
-                  addLog(`Slot ROM Downloaded: ${romFile} from ${server}`, false)
-                  found = true
-                  break
-                } else {
-                  addLog(`Downloaded Slot ROM ${romFile} from ${server} was invalid (not a ZIP)`, true)
-                }
-              } catch { continue }
-            }
-            if (!found) addLog(`Slot ROM not found: ${romFile}`, true)
-          } else {
-            addLog(`Slot ROM skipped (missing): ${romFile}`, true)
+                rom = await fetchRom(downloadUrl, effectiveDriver, romFile)
+              } catch (directErr) {
+                addLog(`Direct fetch failed for Slot ROM (CORS?), trying proxy...`, false)
+                rom = await fetchRom(`https://proxy.corsfix.com/?${downloadUrl}`, effectiveDriver, romFile)
+              }
+              
+              if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
+                romFiles.push(rom)
+                addLog(`Slot ROM Downloaded: ${romFile} from ${server}`, false)
+                found = true
+                break
+              } else {
+                addLog(`Downloaded Slot ROM ${romFile} from ${server} was invalid (not a ZIP)`, true)
+              }
+            } catch { continue }
           }
+          if (!found) addLog(`Slot ROM not found: ${romFile}`, true)
         }
       }
     }
