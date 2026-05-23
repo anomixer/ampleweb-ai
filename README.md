@@ -44,7 +44,7 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Local Directory Mapping (/share)**: Map any local host folder directly to the emulator's VFS for seamless data exchange.
 *   **Save back to Local (Save-on-Change Guard)**: Any write operations to virtual disks/hard disks during emulator runtime are automatically tracked. Clicking **Eject (⏏️)**, selecting a **Local File (📁)**, or inserting a **URL (🌐)** will trigger a safety check, prompting you to save changes back to your local filesystem first, preventing accidental data loss.
 *   **Capture Persistence**: Export generated **AVI video** and **WAV audio** captures directly to your local device (avoid long recordings to prevent browser memory buffer overflow).
-*   **Deep Linking (Instant Sharing)**: Pre-configure machines, slots, and media via URL parameters; supports automatic startup (URL ending with `&autoboot`) for seamless demos and education.
+*   **Deep Linking & Complete URL Persistence**: Pre-configure machines, slots, and media via URL parameters; supports automatic startup (URL ending with `&autoboot`) for seamless demos. All query string flags stay fully persisted in your browser's address bar after launching, allowing instant manual page reloads (F5). Use the new **🔗 Share** button next to the machine name in the header to copy a fully-restored, self-launching deep link instantly to your clipboard!
 *   **URL-Based Media Loading**: Mount disks directly from any external URL using the `?media=slotId:http://...` parameter or via the new **🌐 URL Button** in the Media tab.
 *   **Automatic ZIP Unzipping**: Support for loading `.zip` disk images from URLs or local selection. Automatically extracts valid images (.dsk, .do, .po, etc.) for mounting.
 *   **Recursive Device Dependencies**: Automatically resolves sub-dependencies for slot peripherals (e.g., `a2mouse` needing `m68705p3`).
@@ -52,9 +52,9 @@ This is a pure browser-based port of the macOS native [Ample](https://github.com
 *   **Internal Controls**: Dedicated UI buttons for **MAME UI (Scroll Lock)** and **MAME Menu (Tab)** to facilitate easier access to internal emulator settings.
 *   **Zero-Setup ROMs**: Multi-server failover engine for automatic firmware downloading and caching in IndexedDB.
 *   **Intelligent Machine Reset**: Automatically clears previous slot configurations and media mounts when switching between different machines. This ensures a clean slate and prevents "configuration pollution" when transitioning from specialized URL-based sessions.
-*   **Stable Emulator Canvas**: The emulator canvas is always anchored in the correct centered position from startup. No layout shifts or jumps when the loading bar appears or disappears.
+*   **Indeterminate Progress Spinner Loader**: The loading overlay features a beautiful, rotating circular spinner next to status text (replacing crude jumpy 0-100% bars), providing a highly polished, professional loading feel. Canvas is always centered from the start.
 *   **Audio/Video Synchronization**: Screen and sound now start simultaneously. The emulator overlay is removed the instant MAME's runtime initializes (`onRuntimeInitialized`), the same moment audio begins, eliminating the previous 1–2 second audio-before-video gap.
-*   **Built-in XML Configuration Editor**: Edit and tweak MAME's low-level system configuration XML directly from the UI. Features intelligent syntax preservation, auto-correction of the target `<system name="...">` tags, dynamic on-launch driver translation (e.g. `macpd280` / `macpd280c`), and fully responsive equal-width operations (Save, Export, Import, Reset) presented in a single centered row.
+*   **Built-in XML Configuration Editor**: Edit and tweak MAME's low-level system configuration XML directly from the UI. Features intelligent syntax preservation, auto-correction of the target `<system name="...">` tags, dynamic on-launch driver translation (e.g. `macpd280` / `macpd280c`), and fully responsive equal-width operations (**Read**, Save, Export, Import, Reset) presented in a single centered row.
 *   **Corsfix Sponsored Proxy**: Cross-origin media downloads are proudly powered by [Corsfix](https://corsfix.com/).
 
 ## 🔗 Deep Link URL Parameter Specification
@@ -70,7 +70,7 @@ AmpleWeb features a powerful URL parameter mapping engine (Deep Linking) that al
 | **`s`** | — | Comma-separated slot-value pairs (e.g., `ramsize:64K,sl4:mouse,sl6:diskiing`) | Pre-configures slot peripherals, memory cards, and internal settings. |
 | **`media`** | — | `slotId:URL` or `slotId:filename` | Mounts external disk images directly from a URL. Supports `.zip`, `.dsk`, `.2mg`, `.hdv`, `.woz`, etc. |
 | **`extra`** or **`?extra`** | — | Raw MAME OSD arguments (e.g., `-port,:a2video:a2_video_config,3`) | Inject custom low-level MAME options or port overrides (with automatic query string typos handling). |
-| **`autoboot`** | — | No value required (e.g., `&autoboot`) | Triggers automated machine launch with a sleek 2-second centered loading countdown. |
+| **`autoboot`** | — | Flag or numeric (e.g., `&autoboot` or `&autoboot=0` or `&autoboot=5`) | Triggers automated machine launch. Accepts a custom delay value `n` in seconds (0 to 10). `n=0` or valueless flag launches instantly. (Clicking the "Stop" button during emulation automatically strips this parameter to prevent endless restart loops). |
 
 ### Video & Shader Settings Parameters
 

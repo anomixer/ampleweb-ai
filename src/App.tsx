@@ -591,6 +591,31 @@ function App() {
   const [errorText, setErrorText] = useState<string | null>(null)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
   const [logs, setLogs] = useState<LogLine[]>([])
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('ample_media_urls') || '{}')
+    } catch {
+      return {}
+    }
+  })
+
+  const saveMediaUrl = useCallback((id: string, url: string) => {
+    setMediaUrls(prev => {
+      const next = { ...prev, [id]: url }
+      localStorage.setItem('ample_media_urls', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const removeMediaUrl = useCallback((id: string) => {
+    setMediaUrls(prev => {
+      const next = { ...prev }
+      delete next[id]
+      localStorage.setItem('ample_media_urls', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
   const [showLogs, setShowLogs] = useState(false)
   const [search, setSearch] = useState('')
   const [isSidebarResizing, setIsSidebarResizing] = useState(false)
@@ -681,13 +706,7 @@ function App() {
       localStorage.setItem('ample_cfg_' + currentMachineName, mergedCfg)
       setEditorCfgText(mergedCfg)
       
-      // Clean up the extra parameter from URL query string so it doesn't override manual updates
-      try {
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete('extra')
-        newUrl.searchParams.delete('?extra')
-        window.history.replaceState({}, '', newUrl.toString())
-      } catch (e) {}
+      // Keep the extra parameter in the URL query string for persistence/sharing as requested
     } else {
       // Ensure the corrected XML is saved back to localStorage under currentMachineName for seamless synchronization
       localStorage.setItem('ample_cfg_' + currentMachineName, saved)
@@ -1663,7 +1682,7 @@ function App() {
       const url = new URL(window.location.href)
       url.searchParams.set('m', selectedMachine.name)
       url.searchParams.set('d', selectedMachine.description)
-      url.searchParams.set('launch', '1')
+      url.searchParams.set('autoboot', '0')
       window.location.href = url.toString()
       return
     }
@@ -1673,8 +1692,11 @@ function App() {
 
   const handleStop = useCallback(() => {
     // Reloading is the most reliable way to reset MAME WASM state.
-    // Persistence in store ensures we don't lose the configuration.
-    window.location.reload()
+    // Before reloading, strip the 'autoboot' parameter from the URL
+    // so it doesn't immediately boot back up after the page refresh.
+    const url = new URL(window.location.href)
+    url.searchParams.delete('autoboot')
+    window.location.href = url.toString()
   }, [])
 
   const handleReset = useCallback((e: React.MouseEvent) => {
@@ -1804,7 +1826,8 @@ function App() {
       return next
     })
     dataManager.clearMedia(slotId)
-  }, [checkAndPromptSaveDisk])
+    removeMediaUrl(slotId)
+  }, [checkAndPromptSaveDisk, removeMediaUrl])
 
   const handleInsertUrl = useCallback(async (id: string) => {
     const proceed = await checkAndPromptSaveDisk(id)
@@ -1837,12 +1860,71 @@ function App() {
       }
       setMediaFiles(prev => ({ ...prev, [id]: file }))
       await dataManager.saveMedia(id, file)
+      saveMediaUrl(id, url)
       addLog(`Inserted from URL: ${file.name}`, false)
     } catch (e: any) {
       addLog(`Failed to download media: ${e.message}`, true)
       alert(`Failed to download media: ${e.message}`)
     }
-  }, [addLog, handleZipFile, checkAndPromptSaveDisk])
+  }, [addLog, handleZipFile, checkAndPromptSaveDisk, saveMediaUrl])
+
+  const handleCopyShareUrl = useCallback(async () => {
+    try {
+      if (!selectedMachine) return
+      const url = new URL(window.location.origin + window.location.pathname)
+      url.searchParams.set('m', selectedMachine.name)
+      url.searchParams.set('d', selectedMachine.description)
+
+      // Sync slots
+      const slotStrings = Object.entries(slotValues)
+        .filter(([_, v]) => !!v)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(',')
+      if (slotStrings) url.searchParams.set('s', slotStrings)
+
+      // Sync media (URLs or filenames)
+      const mediaStrings = Object.entries(mediaFiles)
+        .filter(([_, f]) => !!f)
+        .map(([k, f]) => {
+          const sourceUrl = mediaUrls[k]
+          if (sourceUrl) return `${k}:${sourceUrl}`
+          return `${k}:${f!.name}`
+        })
+        .join(',')
+      if (mediaStrings) url.searchParams.set('media', mediaStrings)
+
+      // Sync video/shader configurations
+      if (videoSettings) {
+        if (videoSettings.windowMode) url.searchParams.set('windowMode', videoSettings.windowMode)
+        if (videoSettings.videoMethod) url.searchParams.set('videoMethod', videoSettings.videoMethod)
+        if (videoSettings.bgfxEffect && videoSettings.bgfxEffect !== 'none') {
+          url.searchParams.set('videoShader', videoSettings.bgfxEffect)
+        }
+      }
+
+      // Add extra arguments if present in original URL or active
+      const originalParams = new URLSearchParams(window.location.search)
+      const extra = originalParams.get('extra') || originalParams.get('?extra')
+      if (extra) {
+        url.searchParams.set('extra', extra)
+      }
+
+      // Automatically append autoboot if they want to share a running/configured setup
+      url.searchParams.set('autoboot', '')
+
+      // Clean up valueless parameter suffix '=' in final string
+      let finalUrl = url.toString()
+      finalUrl = finalUrl.replace(/([?&])autoboot=(&|$)/g, '$1autoboot$2')
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(finalUrl)
+      addLog(`Copied shareable URL to clipboard!`, false)
+      alert(`Copied shareable URL to clipboard!\n\n${finalUrl}`)
+    } catch (e: any) {
+      addLog(`Failed to copy share URL: ${e.message}`, true)
+      alert(`Failed to copy share URL: ${e.message}`)
+    }
+  }, [selectedMachine, slotValues, mediaFiles, mediaUrls, videoSettings, launchState, addLog])
 
   const handleMameUIToggle = useCallback(() => {
     // Send ScrollLock key to toggle MAME UI mode
@@ -2079,18 +2161,8 @@ function App() {
                   if (id) await dataManager.saveMedia(id, file)
                   addLog(`Downloaded and saved: ${filename}`, false)
                   
-                  // Update URL to replace the long download link with the local filename for clarity/persistence
-                  try {
-                    const newParams = new URLSearchParams(window.location.search)
-                    const currentMedia = newParams.get('media') || ''
-                    const mediaPairs = currentMedia.split(',')
-                    const updatedPairs = mediaPairs.map(mp => {
-                      if (mp.includes(nameOrUrl)) return `${id}:${filename}`
-                      return mp
-                    })
-                    newParams.set('media', updatedPairs.join(','))
-                    window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`)
-                  } catch (e) {}
+                  // Store the download URL in mediaUrls for persistence and share links
+                  saveMediaUrl(id, nameOrUrl)
                 } catch (e: any) {
                   addLog(`Failed to download media from URL: ${e.message}`, true)
                 }
@@ -2111,28 +2183,23 @@ function App() {
         setMediaFiles(restoredMedia)
 
         // 4. Trigger launch logic
-        const shouldLaunch = params.get('launch') === '1' || params.has('autoboot')
+        const hasAutoboot = params.has('autoboot')
+        const shouldLaunch = hasAutoboot
+        
         if (shouldLaunch && !hasAutoLaunched.current) {
           hasAutoLaunched.current = true
-          const isAutoBoot = params.has('autoboot')
 
-          const newUrl = new URL(window.location.href)
-          newUrl.searchParams.delete('launch')
-          newUrl.searchParams.delete('autoboot')
-          newUrl.searchParams.delete('windowMode')
-          newUrl.searchParams.delete('window_mode')
-          newUrl.searchParams.delete('wm')
-          newUrl.searchParams.delete('w')
-          newUrl.searchParams.delete('videoShader')
-          newUrl.searchParams.delete('video_shader')
-          newUrl.searchParams.delete('shader')
-          newUrl.searchParams.delete('effect')
-          newUrl.searchParams.delete('bgfxEffect')
-          newUrl.searchParams.delete('bgfx_effect')
-          newUrl.searchParams.delete('videoMethod')
-          newUrl.searchParams.delete('video_method')
-          newUrl.searchParams.delete('vm')
-          window.history.replaceState({}, '', newUrl.toString())
+          // Parse delay value from autoboot=n (0 to 10 seconds). Defaults to 0 seconds if just a flag (immediate launch).
+          let delaySeconds = 0
+          if (hasAutoboot) {
+            const val = params.get('autoboot')
+            if (val !== null && val !== '') {
+              const parsed = parseInt(val, 10)
+              if (!isNaN(parsed) && parsed >= 0 && parsed <= 10) {
+                delaySeconds = parsed
+              }
+            }
+          }
 
           // If mapping is enabled, we CANNOT auto-launch because we need a user gesture for the folder.
           // handleLaunch will be called by the user clicking the "Launch" button which should be 
@@ -2141,11 +2208,11 @@ function App() {
             addLog('Auto-launch paused: Local directory needs reconnection. Please click Launch.', false)
             setStatusText('Reconnection required for local directory...')
           } else {
-            if (isAutoBoot) {
-              addLog('Autoboot sequence initiated (2s delay)...', false)
+            if (delaySeconds > 0) {
+              addLog(`Autoboot sequence initiated (${delaySeconds}s delay)...`, false)
               setLaunchState('fetching-rom')
-              setStatusText('Autoboot in 2 sec...')
-              let timeLeft = 2
+              setStatusText(`Autoboot in ${delaySeconds} sec...`)
+              let timeLeft = delaySeconds
               const timer = setInterval(() => {
                 timeLeft--
                 if (timeLeft > 0) {
@@ -2201,7 +2268,9 @@ function App() {
       if (mediaStrings) url.searchParams.set('media', mediaStrings)
       else url.searchParams.delete('media')
 
-      window.history.replaceState({}, '', url.toString())
+      let finalUrl = url.toString()
+      finalUrl = finalUrl.replace(/([?&])autoboot=(&|$)/g, '$1autoboot$2')
+      window.history.replaceState({}, '', finalUrl)
     }
   }, [selectedMachine, slotValues, mediaFiles])
 
@@ -2486,6 +2555,27 @@ function App() {
                   <h2 className="machine-title">{selectedMachine.description}</h2>
                   <code className="machine-id">{selectedMachine.name}</code>
                 </div>
+                <button
+                  className="btn btn-ghost btn-icon"
+                  style={{
+                    marginLeft: '12px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'var(--bg3)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: 'var(--text1)',
+                    height: '24px',
+                  }}
+                  onClick={handleCopyShareUrl}
+                  title="Copy shareable URL for this configuration"
+                >
+                  🔗 Share
+                </button>
               </div>
               <div className="header-badges" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                 {launchState === 'running' && (
@@ -2527,10 +2617,8 @@ function App() {
                   {/* Progress bar — position:absolute overlay, never shifts layout */}
                   {isLoading && (
                     <div className="progress-container">
-                      <div className="progress-wrap">
-                        <div className="progress-bar">
-                          <div className="progress-fill" style={{ width: `${wasmProgress}%` }} />
-                        </div>
+                      <div className="progress-wrap" style={{ maxWidth: '320px', margin: '0 auto' }}>
+                        <div className="progress-spinner" />
                         <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
                       </div>
                     </div>
@@ -2779,6 +2867,7 @@ function App() {
                       <label className="slot-label" style={{ marginBottom: '4px', minWidth: 'auto', maxWidth: 'none', whiteSpace: 'normal', overflow: 'visible' }}>XML Configuration Editor</label>
                       <textarea
                         className="slot-select"
+                        disabled={launchState !== 'idle'}
                         style={{
                           flex: '1 1 auto',
                           fontFamily: 'Consolas, Monaco, monospace',
@@ -2793,7 +2882,9 @@ function App() {
                           color: '#e2e8f0',
                           border: '1px solid rgba(255, 255, 255, 0.1)',
                           borderRadius: '4px',
-                          padding: '8px'
+                          padding: '8px',
+                          opacity: launchState !== 'idle' ? 0.5 : 1,
+                          cursor: launchState !== 'idle' ? 'not-allowed' : 'text'
                         }}
                         value={editorCfgText}
                         onChange={e => setEditorCfgText(e.target.value)}
@@ -2801,8 +2892,71 @@ function App() {
                     </div>
                     <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                       <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={launchState !== 'running'}
+                        style={{
+                          flex: '1 1 0px',
+                          minWidth: '0px',
+                          whiteSpace: 'nowrap',
+                          padding: '4px 6px',
+                          fontSize: '11px',
+                          justifyContent: 'center',
+                          opacity: launchState !== 'running' ? 0.4 : 1,
+                          cursor: launchState !== 'running' ? 'not-allowed' : 'pointer'
+                        }}
+                        onClick={() => {
+                          try {
+                            const FS = (window as any).FS
+                            if (!FS) {
+                              addLog('Emulator filesystem (FS) is not available. Launch the emulator first!', true)
+                              alert('Emulator filesystem (FS) is not available. Please launch the emulator first!')
+                              return
+                            }
+                            
+                            const relPath = `cfg/${currentMameDriver}.cfg`
+                            const absPath = `/cfg/${currentMameDriver}.cfg`
+                            let fileData: string | null = null
+
+                            if (FS.analyzePath(relPath).exists) {
+                              fileData = FS.readFile(relPath, { encoding: 'utf8' })
+                            } else if (FS.analyzePath(absPath).exists) {
+                              fileData = FS.readFile(absPath, { encoding: 'utf8' })
+                            } else {
+                              const cwd = FS.cwd ? FS.cwd() : '/'
+                              const cwdAbsPath = `${cwd}/cfg/${currentMameDriver}.cfg`
+                              if (FS.analyzePath(cwdAbsPath).exists) {
+                                fileData = FS.readFile(cwdAbsPath, { encoding: 'utf8' })
+                              }
+                            }
+
+                            if (!fileData) {
+                              addLog(`Could not find live config file for ${currentMameDriver} in virtual filesystem. Modify settings in emulator first!`, true)
+                              alert(`Could not find live config file for ${currentMameDriver} in virtual filesystem. Modify settings in emulator first!`)
+                              return
+                            }
+
+                            setEditorCfgText(fileData)
+                            addLog(`Successfully loaded live config from VFS: /cfg/${currentMameDriver}.cfg`, false)
+                          } catch (err: any) {
+                            addLog(`Failed to read configuration from VFS: ${err.message || err}`, true)
+                          }
+                        }}
+                      >
+                        Read
+                      </button>
+                      <button
                         className="btn btn-primary btn-sm"
-                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        disabled={launchState !== 'idle'}
+                        style={{
+                          flex: '1 1 0px',
+                          minWidth: '0px',
+                          whiteSpace: 'nowrap',
+                          padding: '4px 6px',
+                          fontSize: '11px',
+                          justifyContent: 'center',
+                          opacity: launchState !== 'idle' ? 0.4 : 1,
+                          cursor: launchState !== 'idle' ? 'not-allowed' : 'pointer'
+                        }}
                         onClick={() => {
                           const corrected = updateSystemNameInXml(editorCfgText, currentMachineName)
                           localStorage.setItem('ample_cfg_' + currentMachineName, corrected)
@@ -2814,7 +2968,17 @@ function App() {
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
-                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        disabled={launchState !== 'running'}
+                        style={{
+                          flex: '1 1 0px',
+                          minWidth: '0px',
+                          whiteSpace: 'nowrap',
+                          padding: '4px 6px',
+                          fontSize: '11px',
+                          justifyContent: 'center',
+                          opacity: launchState !== 'running' ? 0.4 : 1,
+                          cursor: launchState !== 'running' ? 'not-allowed' : 'pointer'
+                        }}
                         onClick={async () => {
                           try {
                             const FS = (window as any).FS
@@ -2863,7 +3027,17 @@ function App() {
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
-                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        disabled={launchState !== 'idle'}
+                        style={{
+                          flex: '1 1 0px',
+                          minWidth: '0px',
+                          whiteSpace: 'nowrap',
+                          padding: '4px 6px',
+                          fontSize: '11px',
+                          justifyContent: 'center',
+                          opacity: launchState !== 'idle' ? 0.4 : 1,
+                          cursor: launchState !== 'idle' ? 'not-allowed' : 'pointer'
+                        }}
                         onClick={() => {
                           const fileInput = document.createElement('input')
                           fileInput.type = 'file'
@@ -2889,7 +3063,17 @@ function App() {
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
-                        style={{ flex: '1 1 0px', minWidth: '0px', whiteSpace: 'nowrap', padding: '4px 6px', fontSize: '11px', justifyContent: 'center' }}
+                        disabled={launchState !== 'idle'}
+                        style={{
+                          flex: '1 1 0px',
+                          minWidth: '0px',
+                          whiteSpace: 'nowrap',
+                          padding: '4px 6px',
+                          fontSize: '11px',
+                          justifyContent: 'center',
+                          opacity: launchState !== 'idle' ? 0.4 : 1,
+                          cursor: launchState !== 'idle' ? 'not-allowed' : 'pointer'
+                        }}
                         onClick={() => {
                           localStorage.removeItem('ample_cfg_' + currentMachineName)
                           const defaultTemplate = getDefaultCfgTemplate(currentMachineName)
@@ -3040,6 +3224,7 @@ function App() {
                                         }
                                         setMediaFiles(prev => ({ ...prev, [item.id]: file }))
                                         dataManager.saveMedia(item.id, file)
+                                        removeMediaUrl(item.id)
                                       }
                                       // Clear value to allow re-selecting same file after eject
                                       e.target.value = ''
