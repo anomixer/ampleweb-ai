@@ -1253,20 +1253,51 @@ function App() {
 
     if (isApple2Family || isMacFamily) {
       for (const aux of auxRoms) {
+        const romFile = `${aux.zipName}.zip`
+        let success = false
+        
+        // 1. Try local ROM path first
         try {
-          const resp = await fetch(`${BASE_URL}roms/${aux.zipName}.zip`)
-          if (resp.ok) {
-            const data = new Uint8Array(await resp.arrayBuffer())
-            // Directly push the ZIP with the expected MAME name (romSet)
-            romFiles.push({
-              driver: aux.romSet,
-              name: `${aux.romSet}.zip`,
-              data
-            })
+          const localUrl = `${BASE_URL}roms/${romFile}`
+          const rom = await fetchRom(localUrl, aux.romSet, romFile)
+          
+          // Verify ZIP Magic Bytes (PK..)
+          if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
+            romFiles.push(rom)
             addLog(`Aux: ${aux.romSet}.zip added`, false)
+            success = true
+          } else {
+            addLog(`Local Aux ROM ${romFile} invalid (not a ZIP), trying fallback...`, true)
           }
-        } catch {
-          addLog(`Aux ROM skipped (optional): ${aux.zipName}.zip`, false)
+        } catch (err: any) {
+          // If local fails, we proceed to fallback
+        }
+
+        // 2. Try remote download servers fallback if local failed
+        if (!success && romSettings.autoDownload && romSettings.downloadServers.length > 0) {
+          for (const server of romSettings.downloadServers) {
+            try {
+              const downloadUrl = server.replace('{filename}', romFile)
+              addLog(`Attempting download for Aux ROM: ${downloadUrl}`, false)
+              const rom = await fetchRom(downloadUrl, aux.romSet, romFile)
+              
+              // Verify ZIP Magic Bytes (PK..)
+              if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
+                romFiles.push(rom)
+                addLog(`Downloaded Aux: ${aux.romSet}.zip from ${server}`, false)
+                success = true
+                break
+              } else {
+                addLog(`Downloaded Aux ROM from ${server} was invalid (not a ZIP)`, true)
+              }
+            } catch (err: any) {
+              // Try next server
+            }
+          }
+        }
+
+        if (!success) {
+          addLog(`Aux ROM skipped (missing): ${romFile}`, true)
         }
       }
     }
@@ -1314,29 +1345,48 @@ function App() {
       resolveDeps(addedSlotRoms)
 
       for (const devName of finalDeviceList) {
+        let success = false
+        const romFile = `${devName}.zip`
+
         try {
-          addLog(`Slot ROM: ${devName}.zip requested...`, false)
-          const url = `${BASE_URL}roms/${devName}.zip`
-          const rom = await fetchRom(url, effectiveDriver, `${devName}.zip`)
-          romFiles.push(rom)
-          addLog(`Slot ROM: ${devName}.zip added`, false)
+          addLog(`Slot ROM: ${romFile} requested...`, false)
+          const url = `${BASE_URL}roms/${romFile}`
+          const rom = await fetchRom(url, effectiveDriver, romFile)
+          
+          if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
+            romFiles.push(rom)
+            addLog(`Slot ROM: ${romFile} added`, false)
+            success = true
+          } else {
+            addLog(`Local Slot ROM ${romFile} invalid (not a ZIP), trying fallback...`, true)
+          }
         } catch {
+          // Local fail, proceed to remote fallback
+        }
+
+        if (!success) {
           // If not in local /roms, try auto-download servers
           if (romSettings.autoDownload && romSettings.downloadServers.length > 0) {
             let found = false
             for (const server of romSettings.downloadServers) {
               try {
-                const downloadUrl = server.replace('{filename}', `${devName}.zip`)
-                const rom = await fetchRom(downloadUrl, effectiveDriver, `${devName}.zip`)
-                romFiles.push(rom)
-                addLog(`Slot ROM Downloaded: ${devName}.zip from ${server}`, false)
-                found = true
-                break
+                const downloadUrl = server.replace('{filename}', romFile)
+                addLog(`Attempting download for Slot ROM: ${downloadUrl}`, false)
+                const rom = await fetchRom(downloadUrl, effectiveDriver, romFile)
+                
+                if (rom.data.length >= 2 && rom.data[0] === 0x50 && rom.data[1] === 0x4B) {
+                  romFiles.push(rom)
+                  addLog(`Slot ROM Downloaded: ${romFile} from ${server}`, false)
+                  found = true
+                  break
+                } else {
+                  addLog(`Downloaded Slot ROM ${romFile} from ${server} was invalid (not a ZIP)`, true)
+                }
               } catch { continue }
             }
-            if (!found) addLog(`Slot ROM not found: ${devName}.zip`, false)
+            if (!found) addLog(`Slot ROM not found: ${romFile}`, true)
           } else {
-            addLog(`Slot ROM skipped (missing): ${devName}.zip`, false)
+            addLog(`Slot ROM skipped (missing): ${romFile}`, true)
           }
         }
       }
