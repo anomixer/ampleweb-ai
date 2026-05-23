@@ -1,0 +1,6415 @@
+{
+  "apple2ee": {
+    "deps": [
+      "a2video_comprgb",
+      "cassette_image",
+      "flopsnd",
+      "ds1216e",
+      "ram",
+      "a2eauxslot_slot",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2eauxslot",
+      "ay8913",
+      "w65c02",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2eext80",
+      "a2bus",
+      "a2gameio",
+      "speaker",
+      "floppy_525_sd",
+      "floppy_connector",
+      "software_list",
+      "d2fdc",
+      "screen",
+      "f9334",
+      "speaker_sound_device"
+    ],
+    "romof": "apple2e"
+  },
+  "24c04": {
+    "deps": [],
+    "romof": null
+  },
+  "4dparprn": {
+    "deps": [
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a24play": {
+    "deps": [],
+    "romof": null
+  },
+  "a2aesms": {
+    "deps": [
+      "sn76489",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "a2aevm80": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2alfam2": {
+    "deps": [
+      "sn76489",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "a2ap16": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2ap16a": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2aplcrd": {
+    "deps": [
+      "z80"
+    ],
+    "romof": null
+  },
+  "a2arcbd": {
+    "deps": [
+      "screen",
+      "speaker",
+      "ay8910",
+      "tms9918a"
+    ],
+    "romof": null
+  },
+  "a2booti": {
+    "deps": [
+      "at28c64b",
+      "ch376"
+    ],
+    "romof": null
+  },
+  "a2bufgrapplerplus": {
+    "deps": [
+      "i8048",
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a2bufgrapplerplusa": {
+    "deps": [
+      "i8048",
+      "centronics",
+      "output_latch"
+    ],
+    "romof": "a2bufgrapplerplus"
+  },
+  "a2bus": {
+    "deps": [],
+    "romof": null
+  },
+  "a2bus_byte8251": {
+    "deps": [
+      "i8251",
+      "rs232",
+      "mm5307aa"
+    ],
+    "romof": null
+  },
+  "a2bus_noisemaker": {
+    "deps": [
+      "speaker",
+      "ay8910"
+    ],
+    "romof": null
+  },
+  "a2bus_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "a2ceyes": {
+    "deps": [
+      "picture_image"
+    ],
+    "romof": null
+  },
+  "a2ceyes2": {
+    "deps": [
+      "picture_image"
+    ],
+    "romof": null
+  },
+  "a2cffa02": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "a2cffa2": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "a2corvus": {
+    "deps": [
+      "harddisk_image",
+      "corvus_hdc"
+    ],
+    "romof": null
+  },
+  "a2diskiing": {
+    "deps": [
+      "floppy_connector",
+      "f9334",
+      "d2fdc"
+    ],
+    "romof": null
+  },
+  "a2dx1": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "a2eauxslot": {
+    "deps": [],
+    "romof": null
+  },
+  "a2eauxslot_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "a2echoii": {
+    "deps": [
+      "speaker",
+      "tms5220"
+    ],
+    "romof": null
+  },
+  "a2echop": {
+    "deps": [
+      "ay8913",
+      "speaker",
+      "mos6522",
+      "tms5220c"
+    ],
+    "romof": null
+  },
+  "a2eext80": {
+    "deps": [],
+    "romof": null
+  },
+  "a2erwks3": {
+    "deps": [],
+    "romof": null
+  },
+  "a2estd80": {
+    "deps": [],
+    "romof": null
+  },
+  "a2ezcgi": {
+    "deps": [
+      "screen",
+      "tms9918a"
+    ],
+    "romof": null
+  },
+  "a2ezcgi3": {
+    "deps": [
+      "screen",
+      "v9938"
+    ],
+    "romof": null
+  },
+  "a2ezcgi5": {
+    "deps": [
+      "screen",
+      "v9958"
+    ],
+    "romof": null
+  },
+  "a2focdrv": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "a2gameio": {
+    "deps": [],
+    "romof": null
+  },
+  "a2gizmo": {
+    "deps": [],
+    "romof": null
+  },
+  "a2grafex": {
+    "deps": [
+      "screen",
+      "upd7220"
+    ],
+    "romof": null
+  },
+  "a2grappler": {
+    "deps": [
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a2grapplerplus": {
+    "deps": [
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a2hsscsi": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector",
+      "ncr53c80"
+    ],
+    "romof": null
+  },
+  "a2ieee488": {
+    "deps": [
+      "ieee488",
+      "tms9914",
+      "ieee488_slot"
+    ],
+    "romof": null
+  },
+  "a2iwm": {
+    "deps": [
+      "iwm",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "a2joy": {
+    "deps": [],
+    "romof": null
+  },
+  "a2lancegs": {
+    "deps": [
+      "smc91c96",
+      "24c04"
+    ],
+    "romof": null
+  },
+  "a2mcms1": {
+    "deps": [
+      "speaker",
+      "mcmseng"
+    ],
+    "romof": null
+  },
+  "a2mcms2": {
+    "deps": [],
+    "romof": null
+  },
+  "a2memexp": {
+    "deps": [],
+    "romof": null
+  },
+  "a2midi": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850",
+      "ptm6840"
+    ],
+    "romof": null
+  },
+  "a2mockbd": {
+    "deps": [
+      "ay8913",
+      "votrsc01a",
+      "speaker",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "a2mouse": {
+    "deps": [
+      "pia6821",
+      "m68705p3"
+    ],
+    "romof": null
+  },
+  "a2parprn": {
+    "deps": [
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a2pcxport": {
+    "deps": [
+      "isa8",
+      "pcx_dmac",
+      "v30",
+      "pit8253",
+      "pic8259",
+      "pc_kbdc",
+      "pit_counter",
+      "speaker_sound_device",
+      "speaker",
+      "isa8_slot"
+    ],
+    "romof": null
+  },
+  "a2pdls": {
+    "deps": [],
+    "romof": null
+  },
+  "a2pdromdr": {
+    "deps": [],
+    "romof": null
+  },
+  "a2phasor": {
+    "deps": [
+      "ay8913",
+      "speaker",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "a2pic": {
+    "deps": [
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a2q68": {
+    "deps": [
+      "m68008"
+    ],
+    "romof": null
+  },
+  "a2q68plus": {
+    "deps": [
+      "m68008"
+    ],
+    "romof": "a2q68"
+  },
+  "a2ramfac": {
+    "deps": [],
+    "romof": null
+  },
+  "a2romfp": {
+    "deps": [],
+    "romof": null
+  },
+  "a2romint": {
+    "deps": [],
+    "romof": null
+  },
+  "a2romusr": {
+    "deps": [],
+    "romof": null
+  },
+  "a2sam": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "a2scsi": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector",
+      "ncr5380"
+    ],
+    "romof": null
+  },
+  "a2sd": {
+    "deps": [
+      "harddisk_image",
+      "at28c64b",
+      "spi_sdcard"
+    ],
+    "romof": null
+  },
+  "a2sic": {
+    "deps": [
+      "rs232"
+    ],
+    "romof": null
+  },
+  "a2sider1": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector"
+    ],
+    "romof": null
+  },
+  "a2sider2": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector"
+    ],
+    "romof": null
+  },
+  "a2snesmax": {
+    "deps": [
+      "snes_control_port"
+    ],
+    "romof": null
+  },
+  "a2softcard": {
+    "deps": [
+      "z80"
+    ],
+    "romof": null
+  },
+  "a2ssbapl": {
+    "deps": [
+      "speaker",
+      "tms5220"
+    ],
+    "romof": null
+  },
+  "a2ssc": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "a2ssprite": {
+    "deps": [
+      "tms5220",
+      "tms9918a",
+      "screen",
+      "ay8912",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "a2superdrive": {
+    "deps": [
+      "floppy_connector",
+      "swim1",
+      "w65c02s"
+    ],
+    "romof": null
+  },
+  "a2surance": {
+    "deps": [
+      "floppy_connector",
+      "f9334",
+      "d2fdc"
+    ],
+    "romof": null
+  },
+  "a2swyft": {
+    "deps": [],
+    "romof": null
+  },
+  "a2themill": {
+    "deps": [
+      "mc6809e"
+    ],
+    "romof": null
+  },
+  "a2thunpl": {
+    "deps": [
+      "upd1990a"
+    ],
+    "romof": null
+  },
+  "a2tmstho": {
+    "deps": [
+      "pia6821",
+      "msm5832"
+    ],
+    "romof": null
+  },
+  "a2twarp": {
+    "deps": [
+      "w65c02"
+    ],
+    "romof": null
+  },
+  "a2ultrme": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2ulttrm": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2uniprint": {
+    "deps": [
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "a2uthernet": {
+    "deps": [
+      "cs8900a"
+    ],
+    "romof": null
+  },
+  "a2video_comprgb": {
+    "deps": [],
+    "romof": null
+  },
+  "a2vidtrm": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2vistaa800": {
+    "deps": [
+      "floppy_connector",
+      "fd1797"
+    ],
+    "romof": null
+  },
+  "a2vtc1": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2vuliie": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "a2wicotrackball": {
+    "deps": [],
+    "romof": null
+  },
+  "a2zipdrv": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "acia6850": {
+    "deps": [],
+    "romof": null
+  },
+  "apple2com": {
+    "deps": [],
+    "romof": null
+  },
+  "aprissi": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "at28c64b": {
+    "deps": [],
+    "romof": null
+  },
+  "ata_interface": {
+    "deps": [
+      "ata_slot"
+    ],
+    "romof": null
+  },
+  "ata_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "ay3600": {
+    "deps": [],
+    "romof": null
+  },
+  "ay8910": {
+    "deps": [],
+    "romof": null
+  },
+  "ay8912": {
+    "deps": [],
+    "romof": null
+  },
+  "ay8913": {
+    "deps": [],
+    "romof": null
+  },
+  "cassette_image": {
+    "deps": [],
+    "romof": null
+  },
+  "ccs7710": {
+    "deps": [
+      "f4702",
+      "rs232",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "centronics": {
+    "deps": [],
+    "romof": null
+  },
+  "ch376": {
+    "deps": [],
+    "romof": null
+  },
+  "clock": {
+    "deps": [],
+    "romof": null
+  },
+  "cmsscsi": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector",
+      "ncr5380"
+    ],
+    "romof": null
+  },
+  "corvus_hdc": {
+    "deps": [],
+    "romof": null
+  },
+  "cs8900a": {
+    "deps": [],
+    "romof": null
+  },
+  "d2fdc": {
+    "deps": [
+      "f9334"
+    ],
+    "romof": null
+  },
+  "dac_8bit_r2r": {
+    "deps": [],
+    "romof": null
+  },
+  "diskii13": {
+    "deps": [
+      "floppy_connector",
+      "f9334",
+      "d2fdc"
+    ],
+    "romof": null
+  },
+  "ds1216e": {
+    "deps": [],
+    "romof": null
+  },
+  "f4702": {
+    "deps": [],
+    "romof": null
+  },
+  "f9334": {
+    "deps": [],
+    "romof": null
+  },
+  "fd1797": {
+    "deps": [],
+    "romof": null
+  },
+  "floppy_525_sd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_connector": {
+    "deps": [],
+    "romof": null
+  },
+  "flopsnd": {
+    "deps": [],
+    "romof": null
+  },
+  "harddisk_image": {
+    "deps": [],
+    "romof": null
+  },
+  "hd6845s": {
+    "deps": [],
+    "romof": null
+  },
+  "i8048": {
+    "deps": [],
+    "romof": null
+  },
+  "i8251": {
+    "deps": [],
+    "romof": null
+  },
+  "ibsap2": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "ieee488": {
+    "deps": [],
+    "romof": null
+  },
+  "ieee488_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "isa8": {
+    "deps": [],
+    "romof": null
+  },
+  "isa8_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "iwm": {
+    "deps": [],
+    "romof": null
+  },
+  "m68008": {
+    "deps": [],
+    "romof": null
+  },
+  "m68705p3": {
+    "deps": [],
+    "romof": null
+  },
+  "mc6809e": {
+    "deps": [],
+    "romof": null
+  },
+  "mcmseng": {
+    "deps": [],
+    "romof": null
+  },
+  "midi_port": {
+    "deps": [],
+    "romof": null
+  },
+  "mm5307aa": {
+    "deps": [],
+    "romof": null
+  },
+  "mos6522": {
+    "deps": [],
+    "romof": null
+  },
+  "mos6551": {
+    "deps": [
+      "clock"
+    ],
+    "romof": null
+  },
+  "msm5832": {
+    "deps": [],
+    "romof": null
+  },
+  "ncr5380": {
+    "deps": [],
+    "romof": null
+  },
+  "ncr53c80": {
+    "deps": [],
+    "romof": null
+  },
+  "nscsi_bus": {
+    "deps": [],
+    "romof": null
+  },
+  "nscsi_connector": {
+    "deps": [],
+    "romof": null
+  },
+  "output_latch": {
+    "deps": [],
+    "romof": null
+  },
+  "pc_kbdc": {
+    "deps": [],
+    "romof": null
+  },
+  "pcx_dmac": {
+    "deps": [],
+    "romof": null
+  },
+  "pia6821": {
+    "deps": [],
+    "romof": null
+  },
+  "pic8259": {
+    "deps": [],
+    "romof": null
+  },
+  "picture_image": {
+    "deps": [],
+    "romof": null
+  },
+  "pit8253": {
+    "deps": [
+      "pit_counter"
+    ],
+    "romof": null
+  },
+  "pit_counter": {
+    "deps": [],
+    "romof": null
+  },
+  "ptm6840": {
+    "deps": [],
+    "romof": null
+  },
+  "ram": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232": {
+    "deps": [],
+    "romof": null
+  },
+  "screen": {
+    "deps": [],
+    "romof": null
+  },
+  "smc91c96": {
+    "deps": [],
+    "romof": null
+  },
+  "sn76489": {
+    "deps": [],
+    "romof": null
+  },
+  "snes_control_port": {
+    "deps": [],
+    "romof": null
+  },
+  "software_list": {
+    "deps": [],
+    "romof": null
+  },
+  "speaker": {
+    "deps": [],
+    "romof": null
+  },
+  "speaker_sound_device": {
+    "deps": [],
+    "romof": null
+  },
+  "spi_sdcard": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "sweetalk": {
+    "deps": [
+      "votrsc01a",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "swim1": {
+    "deps": [],
+    "romof": null
+  },
+  "timer": {
+    "deps": [],
+    "romof": null
+  },
+  "tms5220": {
+    "deps": [],
+    "romof": null
+  },
+  "tms5220c": {
+    "deps": [],
+    "romof": null
+  },
+  "tms9914": {
+    "deps": [],
+    "romof": null
+  },
+  "tms9918a": {
+    "deps": [],
+    "romof": null
+  },
+  "upd1990a": {
+    "deps": [],
+    "romof": null
+  },
+  "upd7220": {
+    "deps": [],
+    "romof": null
+  },
+  "v30": {
+    "deps": [],
+    "romof": null
+  },
+  "v9938": {
+    "deps": [],
+    "romof": null
+  },
+  "v9958": {
+    "deps": [],
+    "romof": null
+  },
+  "votrsc01a": {
+    "deps": [],
+    "romof": null
+  },
+  "w65c02": {
+    "deps": [],
+    "romof": null
+  },
+  "w65c02s": {
+    "deps": [],
+    "romof": null
+  },
+  "z80": {
+    "deps": [],
+    "romof": null
+  },
+  "2864": {
+    "deps": [],
+    "romof": null
+  },
+  "3xtwin": {
+    "deps": [
+      "com52c50",
+      "r65c02"
+    ],
+    "romof": null
+  },
+  "93c06_16": {
+    "deps": [],
+    "romof": null
+  },
+  "acb2072": {
+    "deps": [
+      "am8753"
+    ],
+    "romof": null
+  },
+  "adaptator_multitap": {
+    "deps": [
+      "vcs_control_port"
+    ],
+    "romof": null
+  },
+  "am8753": {
+    "deps": [],
+    "romof": null
+  },
+  "ap2000": {
+    "deps": [
+      "e05a30",
+      "upd7810",
+      "93c06_16",
+      "screen",
+      "bitmap_printer",
+      "stepper",
+      "dac",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "aplcd150": {
+    "deps": [
+      "m37450",
+      "i80c31",
+      "cxd1180"
+    ],
+    "romof": null
+  },
+  "arm_cpu": {
+    "deps": [],
+    "romof": null
+  },
+  "asc88": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector",
+      "ncr5380",
+      "93c06_16"
+    ],
+    "romof": null
+  },
+  "atacf": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "bcreader": {
+    "deps": [],
+    "romof": null
+  },
+  "beep": {
+    "deps": [],
+    "romof": null
+  },
+  "bitbanger": {
+    "deps": [],
+    "romof": null
+  },
+  "bitmap_printer": {
+    "deps": [
+      "screen",
+      "stepper"
+    ],
+    "romof": null
+  },
+  "cdd2000": {
+    "deps": [
+      "ncr53cf94",
+      "mc68hc11f1"
+    ],
+    "romof": null
+  },
+  "cdda": {
+    "deps": [],
+    "romof": null
+  },
+  "cdr4210": {
+    "deps": [
+      "ncr53cf94",
+      "m37710s4"
+    ],
+    "romof": null
+  },
+  "cdrn820s": {
+    "deps": [
+      "h83048",
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port",
+      "h8h_dma",
+      "wd33c93a",
+      "h8h_dma_channel"
+    ],
+    "romof": null
+  },
+  "cdrom": {
+    "deps": [
+      "cdda",
+      "cdrom_image"
+    ],
+    "romof": null
+  },
+  "cdrom_image": {
+    "deps": [],
+    "romof": null
+  },
+  "cdu415": {
+    "deps": [
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h83032",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port",
+      "ncr53c94"
+    ],
+    "romof": null
+  },
+  "cdu561_25": {
+    "deps": [
+      "cxd1185",
+      "m37732s4"
+    ],
+    "romof": null
+  },
+  "cdu75s": {
+    "deps": [
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h83032",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port",
+      "ncr53c94"
+    ],
+    "romof": null
+  },
+  "centronics_chessmec": {
+    "deps": [
+      "arm_cpu",
+      "chessmachine"
+    ],
+    "romof": null
+  },
+  "centronics_printer": {
+    "deps": [
+      "printer_image"
+    ],
+    "romof": null
+  },
+  "centronics_samdac": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "centronics_smartboard": {
+    "deps": [
+      "sensorboard",
+      "tasc_sb30"
+    ],
+    "romof": null
+  },
+  "cfp1080s": {
+    "deps": [
+      "mc68hc16z1"
+    ],
+    "romof": null
+  },
+  "cga": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "cga_cportiii": {
+    "deps": [
+      "screen",
+      "hd6845s",
+      "palette"
+    ],
+    "romof": null
+  },
+  "cga_m24": {
+    "deps": [
+      "screen",
+      "hd6845s",
+      "palette"
+    ],
+    "romof": null
+  },
+  "cga_mc1502": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "cga_poisk2": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "chessmachine": {
+    "deps": [
+      "arm_cpu"
+    ],
+    "romof": null
+  },
+  "com52c50": {
+    "deps": [],
+    "romof": null
+  },
+  "comx_pl80": {
+    "deps": [],
+    "romof": null
+  },
+  "covox": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "covox_stereo": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "cp2024": {
+    "deps": [
+      "mc68hc11a1"
+    ],
+    "romof": null
+  },
+  "cpcdigiblst": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "cr589": {
+    "deps": [
+      "cdda",
+      "cdrom_image"
+    ],
+    "romof": null
+  },
+  "crd254sh": {
+    "deps": [
+      "h83040",
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port",
+      "h8h_dma",
+      "ncr53c94",
+      "h8h_dma_channel"
+    ],
+    "romof": null
+  },
+  "crtc_ega": {
+    "deps": [],
+    "romof": null
+  },
+  "cw7501": {
+    "deps": [
+      "ncr53cf94",
+      "m37710s4"
+    ],
+    "romof": null
+  },
+  "cxd1180": {
+    "deps": [],
+    "romof": null
+  },
+  "cxd1185": {
+    "deps": [],
+    "romof": null
+  },
+  "dac": {
+    "deps": [],
+    "romof": null
+  },
+  "dac_12bit_r2r_tc": {
+    "deps": [],
+    "romof": null
+  },
+  "dac_16bit_r2r": {
+    "deps": [],
+    "romof": null
+  },
+  "dec_rs232_loopback": {
+    "deps": [],
+    "romof": null
+  },
+  "dectalk_isa": {
+    "deps": [
+      "tms320c15",
+      "dac_12bit_r2r_tc",
+      "speaker",
+      "i80186"
+    ],
+    "romof": null
+  },
+  "dp8390d": {
+    "deps": [],
+    "romof": null
+  },
+  "e05a03": {
+    "deps": [],
+    "romof": null
+  },
+  "e05a30": {
+    "deps": [],
+    "romof": null
+  },
+  "ec1841_0002": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "ega": {
+    "deps": [
+      "screen",
+      "palette",
+      "crtc_ega"
+    ],
+    "romof": null
+  },
+  "eistwib": {
+    "deps": [
+      "i8274_channel",
+      "sdlc_logger",
+      "i8274",
+      "timer"
+    ],
+    "romof": null
+  },
+  "el2_3c503": {
+    "deps": [
+      "dp8390d"
+    ],
+    "romof": null
+  },
+  "epson_fx80": {
+    "deps": [
+      "upd7810",
+      "i8042ah"
+    ],
+    "romof": null
+  },
+  "epson_jx80": {
+    "deps": [
+      "upd7810",
+      "i8042ah"
+    ],
+    "romof": null
+  },
+  "epson_rx80": {
+    "deps": [
+      "upd7810"
+    ],
+    "romof": null
+  },
+  "ex800": {
+    "deps": [
+      "upd7810",
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "fdc344": {
+    "deps": [
+      "mcs3201",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "fdcmag": {
+    "deps": [
+      "mcs3201",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "floppy_8_dsdd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_8_dssd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_8_ssdd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_8_sssd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "g65sc02": {
+    "deps": [],
+    "romof": null
+  },
+  "generic_keyboard": {
+    "deps": [],
+    "romof": null
+  },
+  "generic_latch_8": {
+    "deps": [],
+    "romof": null
+  },
+  "gfxdecode": {
+    "deps": [],
+    "romof": null
+  },
+  "h83032": {
+    "deps": [
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port"
+    ],
+    "romof": null
+  },
+  "h83040": {
+    "deps": [
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port",
+      "h8h_dma",
+      "h8h_dma_channel"
+    ],
+    "romof": null
+  },
+  "h83048": {
+    "deps": [
+      "h8_adc_3337",
+      "h8_watchdog",
+      "h8_timer16",
+      "h8h_timer16_channel",
+      "h8_sci",
+      "h8h_intc",
+      "h8_digital_port",
+      "h8h_dma",
+      "h8h_dma_channel"
+    ],
+    "romof": null
+  },
+  "h8_adc_3337": {
+    "deps": [],
+    "romof": null
+  },
+  "h8_digital_port": {
+    "deps": [],
+    "romof": null
+  },
+  "h8_sci": {
+    "deps": [],
+    "romof": null
+  },
+  "h8_timer16": {
+    "deps": [],
+    "romof": null
+  },
+  "h8_watchdog": {
+    "deps": [],
+    "romof": null
+  },
+  "h8h_dma": {
+    "deps": [],
+    "romof": null
+  },
+  "h8h_dma_channel": {
+    "deps": [],
+    "romof": null
+  },
+  "h8h_intc": {
+    "deps": [],
+    "romof": null
+  },
+  "h8h_timer16_channel": {
+    "deps": [],
+    "romof": null
+  },
+  "hasp_savquest": {
+    "deps": [],
+    "romof": null
+  },
+  "hd6303r": {
+    "deps": [],
+    "romof": null
+  },
+  "hd6303x": {
+    "deps": [],
+    "romof": null
+  },
+  "hd6801v0": {
+    "deps": [],
+    "romof": null
+  },
+  "heath_tlb_connector": {
+    "deps": [],
+    "romof": null
+  },
+  "hp9122c": {
+    "deps": [
+      "floppy_connector",
+      "mb8876",
+      "i8291a",
+      "mc6809"
+    ],
+    "romof": null
+  },
+  "hp9133": {
+    "deps": [
+      "harddisk_image",
+      "floppy_connector",
+      "i8291a",
+      "wd2793",
+      "wd2010",
+      "mc6809"
+    ],
+    "romof": null
+  },
+  "hp9895": {
+    "deps": [
+      "z80",
+      "hp_phi",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "hp_phi": {
+    "deps": [],
+    "romof": null
+  },
+  "i80186": {
+    "deps": [],
+    "romof": null
+  },
+  "i80188": {
+    "deps": [],
+    "romof": null
+  },
+  "i8042ah": {
+    "deps": [],
+    "romof": null
+  },
+  "i8049": {
+    "deps": [],
+    "romof": null
+  },
+  "i8050": {
+    "deps": [],
+    "romof": null
+  },
+  "i8051": {
+    "deps": [],
+    "romof": null
+  },
+  "i8088": {
+    "deps": [],
+    "romof": null
+  },
+  "i80c31": {
+    "deps": [],
+    "romof": null
+  },
+  "i80c32": {
+    "deps": [],
+    "romof": null
+  },
+  "i8255": {
+    "deps": [],
+    "romof": null
+  },
+  "i8274": {
+    "deps": [
+      "i8274_channel"
+    ],
+    "romof": null
+  },
+  "i8274_channel": {
+    "deps": [],
+    "romof": null
+  },
+  "i8291a": {
+    "deps": [],
+    "romof": null
+  },
+  "ibm_mfc": {
+    "deps": [
+      "i8255",
+      "clock",
+      "pit8253",
+      "z80",
+      "pit_counter",
+      "i8251",
+      "ym2164",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "ibm_vga": {
+    "deps": [
+      "screen",
+      "vga"
+    ],
+    "romof": null
+  },
+  "idehd": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "ie15_cpu": {
+    "deps": [],
+    "romof": null
+  },
+  "ie15_device": {
+    "deps": [
+      "palette",
+      "ie15kbd",
+      "screen",
+      "beep",
+      "ie15_cpu",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "ie15_terminal": {
+    "deps": [
+      "palette",
+      "ie15kbd",
+      "screen",
+      "beep",
+      "ie15_cpu",
+      "speaker",
+      "ie15_device",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "ie15kbd": {
+    "deps": [],
+    "romof": null
+  },
+  "input_buffer": {
+    "deps": [],
+    "romof": null
+  },
+  "ins8250": {
+    "deps": [],
+    "romof": null
+  },
+  "ipt_merge_any_hi": {
+    "deps": [],
+    "romof": null
+  },
+  "isa8_fdc_at": {
+    "deps": [
+      "upd765a",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "isa8_fdc_ps2": {
+    "deps": [
+      "floppy_connector",
+      "n82077aa"
+    ],
+    "romof": null
+  },
+  "isa8_fdc_smc": {
+    "deps": [
+      "smc37c78",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "isa8_fdc_superio": {
+    "deps": [
+      "floppy_connector",
+      "pc_fdc_superio"
+    ],
+    "romof": null
+  },
+  "isa8_fdc_xt": {
+    "deps": [
+      "upd765a",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "isa_adlib": {
+    "deps": [
+      "speaker",
+      "ym3812"
+    ],
+    "romof": null
+  },
+  "isa_aga": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "isa_aga_pc200": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "isa_bblue2": {
+    "deps": [
+      "centronics",
+      "output_latch",
+      "z80",
+      "pc_lpt",
+      "ins8250",
+      "rs232",
+      "ram",
+      "input_buffer"
+    ],
+    "romof": null
+  },
+  "isa_chessmdr": {
+    "deps": [
+      "arm_cpu",
+      "chessmachine"
+    ],
+    "romof": null
+  },
+  "isa_chessmsr": {
+    "deps": [
+      "arm_cpu",
+      "generic_latch_8"
+    ],
+    "romof": null
+  },
+  "isa_com": {
+    "deps": [
+      "ins8250",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "isa_com_at": {
+    "deps": [
+      "ns16450",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "isa_epc_mda": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "isa_finalchs": {
+    "deps": [
+      "g65sc02",
+      "generic_latch_8"
+    ],
+    "romof": null
+  },
+  "isa_gblaster": {
+    "deps": [
+      "speaker",
+      "saa1099"
+    ],
+    "romof": null
+  },
+  "isa_hdc": {
+    "deps": [
+      "xt_hdc",
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "isa_hercules": {
+    "deps": [
+      "centronics",
+      "output_latch",
+      "pc_lpt",
+      "screen",
+      "mc6845",
+      "input_buffer",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "isa_ibm_mda": {
+    "deps": [
+      "centronics",
+      "output_latch",
+      "pc_lpt",
+      "screen",
+      "mc6845",
+      "input_buffer",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "isa_ibm_pgc": {
+    "deps": [
+      "i8088",
+      "palette",
+      "screen",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "isa_ibm_speech": {
+    "deps": [
+      "i8255",
+      "tms5220",
+      "pit8254",
+      "pit_counter",
+      "speaker_sound_device",
+      "mc3418",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "isa_lpt": {
+    "deps": [
+      "input_buffer",
+      "centronics",
+      "output_latch",
+      "pc_lpt"
+    ],
+    "romof": null
+  },
+  "isa_mpu401": {
+    "deps": [
+      "midi_port",
+      "hd6801v0",
+      "mpu401"
+    ],
+    "romof": null
+  },
+  "isa_pcmidi": {
+    "deps": [
+      "midi_port",
+      "z8681",
+      "generic_latch_8"
+    ],
+    "romof": null
+  },
+  "isa_pds": {
+    "deps": [
+      "i8255"
+    ],
+    "romof": null
+  },
+  "isa_prose4001": {
+    "deps": [
+      "i80188",
+      "i8251"
+    ],
+    "romof": null
+  },
+  "isa_sblaster1_0": {
+    "deps": [
+      "ym3812",
+      "dac_16bit_r2r",
+      "saa1099",
+      "midi_port",
+      "pc_joy",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "isa_sblaster1_5": {
+    "deps": [
+      "ym3812",
+      "dac_16bit_r2r",
+      "midi_port",
+      "pc_joy",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "kb_ec1841": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": null
+  },
+  "kb_iskr1030": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": null
+  },
+  "kb_pc83": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": null
+  },
+  "kb_pcxt83": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": null
+  },
+  "keytronic_pc3270": {
+    "deps": [
+      "i8051"
+    ],
+    "romof": null
+  },
+  "lba_enhancer": {
+    "deps": [],
+    "romof": null
+  },
+  "lx800": {
+    "deps": [
+      "upd7810",
+      "beep",
+      "speaker",
+      "e05a03"
+    ],
+    "romof": null
+  },
+  "lx810l": {
+    "deps": [
+      "e05a30",
+      "upd7810",
+      "93c06_16",
+      "screen",
+      "bitmap_printer",
+      "stepper",
+      "dac",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "m37450": {
+    "deps": [],
+    "romof": null
+  },
+  "m37710s4": {
+    "deps": [],
+    "romof": null
+  },
+  "m37732s4": {
+    "deps": [],
+    "romof": null
+  },
+  "m6802": {
+    "deps": [],
+    "romof": null
+  },
+  "m6803": {
+    "deps": [],
+    "romof": null
+  },
+  "mb8795": {
+    "deps": [],
+    "romof": null
+  },
+  "mb8876": {
+    "deps": [],
+    "romof": null
+  },
+  "mb91f155a": {
+    "deps": [],
+    "romof": null
+  },
+  "mc3418": {
+    "deps": [],
+    "romof": null
+  },
+  "mc6809": {
+    "deps": [],
+    "romof": null
+  },
+  "mc6845": {
+    "deps": [],
+    "romof": null
+  },
+  "mc68hc11a1": {
+    "deps": [],
+    "romof": null
+  },
+  "mc68hc11f1": {
+    "deps": [],
+    "romof": null
+  },
+  "mc68hc16z1": {
+    "deps": [],
+    "romof": null
+  },
+  "mcs3201": {
+    "deps": [],
+    "romof": null
+  },
+  "mfd51w": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "mfd75w": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "midiin": {
+    "deps": [],
+    "romof": null
+  },
+  "midiin_port": {
+    "deps": [
+      "midiin"
+    ],
+    "romof": null
+  },
+  "midiout": {
+    "deps": [],
+    "romof": null
+  },
+  "midiout_port": {
+    "deps": [
+      "midiout"
+    ],
+    "romof": null
+  },
+  "mockingboardd": {
+    "deps": [
+      "ay8913",
+      "speaker",
+      "m6803"
+    ],
+    "romof": null
+  },
+  "mos6581": {
+    "deps": [],
+    "romof": null
+  },
+  "mpu401": {
+    "deps": [
+      "midi_port",
+      "hd6801v0"
+    ],
+    "romof": null
+  },
+  "mz1p16": {
+    "deps": [
+      "i8050",
+      "input_buffer"
+    ],
+    "romof": null
+  },
+  "n82077aa": {
+    "deps": [],
+    "romof": null
+  },
+  "ncr53c94": {
+    "deps": [],
+    "romof": null
+  },
+  "ncr53cf94": {
+    "deps": [],
+    "romof": null
+  },
+  "ne1000": {
+    "deps": [
+      "dp8390d"
+    ],
+    "romof": null
+  },
+  "neomania_adapter": {
+    "deps": [],
+    "romof": null
+  },
+  "nlq401": {
+    "deps": [
+      "upd7810",
+      "tms1025"
+    ],
+    "romof": null
+  },
+  "ns16450": {
+    "deps": [],
+    "romof": null
+  },
+  "ns32016": {
+    "deps": [],
+    "romof": null
+  },
+  "ns32081": {
+    "deps": [],
+    "romof": null
+  },
+  "ns32082": {
+    "deps": [],
+    "romof": null
+  },
+  "nss_tvinterface": {
+    "deps": [
+      "screen",
+      "hd6303r",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "null_modem": {
+    "deps": [
+      "bitbanger"
+    ],
+    "romof": null
+  },
+  "number_9_rev": {
+    "deps": [
+      "screen",
+      "palette",
+      "upd7220"
+    ],
+    "romof": null
+  },
+  "nvram": {
+    "deps": [],
+    "romof": null
+  },
+  "oa_d34v": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "opus108pm": {
+    "deps": [
+      "ram",
+      "ns32082",
+      "ns32016",
+      "ns32081"
+    ],
+    "romof": null
+  },
+  "p72": {
+    "deps": [
+      "v33"
+    ],
+    "romof": null
+  },
+  "palette": {
+    "deps": [],
+    "romof": null
+  },
+  "pc_fdc_superio": {
+    "deps": [],
+    "romof": null
+  },
+  "pc_joy": {
+    "deps": [],
+    "romof": null
+  },
+  "pc_lpt": {
+    "deps": [
+      "input_buffer",
+      "centronics",
+      "output_latch"
+    ],
+    "romof": null
+  },
+  "pcf8573": {
+    "deps": [],
+    "romof": null
+  },
+  "pit8254": {
+    "deps": [
+      "pit_counter"
+    ],
+    "romof": null
+  },
+  "printer_image": {
+    "deps": [],
+    "romof": null
+  },
+  "pseudo_terminal": {
+    "deps": [],
+    "romof": null
+  },
+  "pvga1a_vga": {
+    "deps": [],
+    "romof": null
+  },
+  "px320a": {
+    "deps": [
+      "mb91f155a"
+    ],
+    "romof": null
+  },
+  "r65c02": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_loopback": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_mouse_hle_msystems": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_patch_box": {
+    "deps": [
+      "rs232"
+    ],
+    "romof": null
+  },
+  "rs232_sync_io": {
+    "deps": [
+      "bitbanger"
+    ],
+    "romof": null
+  },
+  "rs_serial_printer": {
+    "deps": [
+      "printer_image"
+    ],
+    "romof": null
+  },
+  "rt1000b": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector",
+      "ncr53c80"
+    ],
+    "romof": null
+  },
+  "saa1099": {
+    "deps": [],
+    "romof": null
+  },
+  "scorpion_ic": {
+    "deps": [
+      "pcf8573",
+      "nvram",
+      "hd6303x"
+    ],
+    "romof": null
+  },
+  "scsi_cdrom": {
+    "deps": [
+      "cdda",
+      "cdrom_image"
+    ],
+    "romof": null
+  },
+  "scsi_cdrom_apple": {
+    "deps": [
+      "cdda",
+      "cdrom_image"
+    ],
+    "romof": null
+  },
+  "scsi_cdrom_apple_ext": {
+    "deps": [
+      "cdda",
+      "cdrom_image",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "scsi_dtc510": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "scsi_harddisk": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "scsi_pc98_hd": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "scsi_s1410": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "scsi_tape": {
+    "deps": [
+      "simh_tape_image"
+    ],
+    "romof": null
+  },
+  "sdlc_logger": {
+    "deps": [],
+    "romof": null
+  },
+  "sensorboard": {
+    "deps": [],
+    "romof": null
+  },
+  "serial_heath_h19": {
+    "deps": [
+      "heath_tlb_connector"
+    ],
+    "romof": null
+  },
+  "serial_keyboard": {
+    "deps": [],
+    "romof": null
+  },
+  "serial_printer": {
+    "deps": [
+      "printer_image"
+    ],
+    "romof": null
+  },
+  "serial_terminal": {
+    "deps": [
+      "screen",
+      "beep",
+      "speaker",
+      "generic_keyboard"
+    ],
+    "romof": null
+  },
+  "serial_votraxtnt": {
+    "deps": [
+      "votrsc01a",
+      "clock",
+      "m6802",
+      "votraxtnt",
+      "acia6850",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "side116": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "simh_tape_image": {
+    "deps": [],
+    "romof": null
+  },
+  "smc37c78": {
+    "deps": [],
+    "romof": null
+  },
+  "smoc501": {
+    "deps": [
+      "v5x_scu",
+      "timer",
+      "pit8254",
+      "pit_counter",
+      "v40",
+      "v5x_dmau",
+      "wd33c93",
+      "v5x_icu"
+    ],
+    "romof": null
+  },
+  "snes_bcbattle": {
+    "deps": [
+      "bcreader"
+    ],
+    "romof": null
+  },
+  "snes_joypad": {
+    "deps": [],
+    "romof": null
+  },
+  "snes_miracle": {
+    "deps": [
+      "midi_port"
+    ],
+    "romof": null
+  },
+  "snes_mouse": {
+    "deps": [],
+    "romof": null
+  },
+  "snes_multitap": {
+    "deps": [
+      "snes_control_port"
+    ],
+    "romof": null
+  },
+  "snes_pachinko": {
+    "deps": [],
+    "romof": null
+  },
+  "snes_sscope": {
+    "deps": [],
+    "romof": null
+  },
+  "snes_twintap": {
+    "deps": [],
+    "romof": null
+  },
+  "ssi2001": {
+    "deps": [
+      "pc_joy",
+      "speaker",
+      "mos6581"
+    ],
+    "romof": null
+  },
+  "stepper": {
+    "deps": [],
+    "romof": null
+  },
+  "stereo_fx": {
+    "deps": [
+      "ym3812",
+      "i80c31",
+      "dac_8bit_r2r",
+      "pc_joy",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "sunkbd": {
+    "deps": [],
+    "romof": null
+  },
+  "sunkbd_adaptor": {
+    "deps": [
+      "sunkbd"
+    ],
+    "romof": null
+  },
+  "swtpc8212_device": {
+    "deps": [
+      "printer_image",
+      "m6802",
+      "pia6821",
+      "screen",
+      "ipt_merge_any_hi",
+      "mc6845",
+      "beep",
+      "ins8250",
+      "generic_keyboard",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "swtpc8212_terminal": {
+    "deps": [
+      "printer_image",
+      "m6802",
+      "pia6821",
+      "screen",
+      "ipt_merge_any_hi",
+      "mc6845",
+      "beep",
+      "ins8250",
+      "generic_keyboard",
+      "swtpc8212_device",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "tasc_sb30": {
+    "deps": [
+      "sensorboard"
+    ],
+    "romof": null
+  },
+  "tms1025": {
+    "deps": [],
+    "romof": null
+  },
+  "tms320c15": {
+    "deps": [],
+    "romof": null
+  },
+  "ubpnic": {
+    "deps": [
+      "mb8795"
+    ],
+    "romof": null
+  },
+  "upd765a": {
+    "deps": [],
+    "romof": null
+  },
+  "upd7810": {
+    "deps": [],
+    "romof": null
+  },
+  "v33": {
+    "deps": [],
+    "romof": null
+  },
+  "v40": {
+    "deps": [
+      "v5x_scu",
+      "timer",
+      "pit8254",
+      "pit_counter",
+      "v5x_dmau",
+      "v5x_icu"
+    ],
+    "romof": null
+  },
+  "v5x_dmau": {
+    "deps": [],
+    "romof": null
+  },
+  "v5x_icu": {
+    "deps": [],
+    "romof": null
+  },
+  "v5x_scu": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_control_port": {
+    "deps": [],
+    "romof": null
+  },
+  "vga": {
+    "deps": [],
+    "romof": null
+  },
+  "votraxtnt": {
+    "deps": [
+      "votrsc01a",
+      "clock",
+      "m6802",
+      "acia6850",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "wd1002a_wx1": {
+    "deps": [],
+    "romof": null
+  },
+  "wd11c00_17": {
+    "deps": [],
+    "romof": null
+  },
+  "wd2010": {
+    "deps": [],
+    "romof": null
+  },
+  "wd2793": {
+    "deps": [],
+    "romof": null
+  },
+  "wd33c93": {
+    "deps": [],
+    "romof": null
+  },
+  "wd33c93a": {
+    "deps": [],
+    "romof": null
+  },
+  "wd90c90_jk": {
+    "deps": [
+      "screen",
+      "pvga1a_vga"
+    ],
+    "romof": null
+  },
+  "wdxt_gen": {
+    "deps": [
+      "i8049",
+      "harddisk_image",
+      "wd11c00_17",
+      "wd2010"
+    ],
+    "romof": null
+  },
+  "wyse700": {
+    "deps": [
+      "screen",
+      "palette",
+      "mc6845"
+    ],
+    "romof": null
+  },
+  "xm3301": {
+    "deps": [
+      "cdda",
+      "cdrom_image"
+    ],
+    "romof": null
+  },
+  "xt_hdc": {
+    "deps": [],
+    "romof": null
+  },
+  "xtide": {
+    "deps": [
+      "ata_slot",
+      "2864",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "ym2164": {
+    "deps": [],
+    "romof": null
+  },
+  "ym3812": {
+    "deps": [],
+    "romof": null
+  },
+  "z8681": {
+    "deps": [],
+    "romof": null
+  },
+  "zip100_ide": {
+    "deps": [
+      "i80c32"
+    ],
+    "romof": null
+  },
+  "zxbus": {
+    "deps": [],
+    "romof": null
+  },
+  "zxbus_adapter": {
+    "deps": [
+      "zxbus_slot",
+      "zxbus"
+    ],
+    "romof": null
+  },
+  "zxbus_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "atari_cx85": {
+    "deps": [
+      "mm74c923"
+    ],
+    "romof": null
+  },
+  "atari_trakball": {
+    "deps": [],
+    "romof": null
+  },
+  "dac_16bit_r2r_tc": {
+    "deps": [],
+    "romof": null
+  },
+  "floppy_35_dd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_35_hd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_525_dd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_525_hd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "heath_gp19_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "heath_imaginator_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "heath_super19_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "heath_superset_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "heath_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "heath_ultra_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "heath_watz_tlb": {
+    "deps": [
+      "palette",
+      "clock",
+      "z80",
+      "screen",
+      "mc6845",
+      "beep",
+      "mm5740",
+      "ins8250",
+      "speaker",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "kbd_type3_hle": {
+    "deps": [
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "kbd_type4_hle": {
+    "deps": [
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "kbd_type5_hle_gb": {
+    "deps": [
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "kbd_type5_hle_jp": {
+    "deps": [
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "kbd_type5_hle_se": {
+    "deps": [
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "kbd_type5_hle_us": {
+    "deps": [
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "magnum6_pad": {
+    "deps": [],
+    "romof": null
+  },
+  "mm5740": {
+    "deps": [],
+    "romof": null
+  },
+  "mm74c923": {
+    "deps": [],
+    "romof": null
+  },
+  "mssw_pad": {
+    "deps": [],
+    "romof": null
+  },
+  "pc_basic_joy": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_mouse_hle_logitech": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_mouse_hle_msft": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_mouse_hle_rotatable": {
+    "deps": [],
+    "romof": null
+  },
+  "rs232_mouse_hle_wheel": {
+    "deps": [],
+    "romof": null
+  },
+  "sony_oa_d32w": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "vcs_joystick": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_joystick_booster": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_keypad": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_lightpen": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_mouse": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_paddles": {
+    "deps": [],
+    "romof": null
+  },
+  "vcs_wheel": {
+    "deps": [],
+    "romof": null
+  },
+  "zxbus_nemoide": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "zxbus_neogs": {
+    "deps": [
+      "harddisk_image",
+      "spi_sdcard",
+      "z80",
+      "dac_16bit_r2r_tc",
+      "ram",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "apple2gs": {
+    "deps": [
+      "m50741",
+      "rtc3430042",
+      "a2video",
+      "address_map_bank",
+      "macadb",
+      "rs232",
+      "flopsnd",
+      "ram",
+      "palette",
+      "timer",
+      "a2bus_slot",
+      "mfd51w",
+      "es5503",
+      "w65c816",
+      "iwm",
+      "apple2com",
+      "scc85c30",
+      "a2gameio",
+      "a2bus",
+      "z80scc_channel",
+      "speaker",
+      "floppy_525_sd",
+      "floppy_connector",
+      "software_list",
+      "screen",
+      "speaker_sound_device"
+    ],
+    "romof": null
+  },
+  "bbcb": {
+    "deps": [
+      "centronics",
+      "output_latch",
+      "cassette_image",
+      "hd6845s",
+      "bbc_fdc_slot",
+      "flopsnd",
+      "bbc_acorn8271",
+      "rs232",
+      "generic_socket",
+      "ram",
+      "bbc_romslot16",
+      "bbc_1mhzbus_slot",
+      "palette",
+      "bbc_kbd",
+      "bbc_speech",
+      "centronics_printer",
+      "i8271",
+      "saa5050",
+      "acia6850",
+      "ipt_merge_any_hi",
+      "ls259",
+      "upd7002",
+      "sn76489a",
+      "bbc_tube_slot",
+      "tms6100",
+      "bbc_vsp_slot",
+      "mos6522",
+      "tms5220",
+      "printer_image",
+      "econet_slot",
+      "bbc_analogue_slot",
+      "econet",
+      "bbc_userport_slot",
+      "speaker",
+      "samples",
+      "mc6854",
+      "floppy_connector",
+      "software_list",
+      "screen",
+      "serproc",
+      "floppy_525_qd",
+      "m6502",
+      "bbc_internal_slot"
+    ],
+    "romof": null
+  },
+  "c64": {
+    "deps": [
+      "quickload",
+      "cassette_image",
+      "vcs_control_port",
+      "vcs_joystick",
+      "mos6581",
+      "flopsnd",
+      "pls100",
+      "ram",
+      "mos6567",
+      "mos6526",
+      "ipt_merge_any_hi",
+      "pet_user_port",
+      "alps_3255190x",
+      "mos6522",
+      "cbm_iec",
+      "cbm_iec_slot",
+      "c64_expansion_slot",
+      "speaker",
+      "c1530",
+      "c1541",
+      "floppy_connector",
+      "software_list",
+      "pet_datassette_port",
+      "screen",
+      "m6510",
+      "c64h156",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "coco3": {
+    "deps": [
+      "cassette_image",
+      "flopsnd",
+      "address_map_bank",
+      "rs232",
+      "ram",
+      "rs_serial_printer",
+      "ipt_merge_any_hi",
+      "coco_dwsock",
+      "coco_fdc",
+      "wd1773",
+      "mc6809e",
+      "printer_image",
+      "pia6821",
+      "dac",
+      "speaker",
+      "coco_vhd_image",
+      "floppy_525_dd",
+      "dac_6bit_bw",
+      "cococart_slot",
+      "floppy_connector",
+      "software_list",
+      "screen",
+      "gime_ntsc"
+    ],
+    "romof": "coco"
+  },
+  "macplus": {
+    "deps": [
+      "rtc3430042",
+      "cdrom_image",
+      "flopsnd",
+      "mackbd_port",
+      "ram",
+      "ncr5380",
+      "palette",
+      "filter_rc",
+      "timer",
+      "macpds_slot",
+      "i8048",
+      "mfd51w",
+      "nscsi_connector",
+      "mackbd_m0110a",
+      "scsi_cdrom_apple",
+      "filter_biquad",
+      "iwm",
+      "mos6522",
+      "m68000",
+      "scc85c30",
+      "nscsi_bus",
+      "scsi_harddisk",
+      "z80scc_channel",
+      "speaker",
+      "macpds",
+      "harddisk_image",
+      "floppy_connector",
+      "software_list",
+      "screen",
+      "cdda",
+      "speaker_sound_device"
+    ],
+    "romof": null
+  },
+  "24c512": {
+    "deps": [],
+    "romof": null
+  },
+  "a2video": {
+    "deps": [],
+    "romof": null
+  },
+  "a2vulcan": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "a2vulgld": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "acorn_bus": {
+    "deps": [],
+    "romof": null
+  },
+  "acorn_bus_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "acorn_vidc1": {
+    "deps": [
+      "dac_16bit_r2r_tc",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "address_map_bank": {
+    "deps": [],
+    "romof": null
+  },
+  "alps_3255190x": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "amd_29f040": {
+    "deps": [],
+    "romof": null
+  },
+  "archimedes_keyboard": {
+    "deps": [
+      "i8051"
+    ],
+    "romof": null
+  },
+  "arm7_le": {
+    "deps": [],
+    "romof": null
+  },
+  "atmel_29c010": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_1mhzbus_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_24bbc": {
+    "deps": [
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_2ndserial": {
+    "deps": [
+      "clock",
+      "rs232",
+      "acia6850",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_acorn1770": {
+    "deps": [
+      "wd1770",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_acorn8271": {
+    "deps": [
+      "i8271",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_acornjoy": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_ams3": {
+    "deps": [
+      "i8271",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_amxmouse": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_analogue_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_ariesb12": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_ariesb20": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_ariesb32": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_atplsw": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_autoprom": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_awhd": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_b488": {
+    "deps": [
+      "ieee488",
+      "tms9914",
+      "ieee488_slot"
+    ],
+    "romof": null
+  },
+  "bbc_barrybox": {
+    "deps": [
+      "zn428e",
+      "speaker",
+      "zn449",
+      "microphone"
+    ],
+    "romof": null
+  },
+  "bbc_beebex": {
+    "deps": [
+      "acorn_bus",
+      "acorn_bus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_beebide": {
+    "deps": [
+      "ata_slot",
+      "bbc_1mhzbus_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "bbc_beebspch": {
+    "deps": [
+      "sp0256",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "bbc_bitstik1": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_bitstik2": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_cc500": {
+    "deps": [
+      "bbc_userport_slot",
+      "mos6522",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_ccibase": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_ccispell": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_cciword": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_chameleon": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_cisco": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_cms6502": {
+    "deps": [
+      "m3002",
+      "m6502",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "bbc_cpalette": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_cumana1": {
+    "deps": [
+      "floppy_connector",
+      "mb8877"
+    ],
+    "romof": null
+  },
+  "bbc_cumana2": {
+    "deps": [
+      "floppy_connector",
+      "mb8877"
+    ],
+    "romof": null
+  },
+  "bbc_cumana68k": {
+    "deps": [
+      "mc146818",
+      "nscsi_bus",
+      "m68008",
+      "wd2797",
+      "floppy_connector",
+      "pia6821",
+      "software_list",
+      "ipt_merge_any_hi",
+      "nscsi_connector"
+    ],
+    "romof": null
+  },
+  "bbc_cv1797": {
+    "deps": [
+      "floppy_connector",
+      "fd1797"
+    ],
+    "romof": null
+  },
+  "bbc_datacentre": {
+    "deps": [
+      "quickload",
+      "ata_slot",
+      "ata_interface",
+      "24c512"
+    ],
+    "romof": null
+  },
+  "bbc_datagem": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_detalker": {
+    "deps": [
+      "sp0256",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "bbc_dfse00": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_emrmidi": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "bbc_fdc_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_ide8": {
+    "deps": [
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "bbc_ieee488": {
+    "deps": [
+      "ieee488",
+      "bbc_1mhzbus_slot",
+      "tms9914",
+      "ieee488_slot"
+    ],
+    "romof": null
+  },
+  "bbc_integrab": {
+    "deps": [
+      "nvram",
+      "mc146818",
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_internal_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_kbd": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_kenda": {
+    "deps": [
+      "floppy_connector",
+      "wd2793"
+    ],
+    "romof": null
+  },
+  "bbc_lcd": {
+    "deps": [
+      "screen",
+      "palette",
+      "hd44780"
+    ],
+    "romof": null
+  },
+  "bbc_lvlecho": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_m2000": {
+    "deps": [
+      "clock",
+      "acia6850",
+      "midi_port",
+      "ipt_merge_any_hi",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_m3000": {
+    "deps": [
+      "speaker",
+      "htmusic",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_m4000": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_m500": {
+    "deps": [
+      "software_list",
+      "speaker",
+      "htmusic",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_m5000": {
+    "deps": [
+      "software_list",
+      "speaker",
+      "htmusic",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_m512mouse": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_m87": {
+    "deps": [
+      "software_list",
+      "speaker",
+      "htmusic",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_memexb20": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_mr3000": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_mr4200": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_mr4300": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_mr4800": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_multiform": {
+    "deps": [
+      "z80",
+      "software_list",
+      "generic_latch_8"
+    ],
+    "romof": null
+  },
+  "bbc_nvram": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_opus1770": {
+    "deps": [
+      "wd1770",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_opus2791": {
+    "deps": [
+      "floppy_connector",
+      "wd2791"
+    ],
+    "romof": null
+  },
+  "bbc_opus2793": {
+    "deps": [
+      "floppy_connector",
+      "wd2793"
+    ],
+    "romof": null
+  },
+  "bbc_opus3": {
+    "deps": [
+      "wd1770",
+      "floppy_connector",
+      "ram"
+    ],
+    "romof": null
+  },
+  "bbc_opus8272": {
+    "deps": [
+      "i8272a",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_palabe": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_palabep": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_palmo2": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_palqst": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_palted": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_palwap": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_pdram": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_pms64k": {
+    "deps": [
+      "nvram"
+    ],
+    "romof": null
+  },
+  "bbc_pmsgenie": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_pmsrtc": {
+    "deps": [
+      "ds1216e"
+    ],
+    "romof": null
+  },
+  "bbc_quinkey_intf": {
+    "deps": [
+      "bbc_quinkey_slot"
+    ],
+    "romof": null
+  },
+  "bbc_quinkey_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_ram": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_ramamp": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_ramdisc": {
+    "deps": [
+      "nvram",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bbc_raven20": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_rom": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_romex13": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_romslot16": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_romslot32": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_sdcard": {
+    "deps": [
+      "harddisk_image",
+      "spi_sdcard"
+    ],
+    "romof": null
+  },
+  "bbc_sdcardt": {
+    "deps": [
+      "harddisk_image",
+      "spi_sdcard"
+    ],
+    "romof": null
+  },
+  "bbc_speech": {
+    "deps": [
+      "generic_socket",
+      "tms5220",
+      "tms6100"
+    ],
+    "romof": null
+  },
+  "bbc_sprite": {
+    "deps": [
+      "screen",
+      "tms9129"
+    ],
+    "romof": null
+  },
+  "bbc_stl1770_1": {
+    "deps": [
+      "wd1770",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_stl1770_2": {
+    "deps": [
+      "wd1770",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_stl2m128": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_stl4m32": {
+    "deps": [
+      "bbc_romslot16",
+      "bbc_romslot32"
+    ],
+    "romof": null
+  },
+  "bbc_stldfdc_1": {
+    "deps": [
+      "wd1770",
+      "floppy_connector",
+      "i8271"
+    ],
+    "romof": null
+  },
+  "bbc_stlrtc": {
+    "deps": [
+      "mc146818"
+    ],
+    "romof": null
+  },
+  "bbc_stlswr128": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_stlswr16": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_stlswr32": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_stlswr64": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_sweetalker": {
+    "deps": [
+      "sp0256"
+    ],
+    "romof": null
+  },
+  "bbc_torchhd": {
+    "deps": [
+      "nscsi_bus",
+      "nscsi_connector"
+    ],
+    "romof": null
+  },
+  "bbc_tracker": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_trilogy": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_tube_16032": {
+    "deps": [
+      "ns32016",
+      "software_list",
+      "ns32081",
+      "ram",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_32016": {
+    "deps": [
+      "ns32016",
+      "software_list",
+      "ns32081",
+      "ram",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_32016l": {
+    "deps": [
+      "ns32016",
+      "software_list",
+      "ns32081",
+      "ram",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_6502": {
+    "deps": [
+      "ram",
+      "g65sc02",
+      "tube",
+      "software_list"
+    ],
+    "romof": null
+  },
+  "bbc_tube_6502e": {
+    "deps": [
+      "ram",
+      "g65sc02",
+      "tube",
+      "software_list"
+    ],
+    "romof": null
+  },
+  "bbc_tube_6502p": {
+    "deps": [
+      "ram",
+      "tube",
+      "m6502",
+      "software_list"
+    ],
+    "romof": null
+  },
+  "bbc_tube_65c102": {
+    "deps": [
+      "ram",
+      "tube",
+      "r65c102",
+      "software_list"
+    ],
+    "romof": null
+  },
+  "bbc_tube_80186": {
+    "deps": [
+      "ram",
+      "software_list",
+      "tube",
+      "i80186"
+    ],
+    "romof": null
+  },
+  "bbc_tube_80286": {
+    "deps": [
+      "ram",
+      "software_list",
+      "tube",
+      "i80286"
+    ],
+    "romof": null
+  },
+  "bbc_tube_a500": {
+    "deps": [
+      "memc",
+      "arm_cpu",
+      "ioc",
+      "dac_16bit_r2r_tc",
+      "software_list",
+      "screen",
+      "ipt_merge_any_hi",
+      "acorn_vidc1",
+      "speaker",
+      "archimedes_keyboard",
+      "tube",
+      "i8051"
+    ],
+    "romof": null
+  },
+  "bbc_tube_a500d": {
+    "deps": [
+      "memc",
+      "arm_cpu",
+      "ioc",
+      "dac_16bit_r2r_tc",
+      "software_list",
+      "screen",
+      "ipt_merge_any_hi",
+      "acorn_vidc1",
+      "speaker",
+      "archimedes_keyboard",
+      "tube",
+      "i8051"
+    ],
+    "romof": null
+  },
+  "bbc_tube_arm": {
+    "deps": [
+      "arm_cpu",
+      "ram",
+      "tube",
+      "software_list"
+    ],
+    "romof": null
+  },
+  "bbc_tube_arm7": {
+    "deps": [
+      "ram",
+      "software_list",
+      "tube",
+      "arm7_le"
+    ],
+    "romof": null
+  },
+  "bbc_tube_casper": {
+    "deps": [
+      "m68000",
+      "software_list",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "bbc_tube_cms6809": {
+    "deps": [
+      "acorn_bus",
+      "mos6522",
+      "acorn_bus_slot",
+      "ipt_merge_any_hi",
+      "mc6809"
+    ],
+    "romof": null
+  },
+  "bbc_tube_matchbox": {
+    "deps": [
+      "arm_cpu",
+      "r65c102",
+      "ns32016",
+      "z80",
+      "software_list",
+      "m68000",
+      "ram",
+      "tube",
+      "mc6809",
+      "t11",
+      "i80286"
+    ],
+    "romof": null
+  },
+  "bbc_tube_pcplus": {
+    "deps": [
+      "ram",
+      "software_list",
+      "tube",
+      "i80186"
+    ],
+    "romof": null
+  },
+  "bbc_tube_rc6502": {
+    "deps": [
+      "software_list",
+      "w65c02s",
+      "address_map_bank",
+      "ram",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_rc65816": {
+    "deps": [
+      "software_list",
+      "address_map_bank",
+      "ram",
+      "tube",
+      "w65c816"
+    ],
+    "romof": null
+  },
+  "bbc_tube_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_tube_x25": {
+    "deps": [
+      "z80ctc",
+      "z80",
+      "z80sio_channel",
+      "z80sio",
+      "z80ctc_channel",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_z80": {
+    "deps": [
+      "z80",
+      "software_list",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_z80w": {
+    "deps": [
+      "z80",
+      "software_list",
+      "tube"
+    ],
+    "romof": null
+  },
+  "bbc_tube_zep100": {
+    "deps": [
+      "i8255",
+      "z80",
+      "software_list",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "bbc_tube_zep100l": {
+    "deps": [
+      "i8255",
+      "z80",
+      "software_list",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "bbc_tube_zep100w": {
+    "deps": [
+      "i8255",
+      "z80",
+      "software_list",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "bbc_udm": {
+    "deps": [
+      "floppy_connector",
+      "wd2793"
+    ],
+    "romof": null
+  },
+  "bbc_userport_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_usersplit": {
+    "deps": [
+      "bbc_userport_slot"
+    ],
+    "romof": null
+  },
+  "bbc_voicebox": {
+    "deps": [
+      "sp0256",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "bbc_voltmace3b": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_vsp_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_we12rom": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_we13rom": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "bbc_we32kram": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_weddb2": {
+    "deps": [
+      "wd1772",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_weddb3": {
+    "deps": [
+      "wd1770",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "bbc_weromram": {
+    "deps": [
+      "bbc_romslot16"
+    ],
+    "romof": null
+  },
+  "beebopl": {
+    "deps": [
+      "speaker",
+      "ym3812",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "beebsid": {
+    "deps": [
+      "mos8580",
+      "speaker",
+      "bbc_1mhzbus_slot"
+    ],
+    "romof": null
+  },
+  "bluechip": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c128_comal80": {
+    "deps": [],
+    "romof": null
+  },
+  "c128_partner": {
+    "deps": [],
+    "romof": null
+  },
+  "c1526": {
+    "deps": [
+      "m6504"
+    ],
+    "romof": null
+  },
+  "c1530": {
+    "deps": [
+      "cassette_image"
+    ],
+    "romof": null
+  },
+  "c1540": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c1541": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c1541c": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c1541dd": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c1541ii": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c1541pd": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c1541pdc": {
+    "deps": [
+      "centronics",
+      "mos6522",
+      "output_latch",
+      "pia6821",
+      "floppy_connector",
+      "c64h156",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c1570": {
+    "deps": [
+      "mos6522",
+      "wd1770",
+      "floppy_connector",
+      "mos6526",
+      "c64h156",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c1571": {
+    "deps": [
+      "mos6522",
+      "wd1770",
+      "floppy_connector",
+      "mos6526",
+      "c64h156",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c1581": {
+    "deps": [
+      "wd1772",
+      "m6502",
+      "floppy_connector",
+      "mos8520"
+    ],
+    "romof": null
+  },
+  "c2n": {
+    "deps": [
+      "cassette_image"
+    ],
+    "romof": null
+  },
+  "c64_16kb": {
+    "deps": [
+      "generic_cartslot"
+    ],
+    "romof": null
+  },
+  "c64_1700reu": {
+    "deps": [
+      "generic_socket",
+      "mos8726"
+    ],
+    "romof": null
+  },
+  "c64_1750reu": {
+    "deps": [
+      "generic_socket",
+      "mos8726"
+    ],
+    "romof": null
+  },
+  "c64_1764reu": {
+    "deps": [
+      "generic_socket",
+      "mos8726"
+    ],
+    "romof": null
+  },
+  "c64_4cga": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_4dxh": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_4ksa": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_4tba": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_bn1541": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_buscard": {
+    "deps": [
+      "i8255",
+      "centronics",
+      "ds75160a",
+      "ieee488_slot",
+      "ieee488",
+      "c64_expansion_slot",
+      "ds75161a"
+    ],
+    "romof": null
+  },
+  "c64_buscard2": {
+    "deps": [
+      "centronics",
+      "mos6532",
+      "ieee488_slot",
+      "pia6821",
+      "ieee488",
+      "c64_expansion_slot"
+    ],
+    "romof": null
+  },
+  "c64_comal80": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_cpm": {
+    "deps": [
+      "z80"
+    ],
+    "romof": null
+  },
+  "c64_cspeech": {
+    "deps": [
+      "sp0256",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "c64_dela_ep256": {
+    "deps": [
+      "generic_socket"
+    ],
+    "romof": null
+  },
+  "c64_dela_ep64": {
+    "deps": [
+      "generic_socket"
+    ],
+    "romof": null
+  },
+  "c64_dela_ep7x8": {
+    "deps": [
+      "generic_socket"
+    ],
+    "romof": null
+  },
+  "c64_dinamic": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_dqbb": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_easy_calc_result": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_easyflash": {
+    "deps": [
+      "amd_29f040"
+    ],
+    "romof": null
+  },
+  "c64_epyx_fast_load": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_exos": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_expansion_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_fcc": {
+    "deps": [
+      "g65sc02",
+      "generic_latch_8"
+    ],
+    "romof": null
+  },
+  "c64_final": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_final3": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_fun_play": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_geocable": {
+    "deps": [
+      "centronics"
+    ],
+    "romof": null
+  },
+  "c64_georam": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_ide64": {
+    "deps": [
+      "atmel_29c010",
+      "ds1302",
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "c64_ieee488": {
+    "deps": [
+      "tpi6525",
+      "ieee488",
+      "c64_expansion_slot",
+      "ieee488_slot"
+    ],
+    "romof": null
+  },
+  "c64_kingsoft": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_mach5": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_magic_desk": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_magic_formel": {
+    "deps": [
+      "pia6821"
+    ],
+    "romof": null
+  },
+  "c64_magic_voice": {
+    "deps": [
+      "tpi6525",
+      "c64_expansion_slot",
+      "speaker",
+      "cd40105",
+      "t6721a"
+    ],
+    "romof": null
+  },
+  "c64_midimap": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "c64_midins": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "c64_midipp": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850",
+      "ptm6840"
+    ],
+    "romof": null
+  },
+  "c64_midisci": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "c64_midisiel": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "c64_mikro_assembler": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_mscr": {
+    "deps": [
+      "pia6821",
+      "m6802"
+    ],
+    "romof": null
+  },
+  "c64_music64": {
+    "deps": [
+      "c64_expansion_slot"
+    ],
+    "romof": null
+  },
+  "c64_neoram": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_nl10": {
+    "deps": [
+      "hd6303y"
+    ],
+    "romof": null
+  },
+  "c64_ocean": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_pagefox": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_partner": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_prophet64": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_ps64": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_rex": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_rex_ep256": {
+    "deps": [
+      "generic_socket"
+    ],
+    "romof": null
+  },
+  "c64_ross": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_sfxse": {
+    "deps": [
+      "ym3526",
+      "speaker",
+      "c64_expansion_slot"
+    ],
+    "romof": null
+  },
+  "c64_silverrock": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_simons_basic": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_speakeasy": {
+    "deps": [
+      "votrsc01a",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "c64_standard": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_stardos": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_structured_basic": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_super_explode": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_super_games": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_supercpu": {
+    "deps": [
+      "c64_expansion_slot",
+      "w65c816"
+    ],
+    "romof": null
+  },
+  "c64_sw8k": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_swiftlink": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "c64_system3": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_tdos": {
+    "deps": [
+      "c64_expansion_slot",
+      "mc6852"
+    ],
+    "romof": null
+  },
+  "c64_tibdd001": {
+    "deps": [
+      "floppy_connector",
+      "wd37c65c"
+    ],
+    "romof": null
+  },
+  "c64_turbo232": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "c64_vizastar": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_vizawrite": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_warp_speed": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_westermann": {
+    "deps": [],
+    "romof": null
+  },
+  "c64_xl80": {
+    "deps": [
+      "screen",
+      "hd6845s",
+      "palette",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "c64_z80videopak": {
+    "deps": [
+      "palette",
+      "z80",
+      "hd6845s",
+      "screen",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "c64_zaxxon": {
+    "deps": [],
+    "romof": null
+  },
+  "c64h156": {
+    "deps": [],
+    "romof": null
+  },
+  "cbm_iec": {
+    "deps": [],
+    "romof": null
+  },
+  "cbm_iec_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "cbm_interpod": {
+    "deps": [
+      "mos6522",
+      "mos6532",
+      "ieee488_slot",
+      "acia6850",
+      "ieee488",
+      "rs232",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "cbm_serbox": {
+    "deps": [
+      "w65c02"
+    ],
+    "romof": null
+  },
+  "cd40105": {
+    "deps": [],
+    "romof": null
+  },
+  "cd6809_fdc": {
+    "deps": [
+      "floppy_connector",
+      "wd1773"
+    ],
+    "romof": null
+  },
+  "cfa3000a": {
+    "deps": [],
+    "romof": null
+  },
+  "cfa3000kbd": {
+    "deps": [],
+    "romof": null
+  },
+  "cfa3000opt": {
+    "deps": [],
+    "romof": null
+  },
+  "cmdhd": {
+    "deps": [
+      "i8255",
+      "mos6522",
+      "rtc72421",
+      "scsi",
+      "scsi_slot",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "cmdrc2": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "coco_dcmodem": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "coco_dwsock": {
+    "deps": [],
+    "romof": null
+  },
+  "coco_fdc": {
+    "deps": [
+      "floppy_connector",
+      "wd1773"
+    ],
+    "romof": null
+  },
+  "coco_ide": {
+    "deps": [
+      "cococart_slot",
+      "ata_slot",
+      "ata_interface"
+    ],
+    "romof": null
+  },
+  "coco_midi": {
+    "deps": [
+      "midi_port",
+      "clock",
+      "acia6850"
+    ],
+    "romof": null
+  },
+  "coco_multipack": {
+    "deps": [
+      "cococart_slot"
+    ],
+    "romof": null
+  },
+  "coco_orch90": {
+    "deps": [
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "coco_psg": {
+    "deps": [
+      "sst_39sf040",
+      "speaker",
+      "ym2149"
+    ],
+    "romof": null
+  },
+  "coco_rs232": {
+    "deps": [
+      "mos6551",
+      "clock",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "coco_scii": {
+    "deps": [
+      "floppy_connector",
+      "wd1773",
+      "distomeb_slot",
+      "ipt_merge_any_hi"
+    ],
+    "romof": null
+  },
+  "coco_ssc": {
+    "deps": [
+      "cocossc_sac",
+      "tms7040",
+      "ay8913",
+      "ram",
+      "speaker",
+      "sp0256"
+    ],
+    "romof": null
+  },
+  "coco_stereo_composer": {
+    "deps": [
+      "pia6821",
+      "speaker",
+      "dac_8bit_r2r"
+    ],
+    "romof": null
+  },
+  "coco_symphony_twelve": {
+    "deps": [
+      "pia6821",
+      "speaker",
+      "ay8910"
+    ],
+    "romof": null
+  },
+  "coco_vhd_image": {
+    "deps": [],
+    "romof": null
+  },
+  "coco_wpk": {
+    "deps": [
+      "screen",
+      "palette",
+      "r6545_1"
+    ],
+    "romof": null
+  },
+  "coco_wpk2": {
+    "deps": [
+      "screen",
+      "palette",
+      "r6545_1"
+    ],
+    "romof": null
+  },
+  "coco_wpk2p": {
+    "deps": [
+      "screen",
+      "v9958"
+    ],
+    "romof": null
+  },
+  "coco_wpkrs": {
+    "deps": [
+      "screen",
+      "palette",
+      "r6545_1"
+    ],
+    "romof": null
+  },
+  "coco_xsid": {
+    "deps": [
+      "mos8580",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "cococart_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "cocopak": {
+    "deps": [],
+    "romof": null
+  },
+  "cocopak_banked": {
+    "deps": [],
+    "romof": null
+  },
+  "cocopakgmc": {
+    "deps": [
+      "sn76489a",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "cocopakmax": {
+    "deps": [],
+    "romof": null
+  },
+  "cocopakram": {
+    "deps": [
+      "distomeb_slot"
+    ],
+    "romof": null
+  },
+  "cocossc_sac": {
+    "deps": [],
+    "romof": null
+  },
+  "cp450_fdc": {
+    "deps": [
+      "floppy_connector",
+      "wd1773"
+    ],
+    "romof": null
+  },
+  "csd1": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "dac_6bit_bw": {
+    "deps": [],
+    "romof": null
+  },
+  "datapen": {
+    "deps": [],
+    "romof": null
+  },
+  "diag264_serial_loopback": {
+    "deps": [],
+    "romof": null
+  },
+  "distomeb_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "dp8473": {
+    "deps": [],
+    "romof": null
+  },
+  "dragon_msx2": {
+    "deps": [
+      "v9958",
+      "screen",
+      "ym2149",
+      "speaker",
+      "ym2413"
+    ],
+    "romof": null
+  },
+  "ds1302": {
+    "deps": [],
+    "romof": null
+  },
+  "ds75160a": {
+    "deps": [],
+    "romof": null
+  },
+  "ds75161a": {
+    "deps": [],
+    "romof": null
+  },
+  "econet": {
+    "deps": [],
+    "romof": null
+  },
+  "econet_e01": {
+    "deps": [
+      "r65c102",
+      "mc146818",
+      "mc6854",
+      "centronics",
+      "output_latch",
+      "floppy_connector",
+      "software_list",
+      "wd2793",
+      "r65c22",
+      "scsi",
+      "scsi_slot",
+      "ram",
+      "input_buffer"
+    ],
+    "romof": null
+  },
+  "econet_e01s": {
+    "deps": [
+      "r65c102",
+      "mc146818",
+      "mc6854",
+      "centronics",
+      "output_latch",
+      "floppy_connector",
+      "software_list",
+      "wd2793",
+      "r65c22",
+      "scsi",
+      "scsi_slot",
+      "ram",
+      "input_buffer"
+    ],
+    "romof": null
+  },
+  "econet_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "enh2000": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "es5503": {
+    "deps": [],
+    "romof": null
+  },
+  "fd148": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "fd2000": {
+    "deps": [
+      "floppy_connector",
+      "r65c22",
+      "w65c02",
+      "dp8473"
+    ],
+    "romof": null
+  },
+  "fd4000": {
+    "deps": [
+      "floppy_connector",
+      "pc8477a",
+      "r65c22",
+      "w65c02"
+    ],
+    "romof": null
+  },
+  "filter_biquad": {
+    "deps": [],
+    "romof": null
+  },
+  "filter_rc": {
+    "deps": [],
+    "romof": null
+  },
+  "floppy_525_qd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_525_ssdd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_525_sssd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "fsd1": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "fsd2": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "generic_cartslot": {
+    "deps": [],
+    "romof": null
+  },
+  "generic_rom_plain": {
+    "deps": [],
+    "romof": null
+  },
+  "generic_socket": {
+    "deps": [],
+    "romof": null
+  },
+  "gime_ntsc": {
+    "deps": [],
+    "romof": null
+  },
+  "hd44780": {
+    "deps": [],
+    "romof": null
+  },
+  "hd6303y": {
+    "deps": [],
+    "romof": null
+  },
+  "htmusic": {
+    "deps": [],
+    "romof": null
+  },
+  "i8021": {
+    "deps": [],
+    "romof": null
+  },
+  "i80286": {
+    "deps": [],
+    "romof": null
+  },
+  "i8039": {
+    "deps": [],
+    "romof": null
+  },
+  "i8271": {
+    "deps": [],
+    "romof": null
+  },
+  "i8272a": {
+    "deps": [],
+    "romof": null
+  },
+  "indusgt": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "ioc": {
+    "deps": [],
+    "romof": null
+  },
+  "ls259": {
+    "deps": [],
+    "romof": null
+  },
+  "m146805e2": {
+    "deps": [],
+    "romof": null
+  },
+  "m3002": {
+    "deps": [],
+    "romof": null
+  },
+  "m50734": {
+    "deps": [],
+    "romof": null
+  },
+  "m50741": {
+    "deps": [],
+    "romof": null
+  },
+  "m6500_1": {
+    "deps": [],
+    "romof": null
+  },
+  "m6502": {
+    "deps": [],
+    "romof": null
+  },
+  "m6504": {
+    "deps": [],
+    "romof": null
+  },
+  "m6510": {
+    "deps": [],
+    "romof": null
+  },
+  "m68000": {
+    "deps": [],
+    "romof": null
+  },
+  "macadb": {
+    "deps": [],
+    "romof": null
+  },
+  "mackbd_m0110": {
+    "deps": [
+      "i8021"
+    ],
+    "romof": null
+  },
+  "mackbd_m0110a": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": null
+  },
+  "mackbd_m0110a_f": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": "mackbd_m0110a"
+  },
+  "mackbd_m0110a_j": {
+    "deps": [
+      "i8048"
+    ],
+    "romof": "mackbd_m0110a"
+  },
+  "mackbd_m0110b": {
+    "deps": [
+      "i8021"
+    ],
+    "romof": "mackbd_m0110"
+  },
+  "mackbd_m0110f": {
+    "deps": [
+      "i8021"
+    ],
+    "romof": "mackbd_m0110"
+  },
+  "mackbd_m0110j": {
+    "deps": [
+      "i8021"
+    ],
+    "romof": "mackbd_m0110"
+  },
+  "mackbd_m0110t": {
+    "deps": [
+      "i8021"
+    ],
+    "romof": "mackbd_m0110"
+  },
+  "mackbd_m0120": {
+    "deps": [
+      "i8021",
+      "mackbd_port"
+    ],
+    "romof": "mackbd_m0110"
+  },
+  "mackbd_m0120p": {
+    "deps": [
+      "i8021",
+      "mackbd_port"
+    ],
+    "romof": "mackbd_m0110"
+  },
+  "mackbd_port": {
+    "deps": [],
+    "romof": null
+  },
+  "macpds": {
+    "deps": [],
+    "romof": null
+  },
+  "macpds_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "mb8877": {
+    "deps": [],
+    "romof": null
+  },
+  "mc146818": {
+    "deps": [],
+    "romof": null
+  },
+  "mc6852": {
+    "deps": [],
+    "romof": null
+  },
+  "mc6854": {
+    "deps": [],
+    "romof": null
+  },
+  "memc": {
+    "deps": [],
+    "romof": null
+  },
+  "micromike": {
+    "deps": [
+      "microphone"
+    ],
+    "romof": null
+  },
+  "microphone": {
+    "deps": [],
+    "romof": null
+  },
+  "minichif": {
+    "deps": [
+      "mos6522",
+      "isa8",
+      "wd1770",
+      "floppy_connector",
+      "mos6526",
+      "c64h156",
+      "m6502",
+      "isa8_slot"
+    ],
+    "romof": null
+  },
+  "mos6526": {
+    "deps": [],
+    "romof": null
+  },
+  "mos6532": {
+    "deps": [],
+    "romof": null
+  },
+  "mos6567": {
+    "deps": [],
+    "romof": null
+  },
+  "mos8520": {
+    "deps": [],
+    "romof": null
+  },
+  "mos8580": {
+    "deps": [],
+    "romof": null
+  },
+  "mos8726": {
+    "deps": [],
+    "romof": null
+  },
+  "mps1200": {
+    "deps": [
+      "m50734"
+    ],
+    "romof": null
+  },
+  "mps1250": {
+    "deps": [
+      "m50734"
+    ],
+    "romof": null
+  },
+  "msdsd1": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "msdsd2": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "pc8477a": {
+    "deps": [],
+    "romof": null
+  },
+  "pds_hyper": {
+    "deps": [
+      "harddisk_image",
+      "wd2010"
+    ],
+    "romof": null
+  },
+  "pet_datassette_port": {
+    "deps": [],
+    "romof": null
+  },
+  "pet_user_port": {
+    "deps": [],
+    "romof": null
+  },
+  "pls100": {
+    "deps": [],
+    "romof": null
+  },
+  "quickload": {
+    "deps": [],
+    "romof": null
+  },
+  "r6545_1": {
+    "deps": [],
+    "romof": null
+  },
+  "r65c102": {
+    "deps": [],
+    "romof": null
+  },
+  "r65c22": {
+    "deps": [],
+    "romof": null
+  },
+  "robinlp": {
+    "deps": [],
+    "romof": null
+  },
+  "rtc3430042": {
+    "deps": [],
+    "romof": null
+  },
+  "rtc72421": {
+    "deps": [],
+    "romof": null
+  },
+  "saa5050": {
+    "deps": [],
+    "romof": null
+  },
+  "samples": {
+    "deps": [],
+    "romof": null
+  },
+  "scc85c30": {
+    "deps": [
+      "z80scc_channel"
+    ],
+    "romof": null
+  },
+  "scsi": {
+    "deps": [
+      "scsi_slot"
+    ],
+    "romof": null
+  },
+  "scsi_slot": {
+    "deps": [],
+    "romof": null
+  },
+  "serproc": {
+    "deps": [],
+    "romof": null
+  },
+  "sn76489a": {
+    "deps": [],
+    "romof": null
+  },
+  "sp0256": {
+    "deps": [],
+    "romof": null
+  },
+  "sst_39sf040": {
+    "deps": [],
+    "romof": null
+  },
+  "stacklp": {
+    "deps": [],
+    "romof": null
+  },
+  "stacklr": {
+    "deps": [],
+    "romof": null
+  },
+  "t11": {
+    "deps": [],
+    "romof": null
+  },
+  "t6721a": {
+    "deps": [],
+    "romof": null
+  },
+  "technica": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "tms6100": {
+    "deps": [],
+    "romof": null
+  },
+  "tms7040": {
+    "deps": [],
+    "romof": null
+  },
+  "tms9129": {
+    "deps": [],
+    "romof": null
+  },
+  "tpi6525": {
+    "deps": [],
+    "romof": null
+  },
+  "tube": {
+    "deps": [],
+    "romof": null
+  },
+  "upd7002": {
+    "deps": [],
+    "romof": null
+  },
+  "vic1011": {
+    "deps": [
+      "rs232"
+    ],
+    "romof": null
+  },
+  "vic1515": {
+    "deps": [
+      "i8039"
+    ],
+    "romof": null
+  },
+  "vic1520": {
+    "deps": [
+      "m6500_1"
+    ],
+    "romof": null
+  },
+  "w65c816": {
+    "deps": [],
+    "romof": null
+  },
+  "wd1770": {
+    "deps": [],
+    "romof": null
+  },
+  "wd1772": {
+    "deps": [],
+    "romof": null
+  },
+  "wd1773": {
+    "deps": [],
+    "romof": null
+  },
+  "wd2791": {
+    "deps": [],
+    "romof": null
+  },
+  "wd2797": {
+    "deps": [],
+    "romof": null
+  },
+  "wd37c65c": {
+    "deps": [],
+    "romof": null
+  },
+  "xetec_c5181": {
+    "deps": [
+      "m146805e2",
+      "rs232"
+    ],
+    "romof": null
+  },
+  "ym2149": {
+    "deps": [],
+    "romof": null
+  },
+  "ym2413": {
+    "deps": [],
+    "romof": null
+  },
+  "ym3526": {
+    "deps": [],
+    "romof": null
+  },
+  "z80ctc": {
+    "deps": [
+      "z80ctc_channel"
+    ],
+    "romof": null
+  },
+  "z80ctc_channel": {
+    "deps": [],
+    "romof": null
+  },
+  "z80scc_channel": {
+    "deps": [],
+    "romof": null
+  },
+  "z80sio": {
+    "deps": [
+      "z80sio_channel"
+    ],
+    "romof": null
+  },
+  "z80sio_channel": {
+    "deps": [],
+    "romof": null
+  },
+  "zn428e": {
+    "deps": [],
+    "romof": null
+  },
+  "zn449": {
+    "deps": [],
+    "romof": null
+  },
+  "bbc_quinkey": {
+    "deps": [],
+    "romof": null
+  },
+  "c2031": {
+    "deps": [
+      "c64h156",
+      "m6502",
+      "mos6522",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "c2040": {
+    "deps": [
+      "mos6530",
+      "m6504",
+      "mos6522",
+      "mos6532",
+      "floppy_connector",
+      "c2040_fdc",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c2040_fdc": {
+    "deps": [],
+    "romof": null
+  },
+  "c3040": {
+    "deps": [
+      "mos6530",
+      "m6504",
+      "mos6522",
+      "mos6532",
+      "floppy_connector",
+      "c2040_fdc",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c4023": {
+    "deps": [
+      "m6504"
+    ],
+    "romof": null
+  },
+  "c4040": {
+    "deps": [
+      "mos6530",
+      "m6504",
+      "mos6522",
+      "mos6532",
+      "floppy_connector",
+      "c2040_fdc",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c8050": {
+    "deps": [
+      "mos6530",
+      "m6504",
+      "mos6522",
+      "mos6532",
+      "floppy_connector",
+      "c8050fdc",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c8050fdc": {
+    "deps": [],
+    "romof": null
+  },
+  "c8250": {
+    "deps": [
+      "mos6530",
+      "m6504",
+      "mos6522",
+      "mos6532",
+      "floppy_connector",
+      "c8050fdc",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "c8280": {
+    "deps": [
+      "floppy_connector",
+      "m6502",
+      "mos6532",
+      "fd1797"
+    ],
+    "romof": null
+  },
+  "cms_4080term": {
+    "deps": [
+      "palette",
+      "mos6522",
+      "timer",
+      "clock",
+      "centronics",
+      "output_latch",
+      "screen",
+      "mos6551",
+      "rs232",
+      "ef9345",
+      "gfxdecode"
+    ],
+    "romof": null
+  },
+  "cms_fdc": {
+    "deps": [
+      "wd1770",
+      "floppy_connector"
+    ],
+    "romof": null
+  },
+  "cms_hires": {
+    "deps": [
+      "screen",
+      "ef9365",
+      "palette",
+      "timer"
+    ],
+    "romof": null
+  },
+  "cms_ieee": {
+    "deps": [
+      "ieee488",
+      "tms9914",
+      "ieee488_slot"
+    ],
+    "romof": null
+  },
+  "com8116": {
+    "deps": [],
+    "romof": null
+  },
+  "cu_cubio_race": {
+    "deps": [
+      "ipt_merge_any_hi",
+      "mos6522"
+    ],
+    "romof": null
+  },
+  "cu_graphc": {
+    "deps": [
+      "screen",
+      "ef9365",
+      "palette"
+    ],
+    "romof": null
+  },
+  "cu_graphm": {
+    "deps": [
+      "screen",
+      "ef9365",
+      "palette"
+    ],
+    "romof": null
+  },
+  "cu_teletext": {
+    "deps": [
+      "palette",
+      "mos6522",
+      "centronics",
+      "output_latch",
+      "hd6845s",
+      "saa5050",
+      "screen",
+      "beep",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "d9060": {
+    "deps": [
+      "mos6522",
+      "mos6532",
+      "output_latch",
+      "scsi",
+      "scsi_slot",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "d9090": {
+    "deps": [
+      "mos6522",
+      "mos6532",
+      "output_latch",
+      "scsi",
+      "scsi_slot",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "distomeb_rtime": {
+    "deps": [
+      "output_latch",
+      "centronics",
+      "msm6242"
+    ],
+    "romof": null
+  },
+  "ef9345": {
+    "deps": [],
+    "romof": null
+  },
+  "ef9365": {
+    "deps": [],
+    "romof": null
+  },
+  "floppy_35_ed": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "floppy_3_dssd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "generic_rom_linear": {
+    "deps": [],
+    "romof": null
+  },
+  "hardbox": {
+    "deps": [
+      "i8255",
+      "z80",
+      "harddisk_image",
+      "corvus_hdc"
+    ],
+    "romof": null
+  },
+  "i8085a": {
+    "deps": [],
+    "romof": null
+  },
+  "mos6530": {
+    "deps": [],
+    "romof": null
+  },
+  "mshark": {
+    "deps": [
+      "harddisk_image",
+      "rs232",
+      "i8085a"
+    ],
+    "romof": null
+  },
+  "msm6242": {
+    "deps": [],
+    "romof": null
+  },
+  "nscsi_cb": {
+    "deps": [],
+    "romof": null
+  },
+  "pet_softbox": {
+    "deps": [
+      "i8255",
+      "harddisk_image",
+      "corvus_hdc",
+      "z80",
+      "i8251",
+      "rs232",
+      "com8116"
+    ],
+    "romof": null
+  },
+  "scsihd": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "sfd1001": {
+    "deps": [
+      "mos6530",
+      "m6504",
+      "mos6522",
+      "mos6532",
+      "floppy_connector",
+      "c8050fdc",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "d9060hd": {
+    "deps": [
+      "harddisk_image"
+    ],
+    "romof": null
+  },
+  "floppy_525_ssqd": {
+    "deps": [
+      "flopsnd",
+      "speaker"
+    ],
+    "romof": null
+  },
+  "apple2": {
+    "deps": [
+      "cassette_image",
+      "flopsnd",
+      "ram",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2video_comp",
+      "ay8913",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2gameio",
+      "a2bus",
+      "speaker",
+      "floppy_525_sd",
+      "a2nkbd",
+      "floppy_connector",
+      "software_list",
+      "a2kbd_connector",
+      "a2ram16k",
+      "screen",
+      "d2fdc",
+      "f9334",
+      "speaker_sound_device",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "apple2e": {
+    "deps": [
+      "a2video_comprgb",
+      "cassette_image",
+      "flopsnd",
+      "ds1216e",
+      "ram",
+      "a2eauxslot_slot",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2eauxslot",
+      "ay8913",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2eext80",
+      "a2bus",
+      "a2gameio",
+      "speaker",
+      "floppy_525_sd",
+      "floppy_connector",
+      "software_list",
+      "d2fdc",
+      "screen",
+      "f9334",
+      "speaker_sound_device",
+      "m6502"
+    ],
+    "romof": null
+  },
+  "apple2eefr": {
+    "deps": [
+      "a2video_comprgb",
+      "cassette_image",
+      "flopsnd",
+      "ds1216e",
+      "ram",
+      "a2eauxslot_slot",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2eauxslot",
+      "ay8913",
+      "w65c02",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2eext80",
+      "a2bus",
+      "a2gameio",
+      "speaker",
+      "floppy_525_sd",
+      "floppy_connector",
+      "software_list",
+      "d2fdc",
+      "screen",
+      "f9334",
+      "speaker_sound_device"
+    ],
+    "romof": "apple2e"
+  },
+  "apple2ees": {
+    "deps": [
+      "a2video_comprgb",
+      "cassette_image",
+      "flopsnd",
+      "ds1216e",
+      "ram",
+      "a2eauxslot_slot",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2eauxslot",
+      "ay8913",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2eext80",
+      "a2bus",
+      "a2gameio",
+      "speaker",
+      "floppy_525_sd",
+      "floppy_connector",
+      "software_list",
+      "d2fdc",
+      "screen",
+      "f9334",
+      "speaker_sound_device",
+      "m6502"
+    ],
+    "romof": "apple2e"
+  },
+  "apple2eeuk": {
+    "deps": [
+      "a2video_comprgb",
+      "cassette_image",
+      "flopsnd",
+      "ds1216e",
+      "ram",
+      "a2eauxslot_slot",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2eauxslot",
+      "ay8913",
+      "w65c02",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2eext80",
+      "a2bus",
+      "a2gameio",
+      "speaker",
+      "floppy_525_sd",
+      "floppy_connector",
+      "software_list",
+      "d2fdc",
+      "screen",
+      "f9334",
+      "speaker_sound_device"
+    ],
+    "romof": "apple2e"
+  },
+  "apple2p": {
+    "deps": [
+      "cassette_image",
+      "flopsnd",
+      "ram",
+      "ay3600",
+      "votrsc01a",
+      "timer",
+      "a2bus_slot",
+      "a2video_comp",
+      "ay8913",
+      "a2diskiing",
+      "mos6522",
+      "apple2com",
+      "a2mockbd",
+      "a2gameio",
+      "a2bus",
+      "speaker",
+      "floppy_525_sd",
+      "a2nkbd",
+      "floppy_connector",
+      "software_list",
+      "a2kbd_connector",
+      "a2ram16k",
+      "screen",
+      "d2fdc",
+      "f9334",
+      "speaker_sound_device",
+      "m6502"
+    ],
+    "romof": "apple2"
+  },
+  "macse": {
+    "deps": [
+      "rtc3430042",
+      "cdrom_image",
+      "flopsnd",
+      "macadb",
+      "pic1654s",
+      "ram",
+      "ncr5380",
+      "r65nc22",
+      "palette",
+      "filter_rc",
+      "timer",
+      "macpds_slot",
+      "mfd51w",
+      "nscsi_connector",
+      "scsi_cdrom_apple",
+      "filter_biquad",
+      "iwm",
+      "m68000",
+      "scc85c30",
+      "nscsi_bus",
+      "scsi_harddisk",
+      "z80scc_channel",
+      "adbmodem",
+      "speaker",
+      "macpds",
+      "harddisk_image",
+      "floppy_connector",
+      "software_list",
+      "screen",
+      "cdda",
+      "speaker_sound_device",
+      "scsipdma"
+    ],
+    "romof": null
+  },
+  "a2brightpen": {
+    "deps": [],
+    "romof": null
+  },
+  "a2excel9": {
+    "deps": [
+      "mc6809e"
+    ],
+    "romof": null
+  },
+  "a2joyprt": {
+    "deps": [],
+    "romof": null
+  },
+  "a2joyprtpdls": {
+    "deps": [],
+    "romof": null
+  },
+  "a2kb200": {
+    "deps": [
+      "i8035"
+    ],
+    "romof": null
+  },
+  "a2kbd_connector": {
+    "deps": [],
+    "romof": null
+  },
+  "a2nkbd": {
+    "deps": [
+      "timer",
+      "ay3600"
+    ],
+    "romof": null
+  },
+  "a2ram16k": {
+    "deps": [],
+    "romof": null
+  },
+  "a2suprterm": {
+    "deps": [
+      "screen",
+      "hd6845s"
+    ],
+    "romof": null
+  },
+  "a2tk10": {
+    "deps": [
+      "i8049"
+    ],
+    "romof": null
+  },
+  "a2video_comp": {
+    "deps": [],
+    "romof": null
+  },
+  "a2wicojoy": {
+    "deps": [],
+    "romof": null
+  },
+  "adbmodem": {
+    "deps": [
+      "pic1654s"
+    ],
+    "romof": null
+  },
+  "am100kbd": {
+    "deps": [
+      "speaker",
+      "speaker_sound_device",
+      "i8039"
+    ],
+    "romof": null
+  },
+  "i8035": {
+    "deps": [],
+    "romof": null
+  },
+  "ivelultrkb": {
+    "deps": [
+      "pia6821",
+      "m6802"
+    ],
+    "romof": null
+  },
+  "pds_sefp": {
+    "deps": [
+      "screen"
+    ],
+    "romof": null
+  },
+  "pic1654s": {
+    "deps": [],
+    "romof": null
+  },
+  "r65nc22": {
+    "deps": [],
+    "romof": null
+  },
+  "scsipdma": {
+    "deps": [],
+    "romof": null
+  },
+  "ssram128": {
+    "deps": [],
+    "romof": null
+  },
+  "uniap2ti": {
+    "deps": [
+      "m6504"
+    ],
+    "romof": null
+  },
+  "videnh2": {
+    "deps": [
+      "m6504"
+    ],
+    "romof": null
+  }
+}
