@@ -1,8 +1,17 @@
-# [AmpleWeb](https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb) - Browser Port (Apple Emulator Frontend)
+# [AmpleWeb-AI](https://github.com/anomixer/ampleweb-ai) - Vision-Based LLM Agent Edition
 
 [English](README.md) | [繁體中文](README_tw.md)
 
-This is a pure browser-based port of the macOS native [Ample](https://github.com/ksherlock/ample) project, bringing the premium Apple II and Macintosh emulation experience to any modern web browser. Powered by WASM and React. Enjoy the nostalgic 198x-199x computing experience directly in your browser with zero installation of apps or ROM files.
+This is a specialized, standalone edition of **AmpleWeb** configured as an experimental platform for Vision-Based AI Agents (LLM + Vision). By leveraging multi-modal large language models (such as Gemini 2.5/3.5 Flash, GPT-4o-mini, and Claude 3.5 Sonnet), AmpleWeb-AI allows an AI agent to "look" at the emulator canvas (running retro machines like the Apple IIe) via real-time screenshots, read the text, reason, and automatically dispatch keystroke sequences to play text adventure games (like Zork) autonomously.
+
+## 🤖 AI Control Layer Overview
+```
+MAME WASM (Canvas Screen) ➔ Canvas.toDataURL() ➔ Vision LLM (Gemini/GPT/Claude) ➔ Action Command ➔ DOM KeyboardEvent Sequence ➔ Emscripten WASM
+```
+*   **Decoupled & Non-Invasive**: The AI Control Layer treats MAME WASM as a complete black box, relying purely on standard Web APIs (Canvas screenshotting and DOM KeyboardEvents). This means MAME can be upgraded freely without breaking the AI controller.
+*   **Asynchronous Typist**: Keystrokes are dispatched sequentially with a short, configurable delay (50–100ms) between characters to simulate human typing and prevent Emscripten frame loop input skipping.
+*   **Multi-Model Support**: Direct frontend integration with Gemini, OpenAI, Claude, and a Mock mode for local pipeline verification.
+
 
 ![](screenshot.png)
 

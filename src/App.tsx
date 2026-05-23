@@ -12,7 +12,10 @@ import {
   type MediaFile,
 } from './core/wasm_loader'
 import { useStore, type VideoSettings } from './core/store'
+import { captureScreen, sendTextCommand, callRealLLM, callMockLLM, resetMockController } from './ai/ai_controller'
+import { DEFAULT_SYSTEM_PROMPT, ADVENTURE_PROMPT_PRESETS } from './ai/ai_prompt'
 const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+
 
 function getDefaultCfgTemplate(mameDriver: string): string {
   return `<?xml version="1.0"?>
@@ -629,9 +632,34 @@ function App() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => window.innerWidth > 800)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(() => window.innerWidth > 800)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths' | 'config'>(() => {
+  const [systemTab, setSystemTab] = useState<'video' | 'cpu' | 'av' | 'paths' | 'config' | 'ai'>(() => {
     return (localStorage.getItem('ample-system-tab') as any) || 'video'
   })
+
+  // ── AI Agent States ──
+  const [aiEnabled, setAiEnabled] = useState(false)
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'claude' | 'mock'>(() => {
+    return (localStorage.getItem('ample-ai-provider') as any) || 'mock'
+  })
+  const [aiApiKey, setAiApiKey] = useState(() => localStorage.getItem('ample-ai-apikey') || '')
+  const [aiSystemPrompt, setAiSystemPrompt] = useState(() => localStorage.getItem('ample-ai-prompt') || DEFAULT_SYSTEM_PROMPT)
+  const [aiTickRate, setAiTickRate] = useState(() => {
+    const saved = localStorage.getItem('ample-ai-tickrate')
+    return saved ? parseInt(saved, 10) : 10
+  })
+  const [aiCharDelay, setAiCharDelay] = useState(() => {
+    const saved = localStorage.getItem('ample-ai-chardelay')
+    return saved ? parseInt(saved, 10) : 60
+  })
+
+  const [aiStatus, setAiStatus] = useState<'idle' | 'thinking' | 'typing' | 'error'>('idle')
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiLastScreenshot, setAiLastScreenshot] = useState<string | null>(null)
+  const [aiLogs, setAiLogs] = useState<Array<{ text: string; ts: number }>>([])
+  
+  const aiTimerRef = useRef<any>(null)
+  const aiIsProcessingRef = useRef(false)
+
   const [editorCfgText, setEditorCfgText] = useState('')
 
   const currentMameDriver = selectedMachine
@@ -713,9 +741,10 @@ function App() {
       setEditorCfgText(saved)
     }
   }, [currentMachineName, currentMameDriver])
-  const [machineTab, setMachineTab] = useState<'slots' | 'media' | 'logs'>(() => {
+  const [machineTab, setMachineTab] = useState<'slots' | 'media' | 'logs' | 'ai'>(() => {
     return (localStorage.getItem('ample-machine-tab') as any) || 'slots'
   })
+
 
   // Persist tabs
   useEffect(() => {
@@ -725,6 +754,127 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ample-machine-tab', machineTab)
   }, [machineTab])
+
+  // Persistence of AI settings
+  useEffect(() => {
+    localStorage.setItem('ample-ai-provider', aiProvider)
+  }, [aiProvider])
+
+  useEffect(() => {
+    localStorage.setItem('ample-ai-apikey', aiApiKey)
+  }, [aiApiKey])
+
+  useEffect(() => {
+    localStorage.setItem('ample-ai-prompt', aiSystemPrompt)
+  }, [aiSystemPrompt])
+
+  useEffect(() => {
+    localStorage.setItem('ample-ai-tickrate', String(aiTickRate))
+  }, [aiTickRate])
+
+  useEffect(() => {
+    localStorage.setItem('ample-ai-chardelay', String(aiCharDelay))
+  }, [aiCharDelay])
+
+  // Helper to add AI logs
+  const addAiLog = useCallback((text: string) => {
+    setAiLogs(prev => [...prev.slice(-49), { text, ts: Date.now() }])
+  }, [])
+
+  // AI Agent Main Logic
+  const runAiTick = useCallback(async () => {
+    if (aiIsProcessingRef.current) return
+    const canvas = document.getElementById('canvas') as HTMLCanvasElement | null
+    if (!canvas) {
+      addAiLog('Error: Emulator canvas not found')
+      return
+    }
+
+    try {
+      aiIsProcessingRef.current = true
+      setAiStatus('thinking')
+      setAiError(null)
+      addAiLog('Capturing emulator screen...')
+      
+      const imgData = captureScreen(canvas)
+      setAiLastScreenshot(imgData)
+
+      if (!imgData) {
+        throw new Error('Screenshot returned empty data')
+      }
+
+      addAiLog(`Calling LLM API (${aiProvider})...`)
+      let command = ''
+
+      if (aiProvider === 'mock') {
+        command = await callMockLLM()
+      } else {
+        if (!aiApiKey) {
+          throw new Error(`API key is required for ${aiProvider}`)
+        }
+        command = await callRealLLM(aiProvider, aiApiKey, aiSystemPrompt, imgData)
+      }
+
+      if (!command) {
+        addAiLog('AI returned empty command. Skipping typing.')
+        setAiStatus('idle')
+        aiIsProcessingRef.current = false
+        return
+      }
+
+      addAiLog(`AI Command received: "${command}"`)
+      setAiStatus('typing')
+
+      await sendTextCommand(command, canvas, aiCharDelay)
+      addAiLog(`Successfully typed command: "${command}"`)
+      setAiStatus('idle')
+    } catch (e: any) {
+      console.error('[AI Tick Error]', e)
+      const errorMsg = e.message || String(e)
+      setAiError(errorMsg)
+      setAiStatus('error')
+      addAiLog(`Error: ${errorMsg}`)
+    } finally {
+      aiIsProcessingRef.current = false
+    }
+  }, [launchState, aiProvider, aiApiKey, aiSystemPrompt, aiCharDelay, addAiLog])
+
+  // AI Loop Effect
+  useEffect(() => {
+    if (aiEnabled && launchState === 'running') {
+      addAiLog('AI Agent Enabled - Starting loop')
+      if (aiProvider === 'mock') {
+        resetMockController()
+      }
+
+      // Initial tick
+      const initialTimer = setTimeout(() => {
+        runAiTick()
+      }, 1000)
+
+      // Interval ticks
+      aiTimerRef.current = setInterval(() => {
+        runAiTick()
+      }, aiTickRate * 1000)
+
+      return () => {
+        clearTimeout(initialTimer)
+        if (aiTimerRef.current) {
+          clearInterval(aiTimerRef.current)
+          aiTimerRef.current = null
+        }
+        addAiLog('AI Agent Disabled - Loop stopped')
+        setAiStatus('idle')
+      }
+    } else {
+      if (aiTimerRef.current) {
+        clearInterval(aiTimerRef.current)
+        aiTimerRef.current = null
+      }
+      setAiStatus('idle')
+    }
+  }, [aiEnabled, launchState, aiTickRate, runAiTick, aiProvider, addAiLog])
+
 
   // Collapse sidebars when transitioning to mobile mode (<= 800px)
   useEffect(() => {
@@ -994,7 +1144,9 @@ function App() {
   }, [])
 
   const doSelectMachine = useCallback(async (machine: { name: string; description: string }) => {
+    setAiEnabled(false)
     if (selectedMachine && selectedMachine.name !== machine.name) {
+
       // Clear all media and custom slots if switching machines
       setMediaFiles({})
       for (let i = 1; i <= 16; i++) {
@@ -2689,6 +2841,7 @@ function App() {
                 <button className={`tab-btn ${systemTab === 'av' ? 'active' : ''}`} onClick={() => setSystemTab('av')}>A/V</button>
                 <button className={`tab-btn ${systemTab === 'paths' ? 'active' : ''}`} onClick={() => setSystemTab('paths')}>Paths</button>
                 <button className={`tab-btn ${systemTab === 'config' ? 'active' : ''}`} onClick={() => setSystemTab('config')}>Config</button>
+                <button className={`tab-btn ${systemTab === 'ai' ? 'active' : ''}`} onClick={() => setSystemTab('ai')}>AI</button>
               </div>
               <div className="frame-content">
                 {systemTab === 'video' && (
@@ -3086,6 +3239,141 @@ function App() {
                     </div>
                   </div>
                 )}
+
+                {systemTab === 'ai' && (
+                  <div className="section no-border" style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', height: '100%', padding: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px solid var(--border)' }}>
+                      <label className="slot-label" style={{ fontWeight: 600, fontSize: '13px', color: 'var(--green)' }}>🤖 AI Control Layer</label>
+                      <button
+                        className={`btn btn-sm ${aiEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '4px 10px', fontSize: '11px', minWidth: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                        onClick={() => {
+                          if (launchState !== 'running' && !aiEnabled) {
+                            alert('AI Agent can only be started when the emulator is running!');
+                            return;
+                          }
+                          setAiEnabled(!aiEnabled);
+                        }}
+                      >
+                        {aiEnabled ? '🟢 Enabled' : '🔴 Disabled'}
+                      </button>
+                    </div>
+
+                    <div className="slot-grid" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div className="slot-row">
+                        <label className="slot-label">Provider</label>
+                        <select
+                          className="slot-select"
+                          value={aiProvider}
+                          onChange={e => setAiProvider(e.target.value as any)}
+                        >
+                          <option value="mock">Mock Simulator</option>
+                          <option value="gemini">Gemini 2.5 Flash</option>
+                          <option value="openai">OpenAI GPT-4o-mini</option>
+                          <option value="claude">Claude 3.5 Sonnet</option>
+                        </select>
+                      </div>
+
+                      {aiProvider !== 'mock' && (
+                        <div className="slot-row">
+                          <label className="slot-label">API Key</label>
+                          <input
+                            type="password"
+                            className="slot-select"
+                            style={{
+                              padding: '4px 8px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'var(--text1)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '11px'
+                            }}
+                            placeholder={`Enter ${aiProvider.toUpperCase()} Key`}
+                            value={aiApiKey}
+                            onChange={e => setAiApiKey(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <div className="slot-row">
+                        <label className="slot-label">Tick Rate (sec)</label>
+                        <input
+                          type="number"
+                          className="slot-select"
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'var(--text1)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            width: '80px'
+                          }}
+                          min={2}
+                          max={120}
+                          value={aiTickRate}
+                          onChange={e => setAiTickRate(Math.max(2, parseInt(e.target.value, 10) || 5))}
+                        />
+                      </div>
+
+                      <div className="slot-row">
+                        <label className="slot-label">Type Delay (ms)</label>
+                        <input
+                          type="number"
+                          className="slot-select"
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'var(--text1)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            width: '80px'
+                          }}
+                          min={10}
+                          max={500}
+                          value={aiCharDelay}
+                          onChange={e => setAiCharDelay(Math.max(10, parseInt(e.target.value, 10) || 50))}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <label className="slot-label" style={{ fontWeight: 500 }}>System Prompt</label>
+                          <select
+                            className="slot-select"
+                            style={{ width: 'auto', padding: '2px 4px', fontSize: '10px' }}
+                            onChange={e => {
+                              const found = ADVENTURE_PROMPT_PRESETS.find(p => p.id === e.target.value);
+                              if (found) setAiSystemPrompt(found.prompt);
+                            }}
+                            defaultValue="zork"
+                          >
+                            <option value="zork">Zork Presets</option>
+                            <option value="general">General Presets</option>
+                          </select>
+                        </div>
+                        <textarea
+                          className="slot-select"
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: '10px',
+                            lineHeight: '1.3',
+                            height: '110px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: '#e2e8f0',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            padding: '6px',
+                            resize: 'none'
+                          }}
+                          value={aiSystemPrompt}
+                          onChange={e => setAiSystemPrompt(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3100,6 +3388,8 @@ function App() {
                 <button className={`tab-btn ${machineTab === 'slots' ? 'active' : ''}`} onClick={() => setMachineTab('slots')}>Slots</button>
                 <button className={`tab-btn ${machineTab === 'media' ? 'active' : ''}`} onClick={() => setMachineTab('media')}>Media</button>
                 <button className={`tab-btn ${machineTab === 'logs' ? 'active' : ''}`} onClick={() => setMachineTab('logs')}>Logs</button>
+                <button className={`tab-btn ${machineTab === 'ai' ? 'active' : ''}`} onClick={() => setMachineTab('ai')}>AI Agent</button>
+
               </div>
               <div className="frame-content">
                 {machineTab === 'slots' && (
@@ -3255,6 +3545,100 @@ function App() {
                     </div>
                     <div className="log-footer">
                       <button className="log-btn" onClick={() => setLogs([])}>Clear Log</button>
+                    </div>
+                  </div>
+                )}
+
+                {machineTab === 'ai' && (
+                  <div className="section no-border" style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', padding: '10px', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600 }}>Status:</span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          color: '#fff',
+                          background:
+                            aiStatus === 'thinking' ? '#f59e0b' :
+                            aiStatus === 'typing' ? '#10b981' :
+                            aiStatus === 'error' ? '#ef4444' : '#6b7280'
+                        }}
+                      >
+                        {aiStatus === 'thinking' ? 'Thinking' :
+                         aiStatus === 'typing' ? 'Typing' :
+                         aiStatus === 'error' ? 'Error' : 'Idle'}
+                      </span>
+                    </div>
+
+                    {aiError && (
+                      <div style={{ padding: '6px 8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', fontSize: '11px', color: '#ef4444' }}>
+                        <strong>Error:</strong> {aiError}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>Vision Screen Capture:</span>
+                      <div style={{
+                        width: '100%',
+                        height: '110px',
+                        background: 'rgba(0,0,0,0.3)',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}>
+                        {aiLastScreenshot ? (
+                          <img
+                            src={aiLastScreenshot}
+                            alt="AI Last Screenshot"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: '10px', color: 'var(--text3)' }}>No screenshot captured yet</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '100px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>Agent Execution Log:</span>
+                        <button
+                          className="log-btn"
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '10px' }}
+                          onClick={() => setAiLogs([])}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <div style={{
+                        flex: '1 1 auto',
+                        background: 'rgba(0,0,0,0.2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        padding: '6px',
+                        fontFamily: 'monospace',
+                        fontSize: '10px',
+                        overflowY: 'auto',
+                        lineHeight: '1.4',
+                        height: '110px'
+                      }}>
+                        {aiLogs.length === 0 ? (
+                          <span style={{ color: 'var(--text3)', fontStyle: 'italic' }}>Logs will appear here during execution...</span>
+                        ) : (
+                          aiLogs.map((log, idx) => (
+                            <div key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '2px', marginBottom: '2px' }}>
+                              <span style={{ color: 'var(--text3)', marginRight: '4px' }}>[{new Date(log.ts).toLocaleTimeString()}]</span>
+                              <span style={{ color: log.text.includes('Error') ? '#ef4444' : log.text.includes('typed') ? 'var(--green)' : 'var(--text1)' }}>{log.text}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

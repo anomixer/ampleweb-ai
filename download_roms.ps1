@@ -4,7 +4,7 @@
     Controls the rom_manager_cli.py to download ROMs based on the official roms.plist.
 #>
 
-$plistPath = Join-Path $PSScriptRoot "..\Ample\Resources\roms.plist"
+$plistPath = Join-Path $PSScriptRoot "public\resources\roms.plist"
 $destDir = Join-Path $PSScriptRoot "public\roms"
 $pythonScript = Join-Path $PSScriptRoot "rom_manager_cli.py"
 

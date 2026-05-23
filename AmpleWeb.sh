@@ -37,7 +37,7 @@ if [ ! -d "$ROM_DIR" ] || [ -z "$(ls -A "$ROM_DIR" 2>/dev/null | grep -E '\.zip$
     else
         echo "Launching ROM Downloader (python fallback)..."
         # Fallback to direct python call if pwsh is missing
-        python3 rom_manager_cli.py --plist ../Ample/Resources/roms.plist --dest public/roms
+        python3 rom_manager_cli.py --plist public/resources/roms.plist --dest public/roms
     fi
 fi
 
