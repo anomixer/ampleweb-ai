@@ -1277,7 +1277,7 @@ function App() {
     const isMacFamily = driverName.startsWith('mac')
 
     if (isApple2Family || isMacFamily) {
-      for (const aux of auxRoms) {
+      const auxPromises = auxRoms.map(async (aux) => {
         const romFile = `${aux.zipName}.zip`
         let success = false
         
@@ -1331,7 +1331,9 @@ function App() {
         if (!success) {
           addLog(`Aux ROM skipped (missing): ${romFile}`, true)
         }
-      }
+      })
+
+      await Promise.all(auxPromises)
     }
 
     // 3. Dynamic Slot ROMs - Check selected slots for additional devices
@@ -1376,7 +1378,7 @@ function App() {
       }
       resolveDeps(addedSlotRoms)
 
-      for (const devName of finalDeviceList) {
+      const slotPromises = Array.from(finalDeviceList).map(async (devName) => {
         let success = false
         const romFile = `${devName}.zip`
 
@@ -1423,7 +1425,9 @@ function App() {
           }
           if (!found) addLog(`Slot ROM not found: ${romFile}`, true)
         }
-      }
+      })
+
+      await Promise.all(slotPromises)
     }
 
     return romFiles

@@ -492,18 +492,28 @@ export async function fetchRom(
   url: string,
   driver: string,
   filename?: string,
+  timeoutMs: number = 5000
 ): Promise<RomFile> {
-  const resp = await fetch(url)
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`)
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  
+  try {
+    const resp = await fetch(url, { signal: controller.signal })
+    clearTimeout(id)
+    if (!resp.ok) {
+      throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`)
+    }
+    const contentType = resp.headers.get('content-type')
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error(`Failed to fetch ${url}: server returned HTML (likely a 404 fallback)`)
+    }
+    const buf = await resp.arrayBuffer()
+    const name = filename ?? url.split('/').pop() ?? 'rom.zip'
+    return { driver, name, data: new Uint8Array(buf) }
+  } catch (err) {
+    clearTimeout(id)
+    throw err
   }
-  const contentType = resp.headers.get('content-type')
-  if (contentType && contentType.includes('text/html')) {
-    throw new Error(`Failed to fetch ${url}: server returned HTML (likely a 404 fallback)`)
-  }
-  const buf = await resp.arrayBuffer()
-  const name = filename ?? url.split('/').pop() ?? 'rom.zip'
-  return { driver, name, data: new Uint8Array(buf) }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
