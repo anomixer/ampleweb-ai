@@ -494,6 +494,33 @@ export async function fetchRom(
   filename?: string,
   timeoutMs: number = 5000
 ): Promise<RomFile> {
+  const name = filename ?? url.split('/').pop() ?? 'rom.zip'
+
+  // 1. Try browser Cache Storage first to avoid network roundtrips
+  try {
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const cache = await caches.open('rom-cache')
+      // Strip CORS proxy prefix for clean consistent keys
+      const cleanKey = url.replace('https://proxy.corsfix.com/?', '')
+      const cachedResp = await cache.match(cleanKey)
+      if (cachedResp) {
+        const buf = await cachedResp.arrayBuffer()
+        // Double-check Magic Bytes for absolute safety (PK..)
+        if (buf.byteLength >= 2) {
+          const view = new Uint8Array(buf)
+          if (view[0] === 0x50 && view[1] === 0x4B) {
+            console.log(`[WasmLoader] Found valid ROM in Cache Storage: ${name}`)
+            return { driver, name, data: view }
+          }
+        }
+        console.warn(`[WasmLoader] Cached ROM ${name} was invalid, re-fetching...`)
+      }
+    }
+  } catch (cacheErr) {
+    console.warn('[WasmLoader] Cache Storage read failed:', cacheErr)
+  }
+
+  // 2. Fetch from network if not cached
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), timeoutMs)
   
@@ -508,8 +535,24 @@ export async function fetchRom(
       throw new Error(`Failed to fetch ${url}: server returned HTML (likely a 404 fallback)`)
     }
     const buf = await resp.arrayBuffer()
-    const name = filename ?? url.split('/').pop() ?? 'rom.zip'
-    return { driver, name, data: new Uint8Array(buf) }
+    const data = new Uint8Array(buf)
+
+    // 3. Persist valid ZIP to Cache Storage
+    if (data.length >= 2 && data[0] === 0x50 && data[1] === 0x4B) {
+      try {
+        if (typeof window !== 'undefined' && 'caches' in window) {
+          const cache = await caches.open('rom-cache')
+          const cleanKey = url.replace('https://proxy.corsfix.com/?', '')
+          // We must store a new Response object with a copy of the buffer
+          await cache.put(cleanKey, new Response(buf))
+          console.log(`[WasmLoader] Persisted downloaded ROM in Cache Storage: ${name}`)
+        }
+      } catch (cacheStoreErr) {
+        console.warn('[WasmLoader] Failed to write to Cache Storage:', cacheStoreErr)
+      }
+    }
+
+    return { driver, name, data }
   } catch (err) {
     clearTimeout(id)
     throw err
