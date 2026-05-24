@@ -112,6 +112,24 @@ export function loadMameWasm(
       return c
     })()
 
+    // ✨ Monkeypatch canvas.getContext to force preserveDrawingBuffer: true
+    // This physically prevents WebGL from clearing its drawing buffer on frame end,
+    // guaranteeing that our AI screenshot reader can successfully fetch pixels anytime!
+    try {
+      const originalGetContext = canvas.getContext;
+      canvas.getContext = function (this: HTMLCanvasElement, type: string, attributes?: any) {
+        if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+          const attrs = attributes || {};
+          attrs.preserveDrawingBuffer = true;
+          console.log(`[WasmLoader] Canvas getContext('${type}') intercepted. Forced preserveDrawingBuffer: true`);
+          return originalGetContext.call(this, type, attrs);
+        }
+        return originalGetContext.call(this, type, attributes);
+      } as any;
+    } catch (err) {
+      console.warn('[WasmLoader] Failed to monkeypatch canvas getContext:', err);
+    }
+
     // Keep canvas in DOM (Emscripten SDL needs getElementById('canvas')).
     // Use #canvas-host (the flex-centered canvasContainerRef div) so the canvas
     // is never a raw child of emulator-container (which would push it to the bottom).

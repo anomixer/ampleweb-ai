@@ -3,6 +3,34 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
+### 📅 2026-05-24 Updates
+
+- **Direct WASM-to-Emulator RAM Reading (100% Precision DMA)**:
+    - **Direct Memory Access (DMA) C++ API**: Exported `emscripten_read_ram` and `emscripten_read_ram_bulk` from the MAME WASM C++ core (built inside `MameWasm`), allowing 100% accurate virtual 6502 RAM reads of `:maincpu` at address spaces `0x400-0x7FF` (Page 1) and `0x800-0xBFF` (Page 2).
+    - **Seamless Decoding & Dynamic Page Selection**: Re-implemented `readApple2TextScreen` in [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) to detect these direct RAM functions. When available, it reads the pages in <0.1ms, automatically scores them (`scoreDirectPage`) to determine the active page, and decodes characters directly—completely bypassing heuristic heap scanning and resolving the unstable scanner layout issue entirely.
+    - **Robust Downward Compatibility**: Maintained the original heuristic scanner as a fallback in case the C++ exports are missing, ensuring seamless backward compatibility with older WASM engines.
+    - **Automated GZIP Build Pipeline Integration**: Updated the build factory to generate a compact `mame.wasm.gz` (7.0MB) and automatically deploy `mame.js` and the compressed WASM to the frontend assets folder.
+
+- **Conversation History Limit (Configurable Context Window)**:
+    - **UI Settings Configuration**: Added **History Limit** input field in the AI settings panel (adjustable from `0` to `20`, default `5`, saved to `localStorage`). Set to `0` to run stateless.
+    - **Multi-Turn API Adaptation**: Refactored `callRealLLM` in [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) to structure command history turns for Gemini (`contents` array), Claude (`messages` array with top-level `system` prompt), and OpenAI-compatible APIs (`messages` list starting with a system message). This eliminates the AI "goldfish brain" loops.
+    - **Automatic Safety Reset**: Configured effects in [App.tsx](file:///c:/dev/ampleweb-ai/src/App.tsx) to clear the history buffer immediately upon emulator reset, disk changes, provider swaps, API URL updates, or active machine switches to avoid context drift and token explosion.
+
+- **Text Mode (Low Token Consumption)**:
+    - **WASM Memory Screen Reader**: Implemented `readApple2TextScreen` in [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) to directly read Apple II screen memory buffers (`0x400-0x7FF` for Page 1, `0x800-0xBFF` for Page 2) from Emscripten `HEAPU8` memory.
+    - **40/80 Columns Auto-Resolution**: Parses screen characters by alternating between Main and Auxiliary RAM banks dynamically to render 80-column screens, or single main bank for 40-columns.
+    - **Mode-Specific Prompts & UI Switch**: Integrated **Text / Vision Mode** selector toggle in Settings. Mode switching automatically syncs preset templates and prompts.
+
+- **Extended LLM Providers (Cloud & On-Prem)**:
+    - **New Providers**: Added support for NVIDIA NIM, Ollama Cloud, LM Studio (Local), Ollama (Local), and Custom Providers.
+    - **Dynamic Configuration**: Exposed API URL and Model input fields in the UI, pre-filled with defaults according to selected provider. Key fields are dynamically enabled or made optional.
+
+- **Vision AI Agent Layer — Debugging & Hardening**:
+    - **Gemini API Model Migration**: Migrated default Gemini model to `gemini-3.5-flash` on the `/v1/` stable endpoint to fix 404 errors.
+    - **WebGL Canvas Screenshot Fix**: Intercepted canvas creation to enforce `preserveDrawingBuffer: true` and read GPU pixels via `gl.readPixels()` with Y-axis vertical flip correction, preventing blank screens.
+    - **MAX_TOKENS & Exponential Backoff**: Increased default Max Tokens to `1000` to prevent truncation. Implemented `fetchWithRetry` for `503`/`429` backoff handling with live log warnings.
+
+
 ### 📅 2026-05-23 Updates
 - **AmpleWeb-AI Project Kickoff & Standalone Migration**:
     - **Standalone Repo Migration**: Successfully cloned and extracted the `AmpleWeb/` subdirectory into the standalone `ampleweb-ai` repository using `git-filter-repo`. Removed all native macOS, Windows, and Linux specific assets and tools to establish a lightweight, focused web-only playground.

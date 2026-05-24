@@ -4,19 +4,147 @@
 
 This is a specialized, standalone edition of **AmpleWeb** configured as an experimental platform for Vision-Based AI Agents (LLM + Vision). By leveraging multi-modal large language models (such as Gemini 2.5/3.5 Flash, GPT-4o-mini, and Claude 3.5 Sonnet), AmpleWeb-AI allows an AI agent to "look" at the emulator canvas (running retro machines like the Apple IIe) via real-time screenshots, read the text, reason, and automatically dispatch keystroke sequences to play text adventure games (like Zork) autonomously.
 
-## 🤖 AI Control Layer Overview
-```
-MAME WASM (Canvas Screen) ➔ Canvas.toDataURL() ➔ Vision LLM (Gemini/GPT/Claude) ➔ Action Command ➔ DOM KeyboardEvent Sequence ➔ Emscripten WASM
-```
-*   **Decoupled & Non-Invasive**: The AI Control Layer treats MAME WASM as a complete black box, relying purely on standard Web APIs (Canvas screenshotting and DOM KeyboardEvents). This means MAME can be upgraded freely without breaking the AI controller.
-*   **Asynchronous Typist**: Keystrokes are dispatched sequentially with a short, configurable delay (50–100ms) between characters to simulate human typing and prevent Emscripten frame loop input skipping.
-*   **Multi-Model Support**: Direct frontend integration with Gemini, OpenAI, Claude, and a Mock mode for local pipeline verification.
+## 🤖 Vision AI Agent — How It Works
 
+```
+MAME WASM (Canvas Screen)
+    ↓  WebGL readPixels() + vertical flip
+  Base64 PNG Screenshot
+    ↓  multimodal Vision API (Gemini / GPT / Claude)
+  Text Command (e.g. "GO EAST")
+    ↓  DOM KeyboardEvent sequence (async, 60ms/char)
+  Emscripten WASM Input
+```
+
+*   **Decoupled & Non-Invasive**: The AI layer treats MAME WASM as a complete black box. It reads the canvas via WebGL pixel extraction and sends keypresses via DOM events — no WASM code modifications needed.
+*   **WebGL Framebuffer Capture**: The canvas `getContext` is intercepted at boot to force `preserveDrawingBuffer: true`, then `gl.readPixels()` extracts raw GPU pixels with Y-axis vertical flip correction. This produces a clear, pixel-perfect screenshot even on WebGL-rendered canvases.
+*   **Asynchronous Typist**: Each keystroke is dispatched (`keydown` → delay → `keyup`) sequentially with a configurable delay between characters, preventing Emscripten frame loop input skipping.
+*   **Dual Modes (Vision & Low-Token Text)**: Switch between `Vision Mode` (captures pixel-perfect screenshots) and `Text Mode` (directly reads Apple II text memory buffer from WASM memory for extremely low token cost, no external OCR required).
+    *   *Direct RAM Access (DMA Tech)*: If using the new custom WASM core, it automatically bypasses fragile heap scanning and reads `0x400` / `0x800` from `:maincpu` virtual program memory directly with **100% precision**. Otherwise, it gracefully falls back to heap index scanning.
+*   **Extended LLM Providers**: Support for Gemini 3.5 Flash, GPT-4o-mini, Claude 3.5 Sonnet, NVIDIA NIM, Ollama Cloud, LM Studio (Local), Ollama (Local), and Custom Providers.
+*   **Conversation History Limit**: Customizable turn history memory buffer (configurable $N$ turns from `0` to `20`) to eliminate AI "goldfish brain" repetition. Automatically formatted for Gemini, Claude, and OpenAI APIs.
+*   **Auto-Retry on API Overload**: A `fetchWithRetry` wrapper automatically retries on `503`/`429` errors using exponential backoff (up to 3 retries), so transient API demand spikes never crash the AI loop.
+
+---
+
+## 🎮 AI Agent — Step-by-Step Operation Guide
+
+### Step 1: Launch Your Emulator First
+
+Before enabling the AI, you **must** have the emulator running:
+
+1. In the **left panel**, select a machine (e.g. `Apple //e (Enhanced)`).
+2. In the **bottom-right panel → Media tab**, mount a game disk (e.g. a Zork .dsk file). You can use the 🌐 URL button to load directly from a URL.
+3. Click the **Launch** button. Wait until the emulator header shows `● Running` (green badge).
+
+> [!IMPORTANT]
+> The AI can only operate while the emulator is **actively running**. The Enable button is intentionally greyed out at all other times.
+
+---
+
+### Step 2: Configure AI Settings (Top-Right Panel → "AI" Tab)
+
+Click the **AI** tab in the upper-right settings panel. You will see:
+
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| **AI Agent Status** | 🔴 Disabled / 🟢 Enabled toggle button | Disabled |
+| **Mode** | Choose: `🖼️ Vision Mode` (transmits base64 screenshots, consumes more tokens) or `📝 Text Mode (Low Token)` (directly parses emulator text buffer from WASM memory, extremely cheap/low-token) | Vision Mode |
+| **Provider** | Choose: `Mock Simulator`, `Gemini 3.5 Flash`, `OpenAI GPT-4o-mini`, `Claude 3.5 Sonnet`, `NVIDIA NIM`, `Ollama Cloud`, `LM Studio (Local)`, `Ollama (Local)`, `Custom Provider` | Mock Simulator |
+| **API Key** | Your LLM provider's secret key (stored locally in browser, never sent to third-party servers) | — |
+| **API URL** | Base endpoint URL for the selected provider (editable, visible for OpenAI-compatible options) | *(auto-filled)* |
+| **Model** | The model name to request from the provider API (editable, visible for OpenAI-compatible options) | *(auto-filled)* |
+| **Tick Rate (sec)** | How often (in seconds) the AI captures screen and decides the next command | 15 |
+| **Type Delay (ms)** | Millisecond delay between each character keystroke (keep at 60ms to avoid WASM input skipping) | 60 |
+| **Max Tokens** | Maximum output token limit for the LLM response (increase if AI responses are being truncated) | 1000 |
+| **History Limit** | Turn limit of conversation history (screen states + AI actions) sent in request to prevent "goldfish brain" (configurable from `0` to `20`) | 5 |
+| **System Prompt** | Natural language instructions for the AI (what game it's playing, how to behave). Automatically syncs with current Mode templates | Zork preset |
+
+#### Getting an API Key
+
+- **Gemini 3.5 Flash** (Recommended — fastest and most affordable):
+  1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+  2. Click **"Create API Key"** → copy the key
+  3. Paste it into the **API Key** field and select **Gemini 3.5 Flash** as Provider.
+
+- **OpenAI GPT-4o-mini**:
+  1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+  2. Create a new key and paste it in.
+
+- **Claude 3.5 Sonnet**:
+  1. Go to [console.anthropic.com](https://console.anthropic.com)
+  2. Create an API key and paste it in.
+
+> [!NOTE]
+> All API keys are stored **only** in your browser's `localStorage`. They are never committed to source code or sent to any third-party server other than your chosen LLM provider directly.
+
+---
+
+### Step 3: Start the AI Agent
+
+1. Click **🔴 Disabled** — it will toggle to **🟢 Enabled**.
+2. Switch to the **bottom-right panel → "AI Agent" tab** to monitor activity.
+
+---
+
+### Step 4: Monitor in the "AI Agent" Tab (Bottom-Right Panel)
+
+| Element | What it shows |
+| :--- | :--- |
+| **Status badge** | `Idle` (grey) → `Thinking` (yellow) → `Typing` (green) → `Error` (red) |
+| **Vision Screen Capture** | A live thumbnail of what the AI "sees" — the current emulator canvas frame |
+| **Agent Execution Log** | Timestamped log of every action: capture, API call, command received, characters typed, retry warnings |
+
+**A healthy cycle looks like:**
+```
+[HH:MM:SS] AI Agent Enabled - Starting loop
+[HH:MM:SS] Capturing emulator screen...
+[HH:MM:SS] Calling LLM API (gemini)...
+[HH:MM:SS] AI Command received: "OPEN MAILBOX"
+[HH:MM:SS] Successfully typed command: "OPEN MAILBOX"
+```
+
+**If the server is busy (503/429), the retry system handles it automatically:**
+```
+[HH:MM:SS] [Retry] API returned 503 (busy/limit). Retrying in 1.5s... (Attempt 1/3)
+[HH:MM:SS] [Retry] API returned 503 (busy/limit). Retrying in 3.8s... (Attempt 2/3)
+[HH:MM:SS] AI Command received: "GO NORTH"
+```
+
+---
+
+### Step 5: Troubleshooting
+
+| Error | Cause | Fix |
+| :--- | :--- | :--- |
+| `API key is required for gemini` | No API key entered | Enter your key in the API Key field |
+| `Gemini API error: 404` | Wrong model name or endpoint | Update to latest code (model is auto-set to `gemini-3.5-flash`) |
+| `Empty response from Gemini API` | `MAX_TOKENS` too low (Gemini 3.5 uses tokens for internal reasoning too) | Increase **Max Tokens** to `1000` or higher |
+| `AI Agent repeatedly types LOOK` | Canvas is black (WebGL buffer cleared) — needs latest AI layer code | `git pull` and re-deploy; the `preserveDrawingBuffer` fix resolves this |
+| `Error: Emulator canvas not found` | Emulator is not running | Launch the emulator first, wait for the `Running` badge |
+| `503 high demand` (no retry shown) | Outdated code without retry logic | `git pull` and re-deploy for auto-retry support |
+
+---
+
+### Quick Reference: Mock Simulator (No API Key Needed)
+
+Want to test the pipeline without spending API credits?
+
+1. Set **Provider** to **Mock Simulator**.
+2. Set **Tick Rate** to `5` seconds.
+3. Enable the AI.
+4. Watch as the AI automatically steps through a pre-scripted Zork sequence: `LOOK` → `OPEN MAILBOX` → `TAKE LEAFLET` → `READ LEAFLET` → `GO EAST` → `GO NORTH` → `GO WEST`...
+
+This verifies that screenshot capture, keystroke injection, and the AI loop are all working correctly before you use a real API key.
+
+---
 
 ![](screenshot.png)
 
 > [!IMPORTANT]
 > **Pure Client-Side**: AmpleWeb runs entirely in your browser. No backend, no server-side emulation, and zero installation required.
+
+
 
 ## 🍎 Ample (macOS) vs. AmpleWeb (Web) Comparison
 

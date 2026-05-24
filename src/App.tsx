@@ -12,8 +12,8 @@ import {
   type MediaFile,
 } from './core/wasm_loader'
 import { useStore, type VideoSettings } from './core/store'
-import { captureScreen, sendTextCommand, callRealLLM, callMockLLM, resetMockController } from './ai/ai_controller'
-import { DEFAULT_SYSTEM_PROMPT, ADVENTURE_PROMPT_PRESETS } from './ai/ai_prompt'
+import { captureScreen, sendTextCommand, callRealLLM, callMockLLM, resetMockController, PROVIDER_DEFAULTS, readApple2TextScreen, resetMemoryCache, type HistoryTurn } from './ai/ai_controller'
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_VISION_SYSTEM_PROMPT, DEFAULT_TEXT_SYSTEM_PROMPT, ADVENTURE_PROMPT_PRESETS } from './ai/ai_prompt'
 const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
 
 
@@ -638,10 +638,19 @@ function App() {
 
   // ── AI Agent States ──
   const [aiEnabled, setAiEnabled] = useState(false)
-  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'claude' | 'mock'>(() => {
-    return (localStorage.getItem('ample-ai-provider') as any) || 'mock'
+  const [aiMode, setAiMode] = useState<'vision' | 'text'>(() => {
+    return (localStorage.getItem('ample-ai-mode') as 'vision' | 'text') || 'vision'
+  })
+  const [aiProvider, setAiProvider] = useState<string>(() => {
+    return localStorage.getItem('ample-ai-provider') || 'mock'
   })
   const [aiApiKey, setAiApiKey] = useState(() => localStorage.getItem('ample-ai-apikey') || '')
+  const [aiApiUrl, setAiApiUrl] = useState(() => {
+    return localStorage.getItem('ample-ai-apiurl') || ''
+  })
+  const [aiModel, setAiModel] = useState(() => {
+    return localStorage.getItem('ample-ai-model') || ''
+  })
   const [aiSystemPrompt, setAiSystemPrompt] = useState(() => localStorage.getItem('ample-ai-prompt') || DEFAULT_SYSTEM_PROMPT)
   const [aiTickRate, setAiTickRate] = useState(() => {
     const saved = localStorage.getItem('ample-ai-tickrate')
@@ -650,6 +659,23 @@ function App() {
   const [aiCharDelay, setAiCharDelay] = useState(() => {
     const saved = localStorage.getItem('ample-ai-chardelay')
     return saved ? parseInt(saved, 10) : 60
+  })
+  const [aiMaxTokens, setAiMaxTokens] = useState(() => {
+    const saved = localStorage.getItem('ample-ai-maxtokens')
+    return saved ? parseInt(saved, 10) : 1000
+  })
+  const [aiHistory, setAiHistory] = useState<HistoryTurn[]>([])
+  const aiHistoryRef = useRef<HistoryTurn[]>([])
+  useEffect(() => {
+    aiHistoryRef.current = aiHistory
+  }, [aiHistory])
+  const [aiHistoryLimit, setAiHistoryLimit] = useState(() => {
+    const saved = localStorage.getItem('ample-ai-historylimit')
+    return saved ? parseInt(saved, 10) : 5
+  })
+  const [aiTemperature, setAiTemperature] = useState(() => {
+    const saved = localStorage.getItem('ample-ai-temperature')
+    return saved ? parseFloat(saved) : 0.6
   })
 
   const [aiStatus, setAiStatus] = useState<'idle' | 'thinking' | 'typing' | 'error'>('idle')
@@ -756,25 +782,62 @@ function App() {
   }, [machineTab])
 
   // Persistence of AI settings
-  useEffect(() => {
-    localStorage.setItem('ample-ai-provider', aiProvider)
-  }, [aiProvider])
+  useEffect(() => { localStorage.setItem('ample-ai-provider', aiProvider) }, [aiProvider])
+  useEffect(() => { localStorage.setItem('ample-ai-apikey', aiApiKey) }, [aiApiKey])
+  useEffect(() => { localStorage.setItem('ample-ai-apiurl', aiApiUrl) }, [aiApiUrl])
+  useEffect(() => { localStorage.setItem('ample-ai-model', aiModel) }, [aiModel])
+  useEffect(() => { localStorage.setItem('ample-ai-prompt', aiSystemPrompt) }, [aiSystemPrompt])
+  useEffect(() => { localStorage.setItem('ample-ai-tickrate', String(aiTickRate)) }, [aiTickRate])
+  useEffect(() => { localStorage.setItem('ample-ai-chardelay', String(aiCharDelay)) }, [aiCharDelay])
+  useEffect(() => { localStorage.setItem('ample-ai-maxtokens', String(aiMaxTokens)) }, [aiMaxTokens])
+  useEffect(() => { localStorage.setItem('ample-ai-mode', aiMode) }, [aiMode])
+  useEffect(() => { localStorage.setItem('ample-ai-historylimit', String(aiHistoryLimit)) }, [aiHistoryLimit])
+  useEffect(() => { localStorage.setItem('ample-ai-temperature', String(aiTemperature)) }, [aiTemperature])
 
+  // Clear conversation history on provider/URL/mode/machine switches to avoid leakage
   useEffect(() => {
-    localStorage.setItem('ample-ai-apikey', aiApiKey)
-  }, [aiApiKey])
+    setAiHistory([])
+  }, [aiMode, aiProvider, aiApiUrl, selectedMachine])
 
+  // Reset RAM base address caches and history on ROM boot/reload
   useEffect(() => {
-    localStorage.setItem('ample-ai-prompt', aiSystemPrompt)
-  }, [aiSystemPrompt])
+    if (launchState === 'fetching-rom' || launchState === 'idle') {
+      resetMemoryCache()
+      setAiHistory([])
+    }
+  }, [launchState])
 
+  // Prevent MAME WASM from hijacking keyboard inputs when typing in settings inputs.
+  // By using capturing phase (useCapture: true), we stop key events from reaching MAME.
   useEffect(() => {
-    localStorage.setItem('ample-ai-tickrate', String(aiTickRate))
-  }, [aiTickRate])
+    const handleCapture = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      if (activeEl) {
+        const tagName = activeEl.tagName.toLowerCase()
+        const isEditable = activeEl.hasAttribute('contenteditable') || 
+                           activeEl.getAttribute('contenteditable') === 'true'
+        if (
+          tagName === 'input' || 
+          tagName === 'textarea' || 
+          tagName === 'select' || 
+          isEditable
+        ) {
+          e.stopPropagation()
+        }
+      }
+    }
 
-  useEffect(() => {
-    localStorage.setItem('ample-ai-chardelay', String(aiCharDelay))
-  }, [aiCharDelay])
+    window.addEventListener('keydown', handleCapture, true)
+    window.addEventListener('keyup', handleCapture, true)
+    window.addEventListener('keypress', handleCapture, true)
+
+    return () => {
+      window.removeEventListener('keydown', handleCapture, true)
+      window.removeEventListener('keyup', handleCapture, true)
+      window.removeEventListener('keypress', handleCapture, true)
+    }
+  }, [])
+
 
   // Helper to add AI logs
   const addAiLog = useCallback((text: string) => {
@@ -794,16 +857,37 @@ function App() {
       aiIsProcessingRef.current = true
       setAiStatus('thinking')
       setAiError(null)
-      addAiLog('Capturing emulator screen...')
-      
-      const imgData = captureScreen(canvas)
-      setAiLastScreenshot(imgData)
 
-      if (!imgData) {
-        throw new Error('Screenshot returned empty data')
+      let imgData = ''
+      let screenText = ''
+
+      if (aiMode === 'vision') {
+        addAiLog('Capturing emulator screen (Vision)...')
+        imgData = captureScreen(canvas)
+        setAiLastScreenshot(imgData)
+        if (!imgData) {
+          throw new Error('Screenshot returned empty data')
+        }
+      } else {
+        addAiLog('Reading emulated text screen buffer (Text Mode)...')
+        const textResult = readApple2TextScreen(addAiLog)
+        if (!textResult) {
+          throw new Error('Waiting for emulator screen layout to initialize (no active text signatures detected).')
+        }
+        screenText = textResult.text
+        
+        // Still capture screen to update the UI visual preview block
+        const previewImg = captureScreen(canvas)
+        setAiLastScreenshot(previewImg)
+        
+        if (!screenText) {
+          throw new Error('Screen memory reader returned empty text')
+        }
+        const snippet = screenText.length > 200 ? screenText.substring(0, 200) + '...' : screenText
+        addAiLog(`Text Screen Content:\n${snippet}`)
       }
 
-      addAiLog(`Calling LLM API (${aiProvider})...`)
+      addAiLog(`Calling LLM API (${aiProvider} - ${aiMode.toUpperCase()} mode)...`)
       let command = ''
 
       if (aiProvider === 'mock') {
@@ -812,7 +896,22 @@ function App() {
         if (!aiApiKey) {
           throw new Error(`API key is required for ${aiProvider}`)
         }
-        command = await callRealLLM(aiProvider, aiApiKey, aiSystemPrompt, imgData)
+        command = await callRealLLM(
+          aiProvider,
+          aiApiKey,
+          aiSystemPrompt,
+          imgData,
+          screenText,
+          aiMode,
+          aiHistoryRef.current,
+          Number(aiMaxTokens) || 1000,
+          typeof aiTemperature === 'number' && !isNaN(aiTemperature) ? aiTemperature : 0.6,
+          aiApiUrl || undefined,
+          aiModel || undefined,
+          (status, nextDelay, attempt) => {
+            addAiLog(`[Retry] API returned ${status} (busy/limit). Retrying in ${(nextDelay / 1000).toFixed(1)}s... (Attempt ${attempt}/3)`)
+          }
+        )
       }
 
       if (!command) {
@@ -825,8 +924,21 @@ function App() {
       addAiLog(`AI Command received: "${command}"`)
       setAiStatus('typing')
 
-      await sendTextCommand(command, canvas, aiCharDelay)
+      await sendTextCommand(command, canvas, Number(aiCharDelay) || 60)
       addAiLog(`Successfully typed command: "${command}"`)
+
+      if (aiHistoryLimit > 0) {
+        setAiHistory(prev => {
+          const turn: HistoryTurn = {
+            mode: aiMode,
+            screenshotBase64: aiMode === 'vision' ? imgData : undefined,
+            screenText: aiMode === 'text' ? screenText : undefined,
+            command
+          }
+          return [...prev, turn].slice(-aiHistoryLimit)
+        })
+      }
+
       setAiStatus('idle')
     } catch (e: any) {
       console.error('[AI Tick Error]', e)
@@ -837,7 +949,7 @@ function App() {
     } finally {
       aiIsProcessingRef.current = false
     }
-  }, [launchState, aiProvider, aiApiKey, aiSystemPrompt, aiCharDelay, addAiLog])
+  }, [launchState, aiProvider, aiApiKey, aiApiUrl, aiModel, aiSystemPrompt, aiCharDelay, aiMaxTokens, aiTemperature, aiMode, aiHistoryLimit, setAiHistory, addAiLog])
 
   // AI Loop Effect
   useEffect(() => {
@@ -855,7 +967,7 @@ function App() {
       // Interval ticks
       aiTimerRef.current = setInterval(() => {
         runAiTick()
-      }, aiTickRate * 1000)
+      }, (Number(aiTickRate) || 10) * 1000)
 
       return () => {
         clearTimeout(initialTimer)
@@ -992,7 +1104,7 @@ function App() {
     // Handle window resize events
     const onWindowResize = () => {
       if (videoSettings.windowMode === 'fit' || videoSettings.windowMode === 'integer-fit') {
-        applyScale(true)
+        applyScale(false)
       }
     }
 
@@ -3349,16 +3461,61 @@ function App() {
 
                     <div className="slot-grid" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div className="slot-row">
+                        <label className="slot-label">Mode</label>
+                        <select
+                          className="slot-select"
+                          value={aiMode}
+                          onChange={e => {
+                            const m = e.target.value as 'vision' | 'text'
+                            setAiMode(m)
+                            // Auto-update system prompt if it was the default one
+                            if (m === 'text') {
+                              if (aiSystemPrompt === DEFAULT_VISION_SYSTEM_PROMPT || aiSystemPrompt === DEFAULT_SYSTEM_PROMPT) {
+                                setAiSystemPrompt(DEFAULT_TEXT_SYSTEM_PROMPT)
+                              }
+                            } else {
+                              if (aiSystemPrompt === DEFAULT_TEXT_SYSTEM_PROMPT) {
+                                setAiSystemPrompt(DEFAULT_VISION_SYSTEM_PROMPT)
+                              }
+                            }
+                          }}
+                        >
+                          <option value="vision">🖼️ Vision Mode</option>
+                          <option value="text">📝 Text Mode (Low Token)</option>
+                        </select>
+                      </div>
+
+                      <div className="slot-row">
                         <label className="slot-label">Provider</label>
                         <select
                           className="slot-select"
                           value={aiProvider}
-                          onChange={e => setAiProvider(e.target.value as any)}
+                          onChange={e => {
+                            const p = e.target.value
+                            setAiProvider(p)
+                            // Auto-fill URL and model with provider defaults
+                            const def = PROVIDER_DEFAULTS[p]
+                            if (def) {
+                              setAiApiUrl(def.baseUrl)
+                              setAiModel(def.model)
+                            }
+                          }}
                         >
                           <option value="mock">Mock Simulator</option>
-                          <option value="gemini">Gemini 2.5 Flash</option>
-                          <option value="openai">OpenAI GPT-4o-mini</option>
-                          <option value="claude">Claude 3.5 Sonnet</option>
+                          <optgroup label="── Cloud ──────────────">
+                            <option value="gemini">Gemini 3.5 Flash</option>
+                            <option value="openai">OpenAI GPT-4o-mini</option>
+                            <option value="claude">Claude 3.5 Sonnet</option>
+                            <option value="nvidia">NVIDIA NIM</option>
+                            <option value="ollama-cloud">Ollama Cloud</option>
+                          </optgroup>
+                          <optgroup label="── On-Prem ────────────">
+                            <option value="lmstudio">LM Studio</option>
+                            <option value="ollama">Ollama (Local)</option>
+                          </optgroup>
+                          <optgroup label="── Other ──────────────">
+                            <option value="custom">Custom Provider</option>
+                          </optgroup>
                         </select>
                       </div>
 
@@ -3376,9 +3533,53 @@ function App() {
                               borderRadius: '4px',
                               fontSize: '11px'
                             }}
-                            placeholder={`Enter ${aiProvider.toUpperCase()} Key`}
+                            placeholder={PROVIDER_DEFAULTS[aiProvider]?.requiresKey ? `Enter API Key` : 'API Key (optional)'}
                             value={aiApiKey}
                             onChange={e => setAiApiKey(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {/* API URL — shown for all except mock, gemini, claude (they have fixed endpoints) */}
+                      {!['mock'].includes(aiProvider) && (
+                        <div className="slot-row">
+                          <label className="slot-label">API URL</label>
+                          <input
+                            type="text"
+                            className="slot-select"
+                            style={{
+                              padding: '4px 8px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'var(--text1)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '11px'
+                            }}
+                            placeholder={PROVIDER_DEFAULTS[aiProvider]?.baseUrl || 'https://...'}
+                            value={aiApiUrl}
+                            onChange={e => setAiApiUrl(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Model — shown for all except mock */}
+                      {aiProvider !== 'mock' && (
+                        <div className="slot-row">
+                          <label className="slot-label">Model</label>
+                          <input
+                            type="text"
+                            className="slot-select"
+                            style={{
+                              padding: '4px 8px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'var(--text1)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '11px'
+                            }}
+                            placeholder={PROVIDER_DEFAULTS[aiProvider]?.model || 'model-name'}
+                            value={aiModel}
+                            onChange={e => setAiModel(e.target.value)}
                           />
                         </div>
                       )}
@@ -3398,9 +3599,25 @@ function App() {
                             width: '80px'
                           }}
                           min={2}
-                          max={120}
+                          max={3600}
                           value={aiTickRate}
-                          onChange={e => setAiTickRate(Math.max(2, parseInt(e.target.value, 10) || 5))}
+                          onChange={e => {
+                            const val = e.target.value
+                            if (val === '') {
+                              setAiTickRate('' as any)
+                            } else {
+                              const num = parseInt(val, 10)
+                              setAiTickRate(isNaN(num) ? '' as any : num)
+                            }
+                          }}
+                          onBlur={() => {
+                            const val = Number(aiTickRate)
+                            if (isNaN(val) || val < 2) {
+                              setAiTickRate(2)
+                            } else if (val > 3600) {
+                              setAiTickRate(3600)
+                            }
+                          }}
                         />
                       </div>
 
@@ -3419,11 +3636,146 @@ function App() {
                             width: '80px'
                           }}
                           min={10}
-                          max={500}
+                          max={2000}
                           value={aiCharDelay}
-                          onChange={e => setAiCharDelay(Math.max(10, parseInt(e.target.value, 10) || 50))}
+                          onChange={e => {
+                            const val = e.target.value
+                            if (val === '') {
+                              setAiCharDelay('' as any)
+                            } else {
+                              const num = parseInt(val, 10)
+                              setAiCharDelay(isNaN(num) ? '' as any : num)
+                            }
+                          }}
+                          onBlur={() => {
+                            const val = Number(aiCharDelay)
+                            if (isNaN(val) || val < 10) {
+                              setAiCharDelay(10)
+                            } else if (val > 2000) {
+                              setAiCharDelay(2000)
+                            }
+                          }}
                         />
                       </div>
+
+                      {aiProvider !== 'mock' && (
+                        <div className="slot-row">
+                          <label className="slot-label">Max Tokens</label>
+                          <input
+                            type="number"
+                            className="slot-select"
+                            style={{
+                              padding: '4px 8px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'var(--text1)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              width: '80px'
+                            }}
+                            min={10}
+                            max={100000}
+                            value={aiMaxTokens}
+                            onChange={e => {
+                              const val = e.target.value
+                              if (val === '') {
+                                setAiMaxTokens('' as any)
+                              } else {
+                                const num = parseInt(val, 10)
+                                setAiMaxTokens(isNaN(num) ? '' as any : num)
+                              }
+                            }}
+                            onBlur={() => {
+                              const val = Number(aiMaxTokens)
+                              if (isNaN(val) || val < 10) {
+                                setAiMaxTokens(10)
+                              } else if (val > 100000) {
+                                setAiMaxTokens(100000)
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {aiProvider !== 'mock' && (
+                        <div className="slot-row">
+                          <label className="slot-label">History Limit</label>
+                          <input
+                            type="number"
+                            className="slot-select"
+                            style={{
+                              padding: '4px 8px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'var(--text1)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              width: '80px'
+                            }}
+                            min={0}
+                            max={20}
+                            value={aiHistoryLimit}
+                            onChange={e => {
+                              const val = e.target.value
+                              if (val === '') {
+                                setAiHistoryLimit('' as any)
+                              } else {
+                                const num = parseInt(val, 10)
+                                setAiHistoryLimit(isNaN(num) ? '' as any : num)
+                              }
+                            }}
+                            onBlur={() => {
+                              const val = Number(aiHistoryLimit)
+                              if (isNaN(val) || val < 0) {
+                                setAiHistoryLimit(0)
+                              } else if (val > 20) {
+                                setAiHistoryLimit(20)
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {aiProvider !== 'mock' && (
+                        <div className="slot-row">
+                          <label className="slot-label">Temperature</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            className="slot-select"
+                            style={{
+                              padding: '4px 8px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'var(--text1)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              width: '80px'
+                            }}
+                            min={0}
+                            max={2}
+                            value={aiTemperature}
+                            onChange={e => {
+                              const val = e.target.value
+                              if (val === '') {
+                                setAiTemperature('' as any)
+                              } else {
+                                const num = parseFloat(val)
+                                setAiTemperature(isNaN(num) ? '' as any : num)
+                              }
+                            }}
+                            onBlur={() => {
+                              const val = Number(aiTemperature)
+                              if (isNaN(val) || val < 0) {
+                                setAiTemperature(0)
+                              } else if (val > 2) {
+                                setAiTemperature(2)
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -3435,10 +3787,18 @@ function App() {
                               const found = ADVENTURE_PROMPT_PRESETS.find(p => p.id === e.target.value);
                               if (found) setAiSystemPrompt(found.prompt);
                             }}
-                            defaultValue="zork"
+                            value={
+                              ADVENTURE_PROMPT_PRESETS.some(p => p.prompt === aiSystemPrompt)
+                                ? ADVENTURE_PROMPT_PRESETS.find(p => p.prompt === aiSystemPrompt)?.id
+                                : 'custom'
+                            }
                           >
-                            <option value="zork">Zork Presets</option>
-                            <option value="general">General Presets</option>
+                            <option value="custom" disabled>Select Preset...</option>
+                            {ADVENTURE_PROMPT_PRESETS.map(preset => (
+                              <option key={preset.id} value={preset.id}>
+                                {preset.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <textarea
@@ -3699,7 +4059,11 @@ function App() {
                         <button
                           className="log-btn"
                           style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '10px' }}
-                          onClick={() => setAiLogs([])}
+                          onClick={() => {
+                            setAiLogs([])
+                            setAiHistory([])
+                            addAiLog('Logs and AI history cleared.')
+                          }}
                         >
                           Clear
                         </button>

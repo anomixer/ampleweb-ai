@@ -1,8 +1,143 @@
-# [AmpleWeb](https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb) - 網頁移植版 (Apple 模擬器前端)
+# [AmpleWeb-AI](https://github.com/anomixer/ampleweb-ai) - 視覺 AI 代理版 (Apple 模擬器 + LLM)
 
 [English](README.md) | [繁體中文](README_tw.md)
 
-這是 macOS 原生 [Ample](https://github.com/ksherlock/ample) 專案的純網頁移植版本，將頂級的 Apple II 與 Macintosh 模擬體驗帶入任何現代瀏覽器。由 WASM 與 React 驅動。提供使用者無須安裝應用程式與ROM檔案、直接在瀏覽器暢享 198x-199x年代的電腦使用體驗。
+這是 **AmpleWeb** 的特化獨立版本，作為**視覺 AI 代理（LLM + Vision）**的實驗性平台。透過多模態大型語言模型（Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet），AmpleWeb-AI 讓 AI 代理能「看見」模擬器畫面（例如執行中的 Apple IIe），自動閱讀螢幕文字並產生指令，在文字冒險遊戲（如 Zork）中自主行動。
+
+## 🤖 視覺 AI 代理 — 運作原理
+
+```
+MAME WASM（Canvas 畫面）
+    ↓  WebGL readPixels() + 垂直翻轉
+  Base64 PNG 截圖
+    ↓  多模態視覺 API（Gemini / GPT / Claude）
+  文字指令（例如 "GO EAST"）
+    ↓  DOM KeyboardEvent 序列（非同步，60ms/字元）
+  Emscripten WASM 輸入
+```
+
+*   **解耦且非侵入式**：AI 層將 MAME WASM 視為完整的黑盒子。透過 WebGL 像素提取讀取畫面，透過 DOM 事件發送按鍵——完全不需修改 WASM 程式碼。
+*   **WebGL 幀緩衝截圖**：在 MAME 啟動時攔截 canvas `getContext`，強制設定 `preserveDrawingBuffer: true`，再用 `gl.readPixels()` 直接從 GPU 幀緩衝提取原始像素並進行 Y 軸垂直翻轉修正。即使是 WebGL 渲染的畫面也能產生清晰、像素完美的截圖。
+*   **非同步打字員**：每個按鍵依序發送（`keydown` → 延遲 → `keyup`），透過可設定的延遲避免 Emscripten 幀循環漏讀輸入。
+*   **雙模式（影像視覺與低 Token 文字）**：支援 `Vision Mode`（傳送像素完美畫面截圖）與 `Text Mode`（直接從 WASM 虛擬記憶體讀取 Apple II 螢幕文字，無需外部 OCR，Token 消耗極低且速度極快）。
+    *   *直接記憶體存取 (DMA 讀取)*：若使用全新的 MAME WASM 核心，系統會自動繞過不穩定的堆積掃描，直接精確讀取 `:maincpu` 記憶體的 `0x400`（Page 1）與 `0x800`（Page 2）位址空間，準確度高達 **100%**。否則會自動降級回 Heuristic 堆積指紋掃描。
+*   **支援豐富模型與自訂提供商**：支援 Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet、NVIDIA NIM, Ollama Cloud、LM Studio (本地)、Ollama (本地) 以及自訂 Provider。
+*   **可設定的對話歷史上限**：可自訂傳送給大模型的歷史記憶輪數（可調範圍 `0` 至 `20` 輪），徹底杜絕 AI 忘記前幾步而重複無效指令的「金魚腦」現象。
+*   **API 過載自動重試**：`fetchWithRetry` 包裝器在收到 `503`/`429` 錯誤時，使用指數退避自動重試（最多 3 次），讓短暫的 API 流量尖峰不再讓 AI 循環崩潰。
+
+---
+
+## 🎮 AI 代理 — 詳細操作步驟教學
+
+### 第一步：先啟動模擬器
+
+啟用 AI 之前，您**必須**先讓模擬器運行起來：
+
+1. 在**左側面板**，選擇一台機器（例如 `Apple //e (Enhanced)`）。
+2. 在**右下方面板 → Media 分頁**，掛載遊戲磁碟（例如 Zork 的 .dsk 檔案）。可以點選 🌐 URL 按鈕直接從網址載入。
+3. 點擊 **Launch** 按鈕。等待模擬器標頭出現 `● Running`（綠色徽章）。
+
+> [!IMPORTANT]
+> AI 只能在模擬器**正在執行**時運作。啟用按鈕在其他情況下都會呈現灰色（不可點擊）。
+
+---
+
+### 第二步：設定 AI 參數（右上面板 → "AI" 分頁）
+
+點擊右上設定面板的 **AI** 分頁，您會看到以下設定：
+
+| 設定項目 | 說明 | 預設值 |
+| :--- | :--- | :--- |
+| **AI Agent Status** | 🔴 已停用 / 🟢 已啟用 切換按鈕 | 已停用 |
+| **Mode** | 選擇：`🖼️ Vision Mode`（傳送 base64 畫面截圖，耗費較多 Token）或 `📝 Text Mode (Low Token)`（直接讀取 WASM 內模擬器純文字緩衝區，消耗極少 Token 且價格極低） | Vision Mode |
+| **Provider（提供商）** | 選擇：`Mock Simulator`、`Gemini 3.5 Flash`、`OpenAI GPT-4o-mini`、`Claude 3.5 Sonnet`、`NVIDIA NIM`、`Ollama Cloud`、`LM Studio (Local)`、`Ollama (Local)`、`Custom Provider` | Mock Simulator |
+| **API Key** | 您的 LLM 提供商金鑰（僅存於瀏覽器本地，絕不外傳） | — |
+| **API URL** | 所選提供商的 API 基礎網址（僅對 OpenAI 相容提供商顯示，可編輯） | *(自動填入)* |
+| **Model（模型名稱）** | 向提供商 API 請求的模型名稱（僅對 OpenAI 相容提供商顯示，可編輯） | *(自動填入)* |
+| **Tick Rate (sec)** | AI 多少秒截圖一次並決定下一個指令 | 15 |
+| **Type Delay (ms)** | 每個字元按鍵之間的毫秒延遲（建議保持 60ms 以免 WASM 漏讀） | 60 |
+| **Max Tokens** | LLM 回應的最大輸出 Token 數（若回應被截斷請調高此值） | 1000 |
+| **History Limit** | 傳送給大模型的對話歷史（螢幕畫面狀態 + 做出指令）對話輪數限制，用以對抗 AI「金魚腦」（可設定 0 至 20 輪） | 5 |
+| **System Prompt** | 給 AI 的自然語言說明（在玩什麼遊戲、如何回應等），會隨運作模式自動切換對應預設模板 | Zork 預設 |
+
+#### 如何取得 API 金鑰
+
+- **Gemini 3.5 Flash**（推薦 — 最快且最划算）：
+  1. 前往 [Google AI Studio](https://aistudio.google.com/app/apikey)
+  2. 點擊 **「建立 API 金鑰」** → 複製金鑰
+  3. 貼到 **API Key** 欄位，並將 Provider 選為 **Gemini 3.5 Flash**
+
+- **OpenAI GPT-4o-mini**：
+  1. 前往 [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+  2. 建立新金鑰並貼入。
+
+- **Claude 3.5 Sonnet**：
+  1. 前往 [console.anthropic.com](https://console.anthropic.com)
+  2. 建立 API 金鑰並貼入。
+
+> [!NOTE]
+> 所有 API 金鑰**僅**存於您瀏覽器的 `localStorage`。金鑰不會被提交至原始碼，也不會傳送至除您所選 LLM 提供商以外的任何第三方伺服器。
+
+---
+
+### 第三步：啟動 AI 代理
+
+1. 點擊 **🔴 Disabled** 按鈕 — 它將切換為 **🟢 Enabled**。
+2. 切換至**右下方面板 → "AI Agent" 分頁**監控執行狀況。
+
+---
+
+### 第四步：在「AI Agent」分頁監控執行
+
+| 元素 | 顯示內容 |
+| :--- | :--- |
+| **狀態徽章** | `Idle`（灰色）→ `Thinking`（黃色）→ `Typing`（綠色）→ `Error`（紅色） |
+| **視覺截圖預覽** | AI「看到」的即時畫面縮圖 — 目前模擬器的幀 |
+| **執行記錄** | 時間戳記的每一步操作日誌：截圖、API 呼叫、收到指令、輸入字元、重試警告 |
+
+**正常運行時的日誌看起來像這樣：**
+```
+[HH:MM:SS] AI Agent Enabled - Starting loop
+[HH:MM:SS] Capturing emulator screen...
+[HH:MM:SS] Calling LLM API (gemini)...
+[HH:MM:SS] AI Command received: "OPEN MAILBOX"
+[HH:MM:SS] Successfully typed command: "OPEN MAILBOX"
+```
+
+**若伺服器繁忙（503/429），重試系統會自動處理：**
+```
+[HH:MM:SS] [Retry] API returned 503 (busy/limit). Retrying in 1.5s... (Attempt 1/3)
+[HH:MM:SS] [Retry] API returned 503 (busy/limit). Retrying in 3.8s... (Attempt 2/3)
+[HH:MM:SS] AI Command received: "GO NORTH"
+```
+
+---
+
+### 第五步：疑難排解
+
+| 錯誤訊息 | 原因 | 解決方式 |
+| :--- | :--- | :--- |
+| `API key is required for gemini` | 未輸入 API 金鑰 | 在 API Key 欄位輸入您的金鑰 |
+| `Gemini API error: 404` | 模型名稱或 endpoint 錯誤 | 更新至最新程式碼（模型已自動設定為 `gemini-3.5-flash`） |
+| `Empty response from Gemini API` | `MAX_TOKENS` 過低（Gemini 3.5 的推理過程也會消耗 Token） | 將 **Max Tokens** 增加至 `1000` 或以上 |
+| `AI 代理一直重複輸入 LOOK` | Canvas 為空白（WebGL 緩衝區被清除）— 需要最新的 AI 層程式碼 | `git pull` 並重新部署；`preserveDrawingBuffer` 修復可解決此問題 |
+| `Error: Emulator canvas not found` | 模擬器未在執行中 | 先啟動模擬器，等待出現 `Running` 徽章 |
+| `503 高流量`（未顯示重試） | 程式碼版本過舊，缺乏重試邏輯 | `git pull` 並重新部署以獲得自動重試支援 |
+
+---
+
+### 快速入門：Mock 模擬器（無需 API 金鑰）
+
+想在不消耗 API 額度的情況下測試整個管線？
+
+1. 將 **Provider** 設定為 **Mock Simulator**。
+2. 將 **Tick Rate** 設定為 `5` 秒。
+3. 啟用 AI。
+4. 觀察 AI 自動依序執行預設的 Zork 腳本：`LOOK` → `OPEN MAILBOX` → `TAKE LEAFLET` → `READ LEAFLET` → `GO EAST` → `GO NORTH` → `GO WEST`...
+
+這可以在使用真實 API 金鑰之前，驗證截圖擷取、按鍵注入與 AI 循環全部正常運作。
+
+---
 
 ![](screenshot.png)
 

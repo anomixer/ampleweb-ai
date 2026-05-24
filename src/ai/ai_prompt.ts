@@ -1,27 +1,35 @@
-export const DEFAULT_SYSTEM_PROMPT = `You are an expert AI agent playing a classic text adventure game (like Zork) on an Apple II emulator.
-Your goal is to successfully explore the world, solve puzzles, and play the game by reading the screen screenshot and outputting appropriate text commands.
+// Kept intentionally short to minimise input token usage on every API call.
+export const DEFAULT_VISION_SYSTEM_PROMPT = `You are an AI agent playing a text adventure game (e.g. Zork) on an Apple II emulator.
+Read the screenshot and output ONLY the next game command (e.g. LOOK, GO NORTH, OPEN MAILBOX).
+Rules: single line, UPPERCASE, no markdown, no explanation.`;
 
-### Instructions:
-1. Observe the screenshot of the emulator screen carefully.
-2. Read the game state, current location description, inventory, and recent events.
-3. Make a logical decision on what action or command to take next to advance the game.
-4. Output EXACTLY the next text command you want to type (e.g., "LOOK", "OPEN MAILBOX", "GET LEAFLET", "GO NORTH", "INVENTORY").
-5. DO NOT provide any markdown formatting, backticks, explanations, pleasantries, or extra punctuation.
-6. The command must be clean, single-line, and typically in UPPERCASE.
+export const DEFAULT_TEXT_SYSTEM_PROMPT = `You are an AI agent playing a text adventure game (e.g. Zork) on an Apple II emulator.
+You will receive the raw text contents of the screen buffer.
+Analyze the game text and output ONLY the next game command (e.g. LOOK, GO NORTH, OPEN MAILBOX).
+Rules: single line, UPPERCASE, no markdown, no explanation.`;
 
-Example clean output:
-LOOK AT MAILBOX`;
+export const DEFAULT_SYSTEM_PROMPT = DEFAULT_VISION_SYSTEM_PROMPT;
 
 export const ADVENTURE_PROMPT_PRESETS = [
   {
-    id: 'zork',
-    name: 'Zork / Text Adventure Solver',
-    prompt: DEFAULT_SYSTEM_PROMPT
+    id: 'zork_vision',
+    name: 'Zork Solver (Vision Mode)',
+    prompt: DEFAULT_VISION_SYSTEM_PROMPT
   },
   {
-    id: 'general',
-    name: 'General Command Injector',
-    prompt: `You are a helper agent observing the Apple II emulator. Read the screen contents and output a simple command to proceed.
-Output ONLY the clean text command to be typed into the emulator.`
+    id: 'zork_text',
+    name: 'Zork Solver (Text Mode)',
+    prompt: DEFAULT_TEXT_SYSTEM_PROMPT
+  },
+  {
+    id: 'general_vision',
+    name: 'General Injector (Vision Mode)',
+    prompt: `You are an agent observing an Apple II emulator. Read the screen screenshot and output ONLY the next command to type. Single line, no explanation.`
+  },
+  {
+    id: 'general_text',
+    name: 'General Injector (Text Mode)',
+    prompt: `You are an agent observing an Apple II emulator. Read the raw text screen contents and output ONLY the next command to type. Single line, no explanation.`
   }
 ];
+
