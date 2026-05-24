@@ -21,7 +21,7 @@ MAME WASM (Canvas Screen)
 *   **Asynchronous Typist**: Each keystroke is dispatched (`keydown` → delay → `keyup`) sequentially with a configurable delay between characters, preventing Emscripten frame loop input skipping.
 *   **Dual Modes (Vision & Low-Token Text)**: Switch between `Vision Mode` (captures pixel-perfect screenshots) and `Text Mode` (directly reads Apple II text memory buffer from WASM memory for extremely low token cost, no external OCR required).
     *   *Direct RAM Access (DMA Tech)*: If using the new custom WASM core, it automatically bypasses fragile heap scanning and reads `0x400` / `0x800` from `:maincpu` virtual program memory directly with **100% precision**. Otherwise, it gracefully falls back to heap index scanning.
-*   **Extended LLM Providers**: Support for Gemini 3.5 Flash, GPT-4o-mini, Claude 3.5 Sonnet, NVIDIA NIM, Ollama Cloud, LM Studio (Local), Ollama (Local), and Custom Providers.
+*   **Extended LLM Providers**: Support for Gemini 3.5 Flash, GPT-4o-mini, Claude 3.5 Sonnet, NVIDIA NIM, **Groq**, Ollama Cloud, LM Studio (Local), Ollama (Local), and Custom Providers.
 *   **Conversation History Limit**: Customizable turn history memory buffer (configurable $N$ turns from `0` to `20`) to eliminate AI "goldfish brain" repetition. Automatically formatted for Gemini, Claude, and OpenAI APIs.
 *   **Auto-Retry on API Overload**: A `fetchWithRetry` wrapper automatically retries on `503`/`429` errors using exponential backoff (up to 3 retries), so transient API demand spikes never crash the AI loop.
 
@@ -50,7 +50,7 @@ Click the **AI** tab in the upper-right settings panel. You will see:
 | :--- | :--- | :--- |
 | **AI Agent Status** | 🔴 Disabled / 🟢 Enabled toggle button | Disabled |
 | **Mode** | Choose: `🖼️ Vision Mode` (transmits base64 screenshots, consumes more tokens) or `📝 Text Mode (Low Token)` (directly parses emulator text buffer from WASM memory, extremely cheap/low-token) | Vision Mode |
-| **Provider** | Choose: `Mock Simulator`, `Gemini 3.5 Flash`, `OpenAI GPT-4o-mini`, `Claude 3.5 Sonnet`, `NVIDIA NIM`, `Ollama Cloud`, `LM Studio (Local)`, `Ollama (Local)`, `Custom Provider` | Mock Simulator |
+| **Provider** | Choose: `Mock Simulator`, `Gemini 3.5 Flash`, `OpenAI GPT-4o-mini`, `Claude 3.5 Sonnet`, `NVIDIA NIM`, `Groq`, `Ollama Cloud`, `LM Studio (Local)`, `Ollama (Local)`, `Custom Provider` | Mock Simulator |
 | **API Key** | Your LLM provider's secret key (stored locally in browser, never sent to third-party servers) | — |
 | **API URL** | Base endpoint URL for the selected provider (editable, visible for OpenAI-compatible options) | *(auto-filled)* |
 | **Model** | The model name to request from the provider API (editable, visible for OpenAI-compatible options) | *(auto-filled)* |
@@ -74,6 +74,10 @@ Click the **AI** tab in the upper-right settings panel. You will see:
 - **Claude 3.5 Sonnet**:
   1. Go to [console.anthropic.com](https://console.anthropic.com)
   2. Create an API key and paste it in.
+
+- **Groq** (Fast inference, free tier available):
+  1. Go to [console.groq.com](https://console.groq.com/keys)
+  2. Create an API key and paste it in. Select **Groq** as Provider.
 
 > [!NOTE]
 > All API keys are stored **only** in your browser's `localStorage`. They are never committed to source code or sent to any third-party server other than your chosen LLM provider directly.

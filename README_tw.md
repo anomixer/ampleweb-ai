@@ -21,7 +21,7 @@ MAME WASM（Canvas 畫面）
 *   **非同步打字員**：每個按鍵依序發送（`keydown` → 延遲 → `keyup`），透過可設定的延遲避免 Emscripten 幀循環漏讀輸入。
 *   **雙模式（影像視覺與低 Token 文字）**：支援 `Vision Mode`（傳送像素完美畫面截圖）與 `Text Mode`（直接從 WASM 虛擬記憶體讀取 Apple II 螢幕文字，無需外部 OCR，Token 消耗極低且速度極快）。
     *   *直接記憶體存取 (DMA 讀取)*：若使用全新的 MAME WASM 核心，系統會自動繞過不穩定的堆積掃描，直接精確讀取 `:maincpu` 記憶體的 `0x400`（Page 1）與 `0x800`（Page 2）位址空間，準確度高達 **100%**。否則會自動降級回 Heuristic 堆積指紋掃描。
-*   **支援豐富模型與自訂提供商**：支援 Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet、NVIDIA NIM, Ollama Cloud、LM Studio (本地)、Ollama (本地) 以及自訂 Provider。
+*   **支援豐富模型與自訂提供商**：支援 Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet、NVIDIA NIM、**Groq**、Ollama Cloud、LM Studio (本地)、Ollama (本地) 以及自訂 Provider。
 *   **可設定的對話歷史上限**：可自訂傳送給大模型的歷史記憶輪數（可調範圍 `0` 至 `20` 輪），徹底杜絕 AI 忘記前幾步而重複無效指令的「金魚腦」現象。
 *   **API 過載自動重試**：`fetchWithRetry` 包裝器在收到 `503`/`429` 錯誤時，使用指數退避自動重試（最多 3 次），讓短暫的 API 流量尖峰不再讓 AI 循環崩潰。
 
@@ -50,7 +50,7 @@ MAME WASM（Canvas 畫面）
 | :--- | :--- | :--- |
 | **AI Agent Status** | 🔴 已停用 / 🟢 已啟用 切換按鈕 | 已停用 |
 | **Mode** | 選擇：`🖼️ Vision Mode`（傳送 base64 畫面截圖，耗費較多 Token）或 `📝 Text Mode (Low Token)`（直接讀取 WASM 內模擬器純文字緩衝區，消耗極少 Token 且價格極低） | Vision Mode |
-| **Provider（提供商）** | 選擇：`Mock Simulator`、`Gemini 3.5 Flash`、`OpenAI GPT-4o-mini`、`Claude 3.5 Sonnet`、`NVIDIA NIM`、`Ollama Cloud`、`LM Studio (Local)`、`Ollama (Local)`、`Custom Provider` | Mock Simulator |
+| **Provider（提供商）** | 選擇：`Mock Simulator`、`Gemini 3.5 Flash`、`OpenAI GPT-4o-mini`、`Claude 3.5 Sonnet`、`NVIDIA NIM`、`Groq`、`Ollama Cloud`、`LM Studio (Local)`、`Ollama (Local)`、`Custom Provider` | Mock Simulator |
 | **API Key** | 您的 LLM 提供商金鑰（僅存於瀏覽器本地，絕不外傳） | — |
 | **API URL** | 所選提供商的 API 基礎網址（僅對 OpenAI 相容提供商顯示，可編輯） | *(自動填入)* |
 | **Model（模型名稱）** | 向提供商 API 請求的模型名稱（僅對 OpenAI 相容提供商顯示，可編輯） | *(自動填入)* |
@@ -74,6 +74,10 @@ MAME WASM（Canvas 畫面）
 - **Claude 3.5 Sonnet**：
   1. 前往 [console.anthropic.com](https://console.anthropic.com)
   2. 建立 API 金鑰並貼入。
+
+- **Groq**（快速推理，有免費方案）：
+  1. 前往 [console.groq.com](https://console.groq.com/keys)
+  2. 建立 API 金鑰並貼入，Provider 選擇 **Groq**。
 
 > [!NOTE]
 > 所有 API 金鑰**僅**存於您瀏覽器的 `localStorage`。金鑰不會被提交至原始碼，也不會傳送至除您所選 LLM 提供商以外的任何第三方伺服器。

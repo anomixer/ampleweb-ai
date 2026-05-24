@@ -22,7 +22,7 @@
     - **Mode-Specific Prompts & UI Switch**: Integrated **Text / Vision Mode** selector toggle in Settings. Mode switching automatically syncs preset templates and prompts.
 
 - **Extended LLM Providers (Cloud & On-Prem)**:
-    - **New Providers**: Added support for NVIDIA NIM, Ollama Cloud, LM Studio (Local), Ollama (Local), and Custom Providers.
+    - **New Providers**: Added support for NVIDIA NIM, **Groq** (OpenAI-compatible, `https://api.groq.com/openai/v1`), Ollama Cloud, LM Studio (Local), Ollama (Local), and Custom Providers.
     - **Dynamic Configuration**: Exposed API URL and Model input fields in the UI, pre-filled with defaults according to selected provider. Key fields are dynamically enabled or made optional.
 
 - **Vision AI Agent Layer — Debugging & Hardening**:
