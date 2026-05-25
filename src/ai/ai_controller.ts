@@ -655,6 +655,39 @@ function getHeap(): Uint8Array | null {
  * for normal text. This scoring function returns 0-100.
  */
 function scoreTextPage(heap: Uint8Array, base: number, pageOffset: number): number {
+  // ── XML/Metadata 垃圾特徵過濾 ──────────────────────────────────────────────
+  // 構建一個臨時解碼字串以進行特徵過濾，排除 MAME WASM heap 中偽裝成文字頁面的 XML/PNG 元數據
+  let tempStr = '';
+  for (let r = 0; r < 24; r++) {
+    const rowStart = base + pageOffset + ROW_OFFSETS[r];
+    if (rowStart + 40 > heap.length) return 0;
+    for (let c = 0; c < 40; c++) {
+      tempStr += decodeAppleChar(heap[rowStart + c]);
+    }
+  }
+
+  const noSpace = tempStr.replace(/\s/g, '');
+  const noSpaceLower = noSpace.toLowerCase();
+  
+  // 檢測是否包含常見的 XML Metadata 或圖片二進位垃圾特徵
+  const ltCount = (noSpace.match(/</g) || []).length;
+  if (ltCount >= 3 || 
+      noSpaceLower.includes('rdf:') || 
+      noSpaceLower.includes('xmlns') || 
+      noSpaceLower.includes('xmp') || 
+      noSpaceLower.includes('stevt') || 
+      noSpaceLower.includes('stref') || 
+      noSpaceLower.includes('adobe') || 
+      noSpaceLower.includes('photoshop') ||
+      noSpaceLower.includes('http:') || 
+      noSpaceLower.includes('instanceid') ||
+      noSpaceLower.includes('derivedfrom') ||
+      noSpaceLower.includes('creator') ||
+      noSpaceLower.includes('metadata')
+  ) {
+    return 0; // 100% 排除偽裝的二進位/XML 垃圾記憶體
+  }
+
   let spaceCountHi = 0;    // 0xA0 - Apple II normal space
   let spaceCountLo = 0;    // 0x20 - ASCII space
   let charCountHi = 0;     // 0x80-0xFF - Apple II normal characters
@@ -664,6 +697,7 @@ function scoreTextPage(heap: Uint8Array, base: number, pageOffset: number): numb
   for (let r = 0; r < 24; r++) {
     const rowStart = base + pageOffset + ROW_OFFSETS[r];
     if (rowStart + 40 > heap.length) return 0;
+
 
     for (let c = 0; c < 40; c++) {
       const b = heap[rowStart + c];

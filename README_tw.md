@@ -21,6 +21,8 @@ MAME WASM（Canvas 畫面）
 *   **非同步打字員**：每個按鍵依序發送（`keydown` → 延遲 → `keyup`），透過可設定的延遲避免 Emscripten 幀循環漏讀輸入。
 *   **雙模式（影像視覺與低 Token 文字）**：支援 `Vision Mode`（傳送像素完美畫面截圖）與 `Text Mode`（直接從 WASM 虛擬記憶體讀取 Apple II 螢幕文字，無需外部 OCR，Token 消耗極低且速度極快）。
     *   *直接記憶體存取 (DMA 讀取)*：若使用全新的 MAME WASM 核心，系統會自動繞過不穩定的堆積掃描，直接精確讀取 `:maincpu` 記憶體的 `0x400`（Page 1）與 `0x800`（Page 2）位址空間，準確度高達 **100%**。否則會自動降級回 Heuristic 堆積指紋掃描。
+    *   *進階 80 行自適應解耦解碼*：攻克了 80 行模式下左右字元成對顛倒（例如 `"ZORK I"` 被錯誤解碼為 `"I   R OKI"`) 的頑疾。採用**動態雙基底配對 (Dynamic Dual-Base Pairing)** 技術，自動分析並配對 Main 與 Aux RAM 在 Heap 中任意的記憶體基底，徹底擺脫相隔 65,536 位址差的脆弱假設。並採用**雙向自校正解碼 (Self-Correcting Way A/Way B Heuristics)**，同時嘗試奇偶數欄交錯拼合的兩種解碼方向，透過即時 `/[A-Za-z]/g` 計算英文字母密度，自動選擇拼寫最正確的結果。
+
 *   **支援豐富模型與自訂提供商**：支援 Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet、NVIDIA NIM、**Groq**、Ollama Cloud、LM Studio (本地)、Ollama (本地) 以及自訂 Provider。
 *   **可設定的對話歷史上限**：可自訂傳送給大模型的歷史記憶輪數（可調範圍 `0` 至 `20` 輪），徹底杜絕 AI 忘記前幾步而重複無效指令的「金魚腦」現象。
 *   **API 過載自動重試**：`fetchWithRetry` 包裝器在收到 `503`/`429` 錯誤時，使用指數退避自動重試（最多 3 次），讓短暫的 API 流量尖峰不再讓 AI 循環崩潰。
