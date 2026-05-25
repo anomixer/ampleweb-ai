@@ -719,7 +719,7 @@ function scoreTextPage(heap: Uint8Array, base: number, pageOffset: number): numb
 
   const isAlphanumeric = /[A-Za-z0-9]/.test(maxChar);
   if (
-    (isAlphanumeric && maxCount > 60 && (totalNonSpace >= 30 && maxCount / totalNonSpace > 0.5)) ||
+    (isAlphanumeric && totalNonSpace >= 8 && maxCount / totalNonSpace > 0.6) ||
     maxCount > 150
   ) {
     return 0; // 排除高度重複的垃圾記憶體頁面
@@ -1033,7 +1033,7 @@ function decodeFromBase(
 
     const isAlphanumericDec = /[A-Za-z0-9]/.test(maxCharDec);
     if (
-      (isAlphanumericDec && maxCountDec > 60 && (totalDecNonSpace >= 30 && maxCountDec / totalDecNonSpace > 0.5)) ||
+      (isAlphanumericDec && totalDecNonSpace >= 8 && maxCountDec / totalDecNonSpace > 0.6) ||
       maxCountDec > 150
     ) {
       if (logCallback) {
