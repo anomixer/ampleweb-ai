@@ -656,22 +656,29 @@ function getHeap(): Uint8Array | null {
  */
 function scoreTextPage(heap: Uint8Array, base: number, pageOffset: number): number {
   // ── XML/Metadata 垃圾特徵過濾 ──────────────────────────────────────────────
-  // 構建一個臨時解碼字串以進行特徵過濾，排除 MAME WASM heap 中偽裝成文字頁面的 XML/PNG 元數據
-  let tempStr = '';
-  for (let r = 0; r < 24; r++) {
-    const rowStart = base + pageOffset + ROW_OFFSETS[r];
-    if (rowStart + 40 > heap.length) return 0;
-    for (let c = 0; c < 40; c++) {
-      tempStr += decodeAppleChar(heap[rowStart + c]);
-    }
+  // 讀取連續的 960 位元組（一個完整頁面的大小），排除 MAME WASM heap 中偽裝成文字頁面的 XML/PNG 元數據。
+  // 因為 XML 元數據在記憶體中是連續儲存的，而 Apple II 螢幕則是交錯儲存的。
+  const start = base + pageOffset;
+  if (start + 960 > heap.length) return 0;
+
+  let contiguousStr = '';
+  for (let i = 0; i < 960; i++) {
+    contiguousStr += decodeAppleChar(heap[start + i]);
   }
 
-  const noSpace = tempStr.replace(/\s/g, '');
+  const noSpace = contiguousStr.replace(/\s/g, '');
   const noSpaceLower = noSpace.toLowerCase();
   
   // 檢測是否包含常見的 XML Metadata 或圖片二進位垃圾特徵
   const ltCount = (noSpace.match(/</g) || []).length;
+  const gtCount = (noSpace.match(/>/g) || []).length;
+  const colonCount = (noSpace.match(/:/g) || []).length;
+  const slashCount = (noSpace.match(/\//g) || []).length;
+
   if (ltCount >= 3 || 
+      gtCount >= 3 ||
+      colonCount >= 4 ||
+      slashCount >= 4 ||
       noSpaceLower.includes('rdf:') || 
       noSpaceLower.includes('xmlns') || 
       noSpaceLower.includes('xmp') || 
