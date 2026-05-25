@@ -1010,6 +1010,39 @@ function decodeFromBase(
     .filter(r => /[A-Za-z0-9>.,!?:'\-]/.test(r));
   const cleanText = cleanRows.slice(-16).join('\n');
 
+  // ── Decoded Repetitive Character Filter ────────────────────────────────────
+  // 檢測解碼後的文字中是否包含高度重複的英文字母或數字，從而過濾掉 spaces + J 的未初始化垃圾區塊。
+  if (!skipQualityGate) {
+    const cleanNoSpace = screenText.replace(/\s/g, '');
+    const charFreqDec = new Map<string, number>();
+    let totalDecNonSpace = 0;
+    for (let i = 0; i < cleanNoSpace.length; i++) {
+      const ch = cleanNoSpace[i];
+      charFreqDec.set(ch, (charFreqDec.get(ch) || 0) + 1);
+      totalDecNonSpace++;
+    }
+
+    let maxCharDec = '';
+    let maxCountDec = 0;
+    for (const [ch, count] of charFreqDec.entries()) {
+      if (count > maxCountDec) {
+        maxCountDec = count;
+        maxCharDec = ch;
+      }
+    }
+
+    const isAlphanumericDec = /[A-Za-z0-9]/.test(maxCharDec);
+    if (
+      (isAlphanumericDec && maxCountDec > 60 && (totalDecNonSpace >= 30 && maxCountDec / totalDecNonSpace > 0.5)) ||
+      maxCountDec > 150
+    ) {
+      if (logCallback) {
+        logCallback(`[Scanner] Decoded text failed repetitive filter: "${maxCharDec}" appeared ${maxCountDec} times — skipping.`);
+      }
+      return null; // 拒絕包含高度重複字元的垃圾頁面解碼
+    }
+  }
+
   // ── Quality gate ──────────────────────────────────────────────────────────
   if (!skipQualityGate) {
     const nonSpace = cleanText.replace(/\s/g, '');
