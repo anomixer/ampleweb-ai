@@ -3,6 +3,12 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
+### 📅 2026-05-25 Updates
+- **Background Run & Continuous Audio (Focus lost resiliency)**:
+    - **Focus lost event interception**: Added capture-phase event listeners on `window` for `blur` and `document` for `visibilitychange`. Calling `e.stopImmediatePropagation()` prevents these focus-lost events from reaching the Emscripten/SDL2 core, stopping the emulator from auto-pausing/muting when the browser window loses focus.
+    - **Background typing support**: Updated `sendTextCommand` in [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) to check and `blur()` the active element (e.g. checkbox or input) before focusing the canvas, ensuring that both our key capturing hook and Emscripten's internal focus checks are bypassed and simulated keys reach the engine.
+    - **Synthetic key capturing bypass**: Added `if (!e.isTrusted) return` checks to key capture hooks in [App.tsx](file:///c:/dev/ampleweb-ai/src/App.tsx) to prevent programmatic keystrokes from being discarded in the background.
+
 ### 📅 2026-05-24 Updates
 
 - **Direct WASM-to-Emulator RAM Reading (100% Precision DMA)**:

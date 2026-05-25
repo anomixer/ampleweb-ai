@@ -641,6 +641,9 @@ function App() {
   const [aiMode, setAiMode] = useState<'vision' | 'text'>(() => {
     return (localStorage.getItem('ample-ai-mode') as 'vision' | 'text') || 'vision'
   })
+  const [force80Col, setForce80Col] = useState(() => {
+    return localStorage.getItem('ample-ai-force80col') === 'true'
+  })
   const [aiProvider, setAiProvider] = useState<string>(() => {
     return localStorage.getItem('ample-ai-provider') || 'mock'
   })
@@ -793,6 +796,7 @@ function App() {
   useEffect(() => { localStorage.setItem('ample-ai-mode', aiMode) }, [aiMode])
   useEffect(() => { localStorage.setItem('ample-ai-historylimit', String(aiHistoryLimit)) }, [aiHistoryLimit])
   useEffect(() => { localStorage.setItem('ample-ai-temperature', String(aiTemperature)) }, [aiTemperature])
+  useEffect(() => { localStorage.setItem('ample-ai-force80col', String(force80Col)) }, [force80Col])
 
   // Clear conversation history on provider/URL/mode/machine switches to avoid leakage
   useEffect(() => {
@@ -807,10 +811,12 @@ function App() {
     }
   }, [launchState])
 
-  // Prevent MAME WASM from hijacking keyboard inputs when typing in settings inputs.
-  // By using capturing phase (useCapture: true), we stop key events from reaching MAME.
+  // Prevent MAME WASM from hijacking keyboard inputs when typing in settings inputs,
+  // and prevent emulator from auto-pausing/blurring when window loses focus.
   useEffect(() => {
     const handleCapture = (e: KeyboardEvent) => {
+      // Allow programmatically generated events (e.g. from AI typist or UI buttons) to bypass interception
+      if (!e.isTrusted) return
       const activeEl = document.activeElement
       if (activeEl) {
         const tagName = activeEl.tagName.toLowerCase()
@@ -827,14 +833,33 @@ function App() {
       }
     }
 
+    const preventPause = (e: Event) => {
+      // Intercept blur and visibilitychange events aimed at window, document or the game canvas
+      // to keep the Emscripten/SDL2 engine running when the browser window is unfocused.
+      if (
+        e.target === window || 
+        e.target === document || 
+        (e.target instanceof HTMLElement && e.target.id === 'canvas')
+      ) {
+        e.stopImmediatePropagation()
+        console.log(`[AI Background Support] Blocked "${e.type}" event to prevent emulator auto-pause.`)
+      }
+    }
+
     window.addEventListener('keydown', handleCapture, true)
     window.addEventListener('keyup', handleCapture, true)
     window.addEventListener('keypress', handleCapture, true)
+    
+    window.addEventListener('blur', preventPause, true)
+    document.addEventListener('visibilitychange', preventPause, true)
 
     return () => {
       window.removeEventListener('keydown', handleCapture, true)
       window.removeEventListener('keyup', handleCapture, true)
       window.removeEventListener('keypress', handleCapture, true)
+      
+      window.removeEventListener('blur', preventPause, true)
+      document.removeEventListener('visibilitychange', preventPause, true)
     }
   }, [])
 
@@ -870,7 +895,7 @@ function App() {
         }
       } else {
         addAiLog('Reading emulated text screen buffer (Text Mode)...')
-        const textResult = readApple2TextScreen(addAiLog)
+        const textResult = readApple2TextScreen(addAiLog, force80Col || undefined)
         if (!textResult) {
           throw new Error('Waiting for emulator screen layout to initialize (no active text signatures detected).')
         }
@@ -949,7 +974,7 @@ function App() {
     } finally {
       aiIsProcessingRef.current = false
     }
-  }, [launchState, aiProvider, aiApiKey, aiApiUrl, aiModel, aiSystemPrompt, aiCharDelay, aiMaxTokens, aiTemperature, aiMode, aiHistoryLimit, setAiHistory, addAiLog])
+  }, [launchState, aiProvider, aiApiKey, aiApiUrl, aiModel, aiSystemPrompt, aiCharDelay, aiMaxTokens, aiTemperature, aiMode, aiHistoryLimit, setAiHistory, addAiLog, force80Col])
 
   // AI Loop Effect
   useEffect(() => {
@@ -3485,6 +3510,25 @@ function App() {
                         </select>
                       </div>
 
+                      {aiMode === 'text' && (
+                        <div className="slot-row" style={{ display: 'flex', alignItems: 'center' }}>
+                          <label className="slot-label" style={{ cursor: 'pointer', userSelect: 'none' }}>Force 80-Col</label>
+                          <input
+                            type="checkbox"
+                            style={{
+                              width: '15px',
+                              height: '15px',
+                              cursor: 'pointer',
+                              accentColor: 'var(--green)',
+                              marginRight: 'auto',
+                              marginLeft: '8px'
+                            }}
+                            checked={force80Col}
+                            onChange={e => setForce80Col(e.target.checked)}
+                          />
+                        </div>
+                      )}
+
                       <div className="slot-row">
                         <label className="slot-label">Provider</label>
                         <select
@@ -3507,6 +3551,7 @@ function App() {
                             <option value="openai">OpenAI GPT-4o-mini</option>
                             <option value="claude">Claude 3.5 Sonnet</option>
                             <option value="nvidia">NVIDIA NIM</option>
+                            <option value="groq">Groq</option>
                             <option value="ollama-cloud">Ollama Cloud</option>
                           </optgroup>
                           <optgroup label="── On-Prem ────────────">

@@ -176,6 +176,7 @@ This verifies that screenshot capture, keystroke injection, and the AI loop are 
 *   **Personalized UI**: Full support for **Dark/Light Mode** switching, faithfully replicating the macOS native visual aesthetics.
 *   **Slot Configuration Consistency**: Improved slot initialization logic to respect "None" (empty) selections across UI refreshes, matching the high standards of the native macOS and Windows/Linux ports.
 ### 🌐 Web-Specific Features
+*   **Background Run & Audio Support**: The emulator keeps running and playing sound in the background when the browser window loses focus. (Requires keeping the page in a separate, non-minimized window; do not minimize the window or switch to other tabs in the same browser window, as browsers automatically suspend background tabs).
 *   **Premium Collapsible Drawers**: Both left (Machine List) and right (Settings Panel) lanes utilize smooth CSS hardware-accelerated transitions and absolute floating drawer pull handles (`◀` / `▶`) that automatically nest into sidebar inner edges when expanded.
 *   **Fully Resizable Workspace**: The interface features a flexible layout. Drag the horizontal divider in the right settings panel to seamlessly adjust the vertical height of the System Settings and Machine Configuration frames.
 *   **Active Workspace Resizing**: Synchronized manual drag-to-resize operations with MAME's WASM engine. Adjusting the left sidebar or right settings panel width dynamically dispatches `resize` events to ensure real-time viewport and pointer coordination mapping alignment.
