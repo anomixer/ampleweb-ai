@@ -695,6 +695,36 @@ function scoreTextPage(heap: Uint8Array, base: number, pageOffset: number): numb
     return 0; // 100% 排除偽裝的二進位/XML 垃圾記憶體
   }
 
+  // ── 重複字元垃圾過濾 ────────────────────────────────────────────────────────
+  // 統計所有非空白字元的出現頻率。真實遊戲畫面絕不會由單一非空白字母（如 J、A 等）鋪滿。
+  // 若單一字元出現次數過多，或佔總非空白字元比例過高，即判定為垃圾記憶體。
+  const charFreq = new Map<string, number>();
+  let totalNonSpace = 0;
+  for (let i = 0; i < 960; i++) {
+    const ch = decodeAppleChar(heap[start + i]);
+    if (ch !== ' ') {
+      charFreq.set(ch, (charFreq.get(ch) || 0) + 1);
+      totalNonSpace++;
+    }
+  }
+
+  let maxChar = '';
+  let maxCount = 0;
+  for (const [ch, count] of charFreq.entries()) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxChar = ch;
+    }
+  }
+
+  const isAlphanumeric = /[A-Za-z0-9]/.test(maxChar);
+  if (
+    (isAlphanumeric && maxCount > 60 && (totalNonSpace >= 30 && maxCount / totalNonSpace > 0.5)) ||
+    maxCount > 150
+  ) {
+    return 0; // 排除高度重複的垃圾記憶體頁面
+  }
+
   let spaceCountHi = 0;    // 0xA0 - Apple II normal space
   let spaceCountLo = 0;    // 0x20 - ASCII space
   let charCountHi = 0;     // 0x80-0xFF - Apple II normal characters
