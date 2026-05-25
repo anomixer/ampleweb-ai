@@ -1036,83 +1036,7 @@ function readDirectRam(startAddr: number, length: number): Uint8Array | null {
   return null;
 }
 
-/**
- * Helper to convert a JS string into a null-terminated UTF-8 byte array in WASM Heap.
- * Returns the allocated pointer, which must be manually freed using Module._free().
- */
-function stringToHeap(str: string): number {
-  const M = (window as any).Module;
-  const len = str.length + 1;
-  const ptr = M._malloc(len);
-  const stringToUTF8 = (window as any).stringToUTF8 || M.stringToUTF8;
-  if (stringToUTF8) {
-    stringToUTF8(str, ptr, len);
-  } else {
-    for (let i = 0; i < str.length; i++) {
-      M.HEAPU8[ptr + i] = str.charCodeAt(i);
-    }
-    M.HEAPU8[ptr + str.length] = 0;
-  }
-  return ptr;
-}
 
-/**
- * Helper to read directly from a named MAME memory share (e.g., ":mainram", ":auxram")
- * bypassing CPU bank-switching.
- */
-function readDirectMachineRamBulk(shareName: string, startAddr: number, length: number): Uint8Array | null {
-  const M = (window as any).Module;
-  if (!M) return null;
-
-  // 1. Try bulk read
-  const bulkFn = M._ZN15running_machine32emscripten_read_machine_ram_bulkEPKcjjPh ||
-                 M.__ZN15running_machine32emscripten_read_machine_ram_bulkEPKcjjPh;
-
-  if (typeof bulkFn === 'function' && typeof M._malloc === 'function' && typeof M._free === 'function') {
-    const heap = getHeap();
-    if (heap) {
-      const shareNamePtr = stringToHeap(shareName);
-      const outPtr = M._malloc(length);
-      if (shareNamePtr && outPtr) {
-        try {
-          const bytesRead = bulkFn(shareNamePtr, startAddr, length, outPtr);
-          if (bytesRead > 0) {
-            const result = new Uint8Array(heap.buffer, outPtr, bytesRead).slice();
-            M._free(shareNamePtr);
-            M._free(outPtr);
-            return result;
-          }
-        } catch (e) {
-          console.error('[AI Direct Machine RAM] Bulk read failed:', e);
-        }
-        M._free(shareNamePtr);
-        M._free(outPtr);
-      }
-    }
-  }
-
-  // 2. Fall back to single-byte reads
-  const readFn = M._ZN15running_machine27emscripten_read_machine_ramEPKcj ||
-                 M.__ZN15running_machine27emscripten_read_machine_ramEPKcj;
-  if (typeof readFn === 'function' && typeof M._malloc === 'function' && typeof M._free === 'function') {
-    const shareNamePtr = stringToHeap(shareName);
-    if (shareNamePtr) {
-      try {
-        const result = new Uint8Array(length);
-        for (let i = 0; i < length; i++) {
-          result[i] = readFn(shareNamePtr, startAddr + i);
-        }
-        M._free(shareNamePtr);
-        return result;
-      } catch (e) {
-        console.error('[AI Direct Machine RAM] Single-byte read failed:', e);
-        M._free(shareNamePtr);
-      }
-    }
-  }
-
-  return null;
-}
 
 
 /**
@@ -1177,87 +1101,39 @@ export function readApple2TextScreen(
     const rd80col = readFn(0xC01F);
     const is80Col = force80Col ?? ((rd80col & 0x80) !== 0);
 
-    // Check if memory share direct reading functions are available in the current WASM build
-    const hasMachineRamFn = typeof (M._ZN15running_machine27emscripten_read_machine_ramEPKcj ||
-                                    M.__ZN15running_machine27emscripten_read_machine_ramEPKcj) === 'function';
-
-    if (is80Col && !hasMachineRamFn) {
-      // Downward compatibility: If MAME doesn't have machine_ram functions exported yet,
-      // fallback to heap scan for 80-column mode.
-      if (logCallback) logCallback('[AI Direct RAM] 80-col mode with old WASM → using heap scan.');
+    if (is80Col) {
+      // 80-column 模式：由於 MAME 驅動並未將 Main/Aux RAM 註冊為 Named Memory Shares，
+      // 無法使用 C++ machine_ram 直讀。因此我們安全降級到搭配 XML 垃圾防禦過濾的 Heap Scan，
+      // 這能在 1ms 內完美且自適應地還原 80 行大小寫文字。
+      if (logCallback) logCallback('[AI Direct RAM] 80-col mode detected → using robust Heap Scan with XML filter.');
     } else {
       if (logCallback) {
-        logCallback(`[AI Direct RAM] ${is80Col ? '80-column' : '40-column'} mode detected. Using Direct Machine RAM shares!`);
+        logCallback('[AI Direct RAM] 40-column mode detected. Using Direct CPU RAM!');
       }
 
-      // Determine active page using ':mainram' share
-      const p1Bytes = hasMachineRamFn
-        ? readDirectMachineRamBulk(':mainram', 0x400, 1024)
-        : readDirectRam(0x400, 1024);
-      const p2Bytes = hasMachineRamFn
-        ? readDirectMachineRamBulk(':mainram', 0x800, 1024)
-        : readDirectRam(0x800, 1024);
+      // Determine active page using CPU space direct RAM functions
+      const p1Bytes = readDirectRam(0x400, 1024);
+      const p2Bytes = readDirectRam(0x800, 1024);
 
       if (p1Bytes && p2Bytes) {
         const p1Score = scoreDirectPage(p1Bytes);
         const p2Score = scoreDirectPage(p2Bytes);
 
         const page: 1 | 2 = (p2Score > p1Score + 10) ? 2 : 1;
-        const pageOffset = page === 1 ? 0x400 : 0x800;
 
         if (logCallback) {
           logCallback(`[AI Direct RAM] Page ${page} active (p1Score=${p1Score}, p2Score=${p2Score})`);
         }
 
+        const pageBytes = page === 1 ? p1Bytes : p2Bytes;
         let screenText = '';
-        if (is80Col && hasMachineRamFn) {
-          // 80-column mode: interleaved read from ':auxram' (even columns) and ':mainram' (odd columns)
-          const mainBytes = readDirectMachineRamBulk(':mainram', pageOffset, 1024);
-          const auxBytes = readDirectMachineRamBulk(':auxram', pageOffset, 1024);
-          if (mainBytes && auxBytes) {
-            let textWayA = '';
-            let textWayB = '';
-            for (let r = 0; r < 24; r++) {
-              const rowOffset = ROW_OFFSETS[r];
-              let rowTextA = '';
-              let rowTextB = '';
-              for (let c = 0; c < 80; c++) {
-                const halfCol = Math.floor(c / 2);
-                // Way A: even = aux, odd = main
-                const bA = (c % 2 === 0)
-                  ? auxBytes[rowOffset + halfCol]
-                  : mainBytes[rowOffset + halfCol];
-                rowTextA += decodeAppleChar(bA);
-
-                // Way B: even = main, odd = aux
-                const bB = (c % 2 === 0)
-                  ? mainBytes[rowOffset + halfCol]
-                  : auxBytes[rowOffset + halfCol];
-                rowTextB += decodeAppleChar(bB);
-              }
-              textWayA += rowTextA.trimEnd() + '\n';
-              textWayB += rowTextB.trimEnd() + '\n';
-            }
-
-            const lettersA = (textWayA.match(/[A-Za-z]/g) || []).length;
-            const lettersB = (textWayB.match(/[A-Za-z]/g) || []).length;
-
-            screenText = lettersB > lettersA ? textWayB : textWayA;
-            if (logCallback && (lettersA > 0 || lettersB > 0)) {
-              logCallback(`[AI Direct RAM] 80-col pairing heuristic: Way A (aux-even) = ${lettersA} letters, Way B (main-even) = ${lettersB} letters. Selected Way ${lettersB > lettersA ? 'B' : 'A'}.`);
-            }
+        for (let r = 0; r < 24; r++) {
+          const rowOffset = ROW_OFFSETS[r];
+          let rowText = '';
+          for (let c = 0; c < 40; c++) {
+            rowText += decodeAppleChar(pageBytes[rowOffset + c]);
           }
-        } else {
-          // 40-column mode (or 40-col fallback using old readDirectRam API)
-          const pageBytes = page === 1 ? p1Bytes : p2Bytes;
-          for (let r = 0; r < 24; r++) {
-            const rowOffset = ROW_OFFSETS[r];
-            let rowText = '';
-            for (let c = 0; c < 40; c++) {
-              rowText += decodeAppleChar(pageBytes[rowOffset + c]);
-            }
-            screenText += rowText.trimEnd() + '\n';
-          }
+          screenText += rowText.trimEnd() + '\n';
         }
 
         const cleanRows = screenText.split('\n')
@@ -1265,7 +1141,7 @@ export function readApple2TextScreen(
           .filter(r => /[A-Za-z0-9>.,!?:'\-]/.test(r));
         const cleanText = cleanRows.slice(-16).join('\n');
 
-        return { text: cleanText || screenText.trimEnd(), is80Col };
+        return { text: cleanText || screenText.trimEnd(), is80Col: false };
       }
     }
   }
