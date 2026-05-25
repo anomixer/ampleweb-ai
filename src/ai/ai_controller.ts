@@ -687,10 +687,19 @@ function scoreTextPage(heap: Uint8Array, base: number, pageOffset: number): numb
       noSpaceLower.includes('adobe') || 
       noSpaceLower.includes('photoshop') ||
       noSpaceLower.includes('http:') || 
-      noSpaceLower.includes('instanceid') ||
-      noSpaceLower.includes('derivedfrom') ||
-      noSpaceLower.includes('creator') ||
-      noSpaceLower.includes('metadata')
+      noSpaceLower.includes('instanceid') || 
+      noSpaceLower.includes('derivedfrom') || 
+      noSpaceLower.includes('creator') || 
+      noSpaceLower.includes('metadata') ||
+      noSpaceLower.includes('tmpvar') ||
+      noSpaceLower.includes('lowp') ||
+      noSpaceLower.includes('highp') ||
+      noSpaceLower.includes('mediump') ||
+      noSpaceLower.includes('varying') ||
+      noSpaceLower.includes('gl_position') ||
+      noSpaceLower.includes('gl_fragcolor') ||
+      noSpaceLower.includes('sampler2d') ||
+      noSpaceLower.includes('precision')
   ) {
     return 0; // 100% 排除偽裝的二進位/XML 垃圾記憶體
   }
@@ -1014,6 +1023,37 @@ function decodeFromBase(
   // 檢測解碼後的文字中是否包含高度重複的英文字母或數字，從而過濾掉 spaces + J 的未初始化垃圾區塊。
   if (!skipQualityGate) {
     const cleanNoSpace = screenText.replace(/\s/g, '');
+    const cleanNoSpaceLower = cleanNoSpace.toLowerCase();
+
+    // 檢測解碼後的文字中是否包含 XML 元數據或 GLSL 著色器原始碼關鍵字
+    if (
+      cleanNoSpaceLower.includes('rdf:') ||
+      cleanNoSpaceLower.includes('xmlns') ||
+      cleanNoSpaceLower.includes('xmp') ||
+      cleanNoSpaceLower.includes('stevt') ||
+      cleanNoSpaceLower.includes('stref') ||
+      cleanNoSpaceLower.includes('adobe') ||
+      cleanNoSpaceLower.includes('photoshop') ||
+      cleanNoSpaceLower.includes('http:') ||
+      cleanNoSpaceLower.includes('instanceid') ||
+      cleanNoSpaceLower.includes('derivedfrom') ||
+      cleanNoSpaceLower.includes('creator') ||
+      cleanNoSpaceLower.includes('metadata') ||
+      cleanNoSpaceLower.includes('tmpvar') ||
+      cleanNoSpaceLower.includes('lowp') ||
+      cleanNoSpaceLower.includes('highp') ||
+      cleanNoSpaceLower.includes('mediump') ||
+      cleanNoSpaceLower.includes('varying') ||
+      cleanNoSpaceLower.includes('gl_position') ||
+      cleanNoSpaceLower.includes('gl_fragcolor') ||
+      cleanNoSpaceLower.includes('sampler2d') ||
+      cleanNoSpaceLower.includes('precision')
+    ) {
+      if (logCallback) {
+        logCallback(`[Scanner] Decoded text contained XML/GLSL garbage keyword — skipping.`);
+      }
+      return null;
+    }
     const charFreqDec = new Map<string, number>();
     let totalDecNonSpace = 0;
     for (let i = 0; i < cleanNoSpace.length; i++) {
