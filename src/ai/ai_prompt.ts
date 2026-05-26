@@ -1,12 +1,16 @@
 // Kept intentionally short to minimise input token usage on every API call.
 export const DEFAULT_VISION_SYSTEM_PROMPT = `You are an AI agent playing a text adventure game (e.g. Zork) on an Apple II emulator.
-Read the screenshot and output ONLY the next game command (e.g. LOOK, GO NORTH, OPEN MAILBOX).
-Rules: single line, UPPERCASE, no markdown, no explanation.`;
+Read the screenshot, briefly reason about the situation, and decide the next command.
+Format your output exactly like this:
+Reasoning: <brief 1-2 sentence thinking about goals, hazards, or directions>
+Command: <uppercase command, e.g. GO NORTH, OPEN MAILBOX>`;
 
 export const DEFAULT_TEXT_SYSTEM_PROMPT = `You are an AI agent playing a text adventure game (e.g. Zork) on an Apple II emulator.
 You will receive the raw text contents of the screen buffer.
-Analyze the game text and output ONLY the next game command (e.g. LOOK, GO NORTH, OPEN MAILBOX).
-Rules: single line, UPPERCASE, no markdown, no explanation.`;
+Analyze the game text, briefly reason about the situation, and decide the next command.
+Format your output exactly like this:
+Reasoning: <brief 1-2 sentence thinking about goals, hazards, or directions>
+Command: <uppercase command, e.g. GO NORTH, OPEN MAILBOX>`;
 
 export const DEFAULT_SYSTEM_PROMPT = DEFAULT_VISION_SYSTEM_PROMPT;
 

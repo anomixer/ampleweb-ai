@@ -200,6 +200,34 @@ export async function callMockLLM(): Promise<string> {
  */
 export function cleanLLMResponse(response: string): string {
   let cleaned = response.trim();
+
+  // Parse multi-line responses with thinking process (Chain of Thought)
+  const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  // 1. Look for explicit "COMMAND:" or "ACTION:" prefix
+  for (const line of lines) {
+    const upper = line.toUpperCase();
+    if (upper.startsWith('COMMAND:') || upper.startsWith('ACTION:') || upper.startsWith('NEXT COMMAND:')) {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        cleaned = parts.slice(1).join(':').trim();
+        break;
+      }
+    }
+  }
+
+  // 2. Fallback: if there are multiple lines and no explicit prefix was found,
+  // check if the last line looks like a typical adventure command (e.g. uppercase, short, no punctuation).
+  // Often LLMs write their thoughts first and put the command on the last line.
+  if (lines.length > 1 && cleaned === response.trim()) {
+    const lastLine = lines[lines.length - 1];
+    // If the last line is short (less than 40 chars) and does not contain conversational words,
+    // we can safely assume it is the final command.
+    if (lastLine.length < 40 && !lastLine.toLowerCase().includes('i think') && !lastLine.toLowerCase().includes('should')) {
+      cleaned = lastLine;
+    }
+  }
+
   // Remove markdown code blocks like ```json ... ``` or ```text ... ```
   cleaned = cleaned.replace(/```[a-zA-Z]*\n?/g, '');
   cleaned = cleaned.replace(/```/g, '');

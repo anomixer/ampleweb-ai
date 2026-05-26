@@ -7,6 +7,9 @@
 - **MAME UI and MAME Menu Button Text Alignment Fix**:
     - **Button Text Centering**: Added `justifyContent: 'center'` to the inline style of the `MAME UI (ScrlLk)` and `MAME Menu (Tab)` button elements in `App.tsx` to correct the left-alignment issue caused by the global `.btn` style class.
     - **Whitespace Cleanup**: Consolidated button tags and text content onto single lines (e.g. `>⌨️ MAME UI (ScrlLk)</button>`) to eliminate intermediate whitespace/newline nodes that offset text centering under Flexbox layouts.
+- **Chain of Thought (CoT) Prompting & Parser Integration**:
+    - **Reasoning System Prompt Template**: Updated default system prompts (`DEFAULT_VISION_SYSTEM_PROMPT` and `DEFAULT_TEXT_SYSTEM_PROMPT` in `ai_prompt.ts`) to require a `Reasoning:` step followed by a `Command:` line. This unlocks the LLM's full intelligence by letting it think step-by-step about directions, inventory, and puzzles before outputting the final choice.
+    - **Multi-Line Command Parser**: Extended `cleanLLMResponse` in `ai_controller.ts` to parse multi-line AI responses. It extracts the raw command after the `Command:` prefix or falls back to the last line, ensuring only the clean action command is typed into the emulator.
 - **Incremental Text Mode Context Diffing (Chatbot Conversation Style)**:
     - **Incremental Text Diffing**: Added `extractNewText` utility to diff previous screen text buffers and current screen text buffers. This identifies and extracts only the newly printed game output lines since the last command, simulating a scrolling console terminal.
     - **Chatbot Conversation Flow**: In Text Mode, instead of sending the full 2KB screen buffer every turn, only the newly printed output is sent as the User turn message. This significantly reduces token cost, avoids duplicate context overhead, and makes multi-turn LLMs much smarter at following the game progression.
