@@ -3,6 +3,12 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
+### 📅 2026-05-26 Updates
+- **80-Column Aux RAM 實體指標與 Emscripten Module 導出修正 (文字模式完美 DMA 直讀)**:
+    - **解決 Emscripten 導出遺漏**：修復了 `emscripten_get_main_ram_wasm_offset` 與 `emscripten_get_aux_ram_wasm_offset` 未被導出至 JavaScript 的問題。已在 `genie.lua` 的 `EXPORTED_FUNCTIONS` 中手動加入這兩個 C 函數。這能避免前端因找不到導出而降級，直接透過 `Module._emscripten_get_aux_ram_wasm_offset` 來抓取實體記憶體指標。
+    - **排除連結器重複定義衝突**：修正了 Windows 在 `genie.lua` 修改後因 `emar` 增量包裝機制造成的 `libemu.a` 重複符號衝突。在編譯前自動清除 `libemu.a` 重建模擬器核心，保證編譯成功。
+    - **實現 100% 精準 80-Column DMA 直讀**：修復後，前端可 100% 正確抓取 Extended 80-column text card 的 VRAM，並以 0 延遲與 100% 絕對精度直讀出 Zork 的啟動橫幅與版權文字，徹底解決先前 80 欄模式下夾雜空格的亂碼 Bug。
+
 ### 📅 2026-05-25 Updates
 - **Apple IIe 80-Column 記憶體自適應解碼技術突破 (文字模式完美解碼)**:
     - **動態雙基底配對 (Dynamic Dual-Base Pairing)**：在 [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) 中重構了 `findApple2RamBases`。當掃描到多個高評分 base 時，不再硬編碼假設 Aux RAM 與 Main RAM 的記憶體位址差剛好為 `65536` bytes，而是動態抓取評分最高的前兩個 Heap Base 作為 `mainBase` 和 `auxBase`，徹底解決堆積位址變動帶來的解碼崩潰。

@@ -1146,6 +1146,109 @@ function readDirectRam(startAddr: number, length: number): Uint8Array | null {
   return null;
 }
 
+function readPhysicalMainRam(startAddr: number, length: number): Uint8Array | null {
+  const M = (window as any).Module;
+  if (!M) return null;
+
+  const bulkFn = M._ZN15running_machine29emscripten_read_main_ram_bulkEjjPh || M.__ZN15running_machine29emscripten_read_main_ram_bulkEjjPh;
+  if (typeof bulkFn === 'function' && typeof M._free === 'function' && typeof M._malloc === 'function') {
+    const heap = getHeap();
+    if (heap) {
+      const ptr = M._malloc(length);
+      if (ptr) {
+        try {
+          const bytesRead = bulkFn(startAddr, length, ptr);
+          if (bytesRead > 0) {
+            const result = new Uint8Array(heap.buffer, ptr, length).slice();
+            M._free(ptr);
+            return result;
+          }
+        } catch (e) {
+          console.error('[AI Direct RAM] Physical Main RAM bulk read failed:', e);
+        }
+        M._free(ptr);
+      }
+    }
+  }
+
+  const readFn = M._ZN15running_machine24emscripten_read_main_ramEj || M.__ZN15running_machine24emscripten_read_main_ramEj;
+  if (typeof readFn === 'function') {
+    try {
+      const result = new Uint8Array(length);
+      for (let i = 0; i < length; i++) {
+        result[i] = readFn(startAddr + i);
+      }
+      return result;
+    } catch (e) {
+      console.error('[AI Direct RAM] Physical Main RAM single-byte read failed:', e);
+    }
+  }
+
+  return null;
+}
+
+function readPhysicalAuxRam(startAddr: number, length: number): Uint8Array | null {
+  const M = (window as any).Module;
+  if (!M) return null;
+
+  // === Priority 0: new C export emscripten_get_aux_ram_wasm_offset() ===
+  // This returns the WASM linear-memory offset of aux RAM start.
+  // Reading from HEAPU8 at that offset is the most direct possible read.
+  const getAuxOffsetFn = M._emscripten_get_aux_ram_wasm_offset;
+  if (typeof getAuxOffsetFn === 'function') {
+    try {
+      const auxOffset = getAuxOffsetFn();
+      if (auxOffset !== 0) {
+        const heap = getHeap();
+        if (heap) {
+          const result = new Uint8Array(heap.buffer, auxOffset + startAddr, length).slice();
+          return result;
+        }
+      } else {
+        console.warn('[AuxRAM direct-HEAPU8] emscripten_get_aux_ram_wasm_offset returned 0 (find_aux_ram_ptr failed)');
+      }
+    } catch (e) {
+      console.error('[AuxRAM direct-HEAPU8] failed:', e);
+    }
+  }
+
+  const bulkFn = M._ZN15running_machine28emscripten_read_aux_ram_bulkEjjPh || M.__ZN15running_machine28emscripten_read_aux_ram_bulkEjjPh;
+  if (typeof bulkFn === 'function' && typeof M._free === 'function' && typeof M._malloc === 'function') {
+    const heap = getHeap();
+    if (heap) {
+      const ptr = M._malloc(length);
+      if (ptr) {
+        try {
+          const bytesRead = bulkFn(startAddr, length, ptr);
+          if (bytesRead > 0) {
+            const result = new Uint8Array(heap.buffer, ptr, length).slice();
+            M._free(ptr);
+            return result;
+          }
+        } catch (e) {
+          console.error('[AI Direct RAM] Physical Aux RAM bulk read failed:', e);
+        }
+        M._free(ptr);
+      }
+    }
+  }
+
+  const readFn = M._ZN15running_machine23emscripten_read_aux_ramEj || M.__ZN15running_machine23emscripten_read_aux_ramEj;
+  if (typeof readFn === 'function') {
+    try {
+      const result = new Uint8Array(length);
+      for (let i = 0; i < length; i++) {
+        result[i] = readFn(startAddr + i);
+      }
+      return result;
+    } catch (e) {
+      console.error('[AI Direct RAM] Physical Aux RAM single-byte read failed:', e);
+    }
+  }
+
+  return null;
+}
+
 
 
 
@@ -1200,8 +1303,90 @@ export function readApple2TextScreen(
   logCallback?: (msg: string) => void,
   force80Col?: boolean
 ): { text: string; is80Col: boolean } | null {
-  // ── Priority 1: Try direct RAM reading first if the WASM exports exist ────
   const M = (window as any).Module;
+
+  // ── Priority 0: Try physical RAM APIs (Direct Main & Aux DMA) ────
+  if (M && (
+    typeof M._ZN15running_machine24emscripten_read_main_ramEj === 'function' ||
+    typeof M.__ZN15running_machine24emscripten_read_main_ramEj === 'function'
+  )) {
+    const cpuReadFn = M._ZN15running_machine19emscripten_read_ramEj || M.__ZN15running_machine19emscripten_read_ramEj;
+    const rd80col = cpuReadFn ? cpuReadFn(0xC01F) : 0;
+    const is80Col = force80Col ?? ((rd80col & 0x80) !== 0);
+
+    if (logCallback) {
+      logCallback(`[AI Direct Physical RAM] ${is80Col ? '80-column' : '40-column'} mode detected via physical RAM APIs.`);
+    }
+
+    const p1Bytes = readPhysicalMainRam(0x400, 1024);
+    const p2Bytes = readPhysicalMainRam(0x800, 1024);
+
+    if (p1Bytes) {
+      const p1Score = scoreDirectPage(p1Bytes);
+      const p2Score = p2Bytes ? scoreDirectPage(p2Bytes) : 0;
+      const page: 1 | 2 = (p2Score > p1Score + 10) ? 2 : 1;
+      const pageOffset = page === 1 ? 0x400 : 0x800;
+
+      if (logCallback) {
+        logCallback(`[AI Direct Physical RAM] Page ${page} active (p1Score=${p1Score}, p2Score=${p2Score})`);
+      }
+
+      let screenText = '';
+      if (is80Col) {
+        const auxBytes = readPhysicalAuxRam(pageOffset, 1024);
+        const mainBytes = page === 1 ? p1Bytes : (p2Bytes || p1Bytes);
+
+        if (mainBytes && auxBytes) {
+          let textWayA = '';
+          let textWayB = '';
+          for (let r = 0; r < 24; r++) {
+            const rowOffset = ROW_OFFSETS[r];
+            let rowTextA = '';
+            let rowTextB = '';
+            for (let c = 0; c < 80; c++) {
+              const halfCol = Math.floor(c / 2);
+              // Way A: even = aux, odd = main
+              const bA = c % 2 === 0 ? auxBytes[rowOffset + halfCol] : mainBytes[rowOffset + halfCol];
+              rowTextA += decodeAppleChar(bA);
+
+              // Way B: even = main, odd = aux
+              const bB = c % 2 === 0 ? mainBytes[rowOffset + halfCol] : auxBytes[rowOffset + halfCol];
+              rowTextB += decodeAppleChar(bB);
+            }
+            textWayA += rowTextA.trimEnd() + '\n';
+            textWayB += rowTextB.trimEnd() + '\n';
+          }
+
+          const lettersA = (textWayA.match(/[A-Za-z]/g) || []).length;
+          const lettersB = (textWayB.match(/[A-Za-z]/g) || []).length;
+          screenText = lettersB > lettersA ? textWayB : textWayA;
+
+          if (logCallback && (lettersA > 0 || lettersB > 0)) {
+            logCallback(`[AI Direct Physical RAM] 80-col pairing: Way A (aux-even) = ${lettersA} letters, Way B (main-even) = ${lettersB} letters. Selected Way ${lettersB > lettersA ? 'B' : 'A'}.`);
+          }
+        }
+      } else {
+        const mainBytes = page === 1 ? p1Bytes : (p2Bytes || p1Bytes);
+        for (let r = 0; r < 24; r++) {
+          const rowOffset = ROW_OFFSETS[r];
+          let rowText = '';
+          for (let c = 0; c < 40; c++) {
+            rowText += decodeAppleChar(mainBytes[rowOffset + c]);
+          }
+          screenText += rowText.trimEnd() + '\n';
+        }
+      }
+
+      const cleanRows = screenText.split('\n')
+        .map(r => r.trim())
+        .filter(r => /[A-Za-z0-9>.,!?:'\-]/.test(r));
+      const cleanText = cleanRows.slice(-16).join('\n');
+
+      return { text: cleanText || screenText.trimEnd(), is80Col };
+    }
+  }
+
+  // ── Priority 1: Try direct RAM reading first if the WASM exports exist ────
   if (M && (typeof M._ZN15running_machine19emscripten_read_ramEj === 'function' ||
     typeof M.__ZN15running_machine19emscripten_read_ramEj === 'function')) {
 

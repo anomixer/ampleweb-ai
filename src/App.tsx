@@ -3545,7 +3545,7 @@ function App() {
                             }
                           }}
                         >
-                          <option value="mock">Mock Simulator</option>
+                          <option value="mock">Mock Simulator (for Zork I)</option>
                           <optgroup label="── Cloud ──────────────">
                             <option value="gemini">Gemini 3.5 Flash</option>
                             <option value="openai">OpenAI GPT-4o-mini</option>
