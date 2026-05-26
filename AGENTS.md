@@ -4,20 +4,20 @@
 ## Project: AmpleWeb (MAME WASM Frontend)
 
 ### 📅 2026-05-26 Updates
-- **MAME UI 與 MAME Menu 按鈕文字居中對齊 (介面樣式微調)**：
-    - **按鈕居中樣式**：在 `App.tsx` 中為 `MAME UI (ScrlLk)` 與 `MAME Menu (Tab)` 兩個按鈕元件的 inline style 中添加了 `justifyContent: 'center'`，以修正全域 `.btn` 樣式所產生的靠左對齊問題。
-    - **清除 HTML 空白節點**：將按鈕內部的標籤及文字內容改寫至同一行（例如 `>⌨️ MAME UI (ScrlLk)</button>`），避免多餘的換行及空格引起文字在 Flex 佈局下的偏移。
-- **80-Column Aux RAM 實體指標與 Emscripten Module 導出修正 (文字模式完美 DMA 直讀)**:
-    - **解決 Emscripten 導出遺漏**：修復了 `emscripten_get_main_ram_wasm_offset` 與 `emscripten_get_aux_ram_wasm_offset` 未被導出至 JavaScript 的問題。已在 `genie.lua` 的 `EXPORTED_FUNCTIONS` 中手動加入這兩個 C 函數。這能避免前端因找不到導出而降級，直接透過 `Module._emscripten_get_aux_ram_wasm_offset` 來抓取實體記憶體指標。
-    - **排除連結器重複定義衝突**：修正了 Windows 在 `genie.lua` 修改後因 `emar` 增量包裝機制造成的 `libemu.a` 重複符號衝突。在編譯前自動清除 `libemu.a` 重建模擬器核心，保證編譯成功。
-    - **實現 100% 精準 80-Column DMA 直讀**：修復後，前端可 100% 正確抓取 Extended 80-column text card 的 VRAM，並以 0 延遲與 100% 絕對精度直讀出 Zork 的啟動橫幅與版權文字，徹底解決先前 80 欄模式下夾雜空格的亂碼 Bug。
+- **MAME UI and MAME Menu Button Text Alignment Fix**:
+    - **Button Text Centering**: Added `justifyContent: 'center'` to the inline style of the `MAME UI (ScrlLk)` and `MAME Menu (Tab)` button elements in `App.tsx` to correct the left-alignment issue caused by the global `.btn` style class.
+    - **Whitespace Cleanup**: Consolidated button tags and text content onto single lines (e.g. `>⌨️ MAME UI (ScrlLk)</button>`) to eliminate intermediate whitespace/newline nodes that offset text centering under Flexbox layouts.
+- **80-Column Aux RAM Physical Pointer & Emscripten Module Export Fix (Perfect Text Mode DMA)**:
+    - **Resolved Emscripten Export Omission**: Fixed the issue where `emscripten_get_main_ram_wasm_offset` and `emscripten_get_aux_ram_wasm_offset` were not exported to JavaScript. Added both C helper functions to `EXPORTED_FUNCTIONS` in `genie.lua`. This prevents the frontend from falling back and allows directly accessing physical memory pointers via `Module._emscripten_get_aux_ram_wasm_offset`.
+    - **Linker Duplicate Symbol Resolution**: Fixed a Windows duplicate symbol issue in `libemu.a` caused by `emar`'s incremental archive packaging after modifying `genie.lua`. Automatically cleaned the library archive before recompilation to guarantee successful links.
+    - **100% Accurate 80-Column DMA Reads**: The frontend now reliably accesses the Extended 80-column text card VRAM with 0 latency and 100% precision, solving the interleaved spacing and character offset bugs on 80-column screens.
 
 ### 📅 2026-05-25 Updates
-- **Apple IIe 80-Column 記憶體自適應解碼技術突破 (文字模式完美解碼)**:
-    - **動態雙基底配對 (Dynamic Dual-Base Pairing)**：在 [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) 中重構了 `findApple2RamBases`。當掃描到多個高評分 base 時，不再硬編碼假設 Aux RAM 與 Main RAM 的記憶體位址差剛好為 `65536` bytes，而是動態抓取評分最高的前兩個 Heap Base 作為 `mainBase` 和 `auxBase`，徹底解決堆積位址變動帶來的解碼崩潰。
-    - **雙向自校正解碼 (Self-Correcting Way A/Way B Heuristics)**：為了解決 80 欄模式下，左右字元成對顛倒的嚴重亂碼問題（例如 `"ZORK I"` 被錯誤解碼為 `"I   R OKI"`），系統在解碼時會同時嘗試 **Way A**（`aux`為偶數欄、`main`為奇數欄）與 **Way B**（`main`為偶數欄、`aux`為奇數欄）兩種不同的交錯拼合算法。
-    - **智慧字母密度評估**：利用即時 `/[A-Za-z]/g` 計算英文字母密度，動態自適應選擇正確的解碼方向。此項進階 Heuristic 技術在 1ms 內即可 100% 穩定且精確地還原出正確的 80 行大小寫文字，成功在免重新編譯 WASM 核心的情況下攻克字元成對左右顛倒的世紀 Bug。
-    - **XML/Metadata 垃圾特徵防禦過濾**：為了解決 MAME WASM heap 中，大量載入資源快取（如 PNG/XML 元數據 `<stEvt:changed>`, `<rdf:Description>` 等）因為格式極其相似而被 Heuristic 誤判為文字螢幕（得到 100 分高分且回傳亂碼）的 Bug，在 `scoreTextPage` 階段新增了強大的垃圾特徵與小於符號 `<` 的高頻計數過濾，一旦觸發便立即強制將評分重設為 0，確保掃描器始終能 100% 鎖定真正的 Apple II 螢幕文字 RAM。
+- **Apple IIe 80-Column Memory Self-Correcting Decoding Breakthrough**:
+    - **Dynamic Dual-Base Pairing**: Refactored `findApple2RamBases` in [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts). When multiple candidate bases are found, it no longer assumes an absolute address difference of `65536` bytes between Main and Aux RAM in the WASM heap. Instead, it pairs the top two scored heap bases dynamically to resolve crashes from shifting heap offsets.
+    - **Self-Correcting Way A/Way B Interleaving**: Addressed the character pair reversal issue (e.g., `"ZORK I"` decoding as `"I   R OKI"`) by running both **Way A** (Aux = even, Main = odd columns) and **Way B** (Main = even, Aux = odd columns) layout combinations simultaneously.
+    - **Dynamic Letter Density Evaluation**: Computes character density dynamically via regex (`/[A-Za-z]/g`) to select the best decoding layout in under 1ms, correcting word reversals without requiring WASM modifications.
+    - **XML/Metadata Garbage Filtering**: Prevented memory heap segments containing caching schemas (like `<stEvt:changed>`, `<rdf:Description>`) from being scored as high-quality screens. Added XML tag sequence and high-frequency `<` character checks in `scoreTextPage` to reset score to 0 on match, ensuring the scanner remains locked onto the actual Apple II screen text.
 - **Background Run & Continuous Audio (Focus lost resiliency)**:
     - **Focus lost event interception**: Added capture-phase event listeners on `window` for `blur` and `document` for `visibilitychange`. Calling `e.stopImmediatePropagation()` prevents these focus-lost events from reaching the Emscripten/SDL2 core, stopping the emulator from auto-pausing/muting when the browser window loses focus.
     - **Background typing support**: Updated `sendTextCommand` in [ai_controller.ts](file:///c:/dev/ampleweb-ai/src/ai/ai_controller.ts) to check and `blur()` the active element (e.g. checkbox or input) before focusing the canvas, ensuring that both our key capturing hook and Emscripten's internal focus checks are bypassed and simulated keys reach the engine.
