@@ -22,7 +22,9 @@ MAME WASM（Canvas 畫面）
 *   **雙模式（影像視覺與低 Token 文字）**：支援 `Vision Mode`（傳送像素完美畫面截圖）與 `Text Mode`（直接從 WASM 虛擬記憶體讀取 Apple II 螢幕文字，無需外部 OCR，Token 消耗極低且速度極快）。
     *   *直接記憶體存取 (DMA 讀取)*：採用導出的 C 語言 helper API（`_emscripten_get_main_ram_wasm_offset` 與 `_emscripten_get_aux_ram_wasm_offset`）來抓取實體 Main 與 Aux RAM 指標在 WASM 線性記憶體中的精確偏移量。這使得前端能以 **100% 的絕對精度**與**零延遲**直接由 `HEAPU8` 讀取螢幕記憶體（`0x400` / `0x800`），徹底繞過不穩定的 Heap 指紋掃描。
     *   *進階 80 行自適應解耦解碼*：攻克了 80 行模式下左右字元成對顛倒（例如 `"ZORK I"` 被錯誤解碼為 `"I   R OKI"`) 的頑疾。採用**動態雙基底配對 (Dynamic Dual-Base Pairing)** 技術，自動分析並配對 Main 與 Aux RAM 在 Heap 中任意的記憶體基底，徹底擺脫相隔 65,536 位址差的脆弱假設。並採用**雙向自校正解碼 (Self-Correcting Way A/Way B Heuristics)**，同時嘗試奇偶數欄交錯拼合的兩種解碼方向，透過即時 `/[A-Za-z]/g` 計算英文字母密度，自動選擇拼寫最正確的結果。
+    *   *Chatbot 式增量文字差分*：在 `Text Mode` 下，前端利用 **LCS 滾動行對齊與指令特徵定位演算法**，比對當前螢幕與前一輪文字的差異，**僅提取並發送全新印出的遊戲輸出內容**（如「Opening the mailbox reveals a leaflet.」而非重複傳送整頁房間描述）。這能大幅縮減 90% 以上的重複 Token 消耗，並保持極佳的上下文整潔度。
 
+*   **思考鏈 (Chain-of-Thought, CoT) 決策**：在輸出指令前，先引導 AI 寫出 Reasoning 推理分析。預設的系統提示詞範本已更新為要求 LLM 輸出 `Reasoning:`（思考步驟）與 `Command:`（動作命令）。前端解析器會智慧解析多行回應並精確提取出 Command 部分打入模擬器，進而釋放 AI 在複雜謎題與方向迷失時的規劃推理能力，消除盲目猜測。
 *   **支援豐富模型與自訂提供商**：支援 Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet、NVIDIA NIM、**Groq**、Ollama Cloud、LM Studio (本地)、Ollama (本地) 以及自訂 Provider。
 *   **可設定的對話歷史上限**：可自訂傳送給大模型的歷史記憶輪數（可調範圍 `0` 至 `20` 輪），徹底杜絕 AI 忘記前幾步而重複無效指令的「金魚腦」現象。
 *   **API 過載自動重試**：`fetchWithRetry` 包裝器在收到 `503`/`429` 錯誤時，使用指數退避自動重試（最多 3 次），讓短暫的 API 流量尖峰不再讓 AI 循環崩潰。
