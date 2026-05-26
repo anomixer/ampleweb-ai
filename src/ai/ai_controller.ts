@@ -211,6 +211,60 @@ export function cleanLLMResponse(response: string): string {
 }
 
 /**
+ * Extracts only the newly added text from the current screen compared to the previous screen.
+ * This simulates a scrolling console output and prevents feeding duplicate screen text to the LLM.
+ */
+export function extractNewText(prev: string | undefined, current: string, lastCommand?: string): string {
+  if (!prev) return current;
+
+  const cleanCurrent = current.trim();
+  const cleanPrev = prev.trim();
+
+  if (cleanCurrent === cleanPrev) return cleanCurrent;
+
+  // Method 1: Search for the last command in the current screen.
+  // In many text adventure games, the command typed by the user is printed (e.g. ">LOOK").
+  // Taking everything after it gives the output of that command.
+  if (lastCommand) {
+    const cmd = lastCommand.trim().toUpperCase();
+    const upperCurrent = cleanCurrent.toUpperCase();
+    const idx = upperCurrent.lastIndexOf(cmd);
+    if (idx !== -1) {
+      const newText = cleanCurrent.slice(idx + cmd.length).trim();
+      // Strip any leading prompt characters like '>', ':', space
+      const cleaned = newText.replace(/^[>:\s]+/, '').trim();
+      if (cleaned) return cleaned;
+    }
+  }
+
+  // Method 2: Suffix-prefix match for scrolling console lines.
+  const prevLines = cleanPrev.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const currLines = cleanCurrent.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  for (let i = 0; i < prevLines.length; i++) {
+    const suffix = prevLines.slice(i);
+    if (currLines.length >= suffix.length) {
+      let match = true;
+      for (let j = 0; j < suffix.length; j++) {
+        if (suffix[j] !== currLines[j]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        const newLines = currLines.slice(suffix.length);
+        if (newLines.length > 0) {
+          return newLines.join('\n').trim();
+        }
+      }
+    }
+  }
+
+  // Fallback: If no incremental new text could be determined, return full current text.
+  return current;
+}
+
+/**
  * Enterprise-grade fetch wrapper that automatically retries on 503 (high demand) or 429 (rate limit) 
  * using exponential backoff with jitter.
  */
@@ -291,6 +345,7 @@ export interface HistoryTurn {
   mode: 'vision' | 'text';
   screenshotBase64?: string;
   screenText?: string;
+  fullScreenText?: string;
   command: string;
 }
 

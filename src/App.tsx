@@ -12,7 +12,7 @@ import {
   type MediaFile,
 } from './core/wasm_loader'
 import { useStore, type VideoSettings } from './core/store'
-import { captureScreen, sendTextCommand, callRealLLM, callMockLLM, resetMockController, PROVIDER_DEFAULTS, readApple2TextScreen, resetMemoryCache, type HistoryTurn } from './ai/ai_controller'
+import { captureScreen, sendTextCommand, callRealLLM, callMockLLM, resetMockController, PROVIDER_DEFAULTS, readApple2TextScreen, resetMemoryCache, extractNewText, type HistoryTurn } from './ai/ai_controller'
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_VISION_SYSTEM_PROMPT, DEFAULT_TEXT_SYSTEM_PROMPT, ADVENTURE_PROMPT_PRESETS } from './ai/ai_prompt'
 const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
 
@@ -912,6 +912,18 @@ function App() {
         addAiLog(`Text Screen Content:\n${snippet}`)
       }
 
+      let incrementalText = screenText
+      if (aiMode === 'text') {
+        const lastTurn = aiHistoryRef.current[aiHistoryRef.current.length - 1]
+        if (lastTurn && lastTurn.mode === 'text') {
+          incrementalText = extractNewText(lastTurn.fullScreenText, screenText, lastTurn.command)
+          const shortInc = incrementalText.length > 200 ? incrementalText.substring(0, 200) + '...' : incrementalText
+          addAiLog(`[AI Context] Extracted incremental text (len: ${incrementalText.length}):\n${shortInc}`)
+        } else {
+          addAiLog(`[AI Context] First turn or mode transition. Sending full text buffer.`)
+        }
+      }
+
       addAiLog(`Calling LLM API (${aiProvider} - ${aiMode.toUpperCase()} mode)...`)
       let command = ''
 
@@ -926,7 +938,7 @@ function App() {
           aiApiKey,
           aiSystemPrompt,
           imgData,
-          screenText,
+          incrementalText,
           aiMode,
           aiHistoryRef.current,
           Number(aiMaxTokens) || 1000,
@@ -957,7 +969,8 @@ function App() {
           const turn: HistoryTurn = {
             mode: aiMode,
             screenshotBase64: aiMode === 'vision' ? imgData : undefined,
-            screenText: aiMode === 'text' ? screenText : undefined,
+            screenText: aiMode === 'text' ? incrementalText : undefined,
+            fullScreenText: aiMode === 'text' ? screenText : undefined,
             command
           }
           return [...prev, turn].slice(-aiHistoryLimit)

@@ -7,6 +7,10 @@
 - **MAME UI and MAME Menu Button Text Alignment Fix**:
     - **Button Text Centering**: Added `justifyContent: 'center'` to the inline style of the `MAME UI (ScrlLk)` and `MAME Menu (Tab)` button elements in `App.tsx` to correct the left-alignment issue caused by the global `.btn` style class.
     - **Whitespace Cleanup**: Consolidated button tags and text content onto single lines (e.g. `>⌨️ MAME UI (ScrlLk)</button>`) to eliminate intermediate whitespace/newline nodes that offset text centering under Flexbox layouts.
+- **Incremental Text Mode Context Diffing (Chatbot Conversation Style)**:
+    - **Incremental Text Diffing**: Added `extractNewText` utility to diff previous screen text buffers and current screen text buffers. This identifies and extracts only the newly printed game output lines since the last command, simulating a scrolling console terminal.
+    - **Chatbot Conversation Flow**: In Text Mode, instead of sending the full 2KB screen buffer every turn, only the newly printed output is sent as the User turn message. This significantly reduces token cost, avoids duplicate context overhead, and makes multi-turn LLMs much smarter at following the game progression.
+    - **Robust Fallbacks**: Automatically falls back to sending the full screen text if no new text can be extracted or if the screen remains unchanged.
 - **80-Column Aux RAM Physical Pointer & Emscripten Module Export Fix (Perfect Text Mode DMA)**:
     - **Resolved Emscripten Export Omission**: Fixed the issue where `emscripten_get_main_ram_wasm_offset` and `emscripten_get_aux_ram_wasm_offset` were not exported to JavaScript. Added both C helper functions to `EXPORTED_FUNCTIONS` in `genie.lua`. This prevents the frontend from falling back and allows directly accessing physical memory pointers via `Module._emscripten_get_aux_ram_wasm_offset`.
     - **Linker Duplicate Symbol Resolution**: Fixed a Windows duplicate symbol issue in `libemu.a` caused by `emar`'s incremental archive packaging after modifying `genie.lua`. Automatically cleaned the library archive before recompilation to guarantee successful links.
