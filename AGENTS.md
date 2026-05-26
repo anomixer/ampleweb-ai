@@ -4,6 +4,9 @@
 ## Project: AmpleWeb (MAME WASM Frontend)
 
 ### 📅 2026-05-26 Updates
+- **MAME UI 與 MAME Menu 按鈕文字居中對齊 (介面樣式微調)**：
+    - **按鈕居中樣式**：在 `App.tsx` 中為 `MAME UI (ScrlLk)` 與 `MAME Menu (Tab)` 兩個按鈕元件的 inline style 中添加了 `justifyContent: 'center'`，以修正全域 `.btn` 樣式所產生的靠左對齊問題。
+    - **清除 HTML 空白節點**：將按鈕內部的標籤及文字內容改寫至同一行（例如 `>⌨️ MAME UI (ScrlLk)</button>`），避免多餘的換行及空格引起文字在 Flex 佈局下的偏移。
 - **80-Column Aux RAM 實體指標與 Emscripten Module 導出修正 (文字模式完美 DMA 直讀)**:
     - **解決 Emscripten 導出遺漏**：修復了 `emscripten_get_main_ram_wasm_offset` 與 `emscripten_get_aux_ram_wasm_offset` 未被導出至 JavaScript 的問題。已在 `genie.lua` 的 `EXPORTED_FUNCTIONS` 中手動加入這兩個 C 函數。這能避免前端因找不到導出而降級，直接透過 `Module._emscripten_get_aux_ram_wasm_offset` 來抓取實體記憶體指標。
     - **排除連結器重複定義衝突**：修正了 Windows 在 `genie.lua` 修改後因 `emar` 增量包裝機制造成的 `libemu.a` 重複符號衝突。在編譯前自動清除 `libemu.a` 重建模擬器核心，保證編譯成功。
