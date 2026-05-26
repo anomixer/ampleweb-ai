@@ -4168,19 +4168,15 @@ function App() {
                     <button
                       className="btn btn-secondary"
                       onClick={handleMameUIToggle}
-                      style={{ flex: '1 1 120px', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 4px' }}
+                      style={{ flex: '1 1 120px', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 4px', justifyContent: 'center' }}
                       title="Toggle MAME UI Mode (Scroll Lock)"
-                    >
-                      ⌨️ MAME UI (ScrlLk)
-                    </button>
+                    >⌨️ MAME UI (ScrlLk)</button>
                     <button
                       className="btn btn-secondary"
                       onClick={handleMameMenu}
-                      style={{ flex: '1 1 120px', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 4px' }}
+                      style={{ flex: '1 1 120px', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 4px', justifyContent: 'center' }}
                       title="MAME Internal Menu (Tab)"
-                    >
-                      ⌨️ MAME Menu (Tab)
-                    </button>
+                    >⌨️ MAME Menu (Tab)</button>
                   </div>
                 </>
               ) : (
