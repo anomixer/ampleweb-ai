@@ -504,9 +504,9 @@ export async function callRealLLM(
   ];
 
   // Cap screen text to avoid overflowing local model context windows (e.g. LM Studio).
-  // Take the LAST 400 chars (most recent output) since that's what matters for commands.
+  // Take the LAST 2000 chars (full screen buffer) since that's what matters for commands.
   const capScreen = (t: string | undefined) =>
-    !t ? '' : t.length > 400 ? '...' + t.slice(-400) : t;
+    !t ? '' : t.length > 2000 ? '...' + t.slice(-2000) : t;
 
   // Add history turns
   for (const turn of history) {
