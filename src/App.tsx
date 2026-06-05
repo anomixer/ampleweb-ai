@@ -56,11 +56,16 @@ function injectPortsIntoXml(xml: string, ports: Record<string, string>): string 
 
 
 /**
+ * Unified MAME engine version.
+ */
+const MAME_VERSION = '0.288'
+
+/**
  * Emulator type → WASM file info.
  * Maps Ample's emulator values to the correct WASM file and MAME driver.
  */
 const EMULATOR_WASM_MAP: Record<string, { wasm: string; js: string; driver: string }> = {
-  // Universal MAME 0.287 engine (supports all 150+ variants)
+  // Universal MAME 0.288 engine (supports all 150+ variants)
   mame: { wasm: 'mame.wasm.gz', js: 'mame.js', driver: 'apple2e' },
 }
 
@@ -353,6 +358,12 @@ interface LogLine {
  * MAME needs the correct BIOS ROM for each driver.
  */
 const DRIVER_ROM_MAP: Record<string, string> = {
+  a1000: 'a1000.zip;a1000kbd_us.zip',
+  a1000n: 'a1000n.zip;a1000.zip;a1000kbd_us.zip',
+  a2000: 'a2000.zip;a2000kbd_us.zip',
+  a2000n: 'a2000n.zip;a2000.zip;a2000kbd_us.zip',
+  a500: 'a500.zip;a2000kbd_us.zip;a500kbd_us.zip',
+  a500n: 'a500n.zip;a2000kbd_us.zip;a500.zip;a500kbd_us.zip',
   ace100: 'ace100.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   ace1000: 'ace1000.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   ace2200: 'ace2200.zip;apple2e.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip',
@@ -386,11 +397,13 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   apple2ese: 'apple2ese.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
   apple2euk: 'apple2euk.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
   apple2gs: 'apple2gs.zip',
+  apple2gsmt: 'apple2gsmt.zip;apple2gs.zip',
   apple2gsr0: 'apple2gsr0.zip;apple2gs.zip',
   apple2gsr1: 'apple2gsr1.zip;apple2gs.zip',
   apple2jp: 'apple2jp.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   apple2p: 'apple2p.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   apple3: 'apple3.zip',
+  att6300p: 'att6300p.zip;cga_m24.zip;isa_hdc.zip;m24_kbd.zip',
   basis108: 'basis108.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   bbca: 'bbca.zip;bbcb.zip;saa5050.zip;bbc_acorn8271.zip',
   bbcb: 'bbcb.zip;saa5050.zip;bbc_acorn8271.zip',
@@ -402,6 +415,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   bbcm: 'bbcm.zip;saa5050.zip',
   bbcmc: 'bbcmc.zip;saa5050.zip',
   bbcmt: 'bbcmt.zip;bbc_tube_65c102.zip;saa5050.zip;bbcm.zip',
+  c128: 'c128.zip;c1571.zip',
   c64: 'c64.zip;c1541.zip',
   c64c: 'c64c.zip;c64.zip;c1541.zip',
   cec2000: 'cec2000.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
@@ -417,15 +431,47 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   coco3p: 'coco3p.zip;coco.zip;coco_fdc.zip',
   cocoh: 'cocoh.zip;coco.zip;coco_fdc.zip',
   craft2p: 'craft2p.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
+  cz101: 'cz101.zip;hd44780.zip',
   d64plus: 'd64plus.zip;dragon32.zip;dragon_fdc.zip',
   dodo: 'dodo.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   dragon200: 'dragon200.zip;dragon32.zip;dragon_fdc.zip',
   dragon200e: 'dragon200e.zip;dragon32.zip;dragon_fdc.zip',
   dragon32: 'dragon32.zip;dragon_fdc.zip',
   dragon64: 'dragon64.zip;dragon32.zip;dragon_fdc.zip',
+  ds2100: 'ds2100.zip;lk201.zip',
+  ds3100: 'ds3100.zip;lk201.zip',
+  ds5k133: 'ds5k133.zip;lk201.zip',
   electron: 'electron.zip;electron_plus3.zip;electron_plus1.zip',
   elppa: 'elppa.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   hkc8800a: 'hkc8800a.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
+  hp9k310: 'hp9k310.zip;dio98544.zip;dio98603b.zip;hp9122c.zip;human_interface.zip',
+  hp9k320: 'hp9k320.zip;dio98543.zip;dio98603b.zip;hp9122c.zip;human_interface.zip',
+  hp9k330: 'hp9k330.zip;dio98544.zip;dio98603b.zip;hp9122c.zip;human_interface.zip',
+  hp9k332: 'hp9k332.zip;dio98543.zip;dio98603b.zip;hp9122c.zip;human_interface.zip',
+  hp9k340: 'hp9k340.zip;dio98543.zip;dio98603b.zip;hp9122c.zip;hp9k330.zip;human_interface.zip',
+  hp9k360: 'hp9k360.zip;dio98550.zip;hp9122c.zip;hp9k330.zip;human_interface.zip',
+  hp9k370: 'hp9k370.zip;dio98550.zip;hp9122c.zip;hp9k330.zip;human_interface.zip',
+  hp9k380: 'hp9k380.zip;dio98550.zip;hp9122c.zip;human_interface.zip',
+  hp9k382: 'hp9k382.zip;dio98550.zip;hp9122c.zip;human_interface.zip',
+  ibm5150: 'ibm5150.zip;cga.zip;isa_hdc.zip;keytronic_pc3270.zip',
+  ibm5155: 'ibm5155.zip;cga.zip;ibm5150.zip;isa_hdc.zip;keytronic_pc3270.zip',
+  ibm5160: 'ibm5160.zip;cga.zip;ibm5150.zip;isa_hdc.zip;kb_pcxt83.zip',
+  indigo: 'indigo.zip;sgi_kbd.zip',
+  indigo2_4415: 'indigo2_4415.zip;kb_ms_natural.zip;ps2_keybc.zip',
+  indigo_r4000: 'indigo_r4000.zip;sgi_kbd.zip',
+  indigo_r4400: 'indigo_r4400.zip;sgi_kbd.zip',
+  indy_4610: 'indy_4610.zip;kb_ms_natural.zip;ps2_keybc.zip',
+  indy_4613: 'indy_4613.zip;indy_4610.zip;kb_ms_natural.zip;ps2_keybc.zip',
+  indy_5015: 'indy_5015.zip;indy_4610.zip;kb_ms_natural.zip;ps2_keybc.zip',
+  ip2000: 'ip2000.zip;kbd_lle_en_us.zip;mpcb963.zip',
+  ip2400: 'ip2400.zip;kbd_lle_en_us.zip;msmt070.zip',
+  ip2500: 'ip2500.zip;kbd_lle_en_us.zip;msmt070.zip',
+  ip2700: 'ip2700.zip;kbd_lle_en_us.zip;msmt070.zip',
+  ip2800: 'ip2800.zip;kbd_lle_en_us.zip;msmt070.zip',
+  ip6000: 'ip6000.zip;mpcb828.zip;tms320c30.zip',
+  ip6400: 'ip6400.zip;kbd_lle_en_us.zip;mpcbb68.zip',
+  ip6700: 'ip6700.zip;mpcb896.zip;msmt094.zip;tms320c30.zip',
+  ip6800: 'ip6800.zip;mpcb896.zip;msmt094.zip;tms320c30.zip',
   ivelultr: 'ivelultr.zip;d2fdc.zip;votrsc01a.zip;ivelultrkb.zip;a2diskiing.zip;apple2.zip',
   las128e2: 'las128e2.zip;apple2c.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip',
   las128ex: 'las128ex.zip;apple2c.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip',
@@ -433,6 +479,9 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   laser128o: 'laser128o.zip;apple2c.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip',
   laser2c: 'laser2c.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   laser3k: 'laser3k.zip;d2fdc.zip;a2diskiing.zip;apple2e.zip',
+  lisa: 'lisa.zip;lisafdc.zip;lisavideo.zip',
+  lisa2: 'lisa2.zip;lisa2fdc.zip;lisavideo.zip',
+  lisa210: 'lisa210.zip;lisa2.zip;lisavideo.zip;macxlfdc.zip',
   mac128k: 'mac128k.zip;mackbd_m0110.zip;mackbd_m0120.zip',
   mac2fdhd: 'mac2fdhd.zip;macii.zip;nb_mdc824.zip;adbmodem.zip',
   mac512k: 'mac512k.zip;mackbd_m0110.zip;mackbd_m0120.zip;mac128k.zip',
@@ -459,6 +508,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   maclc520: 'maclc520.zip;maclc.zip;cuda.zip',
   maclc550: 'maclc550.zip;maclc520.zip;maclc.zip;cuda.zip',
   maclc575: 'maclc575.zip;maclc520.zip;maclc.zip;macqd605.zip;cuda.zip',
+  maclc580: 'maclc580.zip;cuda.zip;macqd630.zip',
   macpb100: 'macpb100.zip',
   macpb140: 'macpb140.zip',
   macpb145: 'macpb145.zip;macpb140.zip',
@@ -479,6 +529,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macprtb: 'macprtb.zip',
   macqd605: 'macqd605.zip;cuda.zip',
   macqd610: 'macqd610.zip;macqd800.zip;adbmodem.zip',
+  macqd630: 'macqd630.zip;cuda.zip',
   macqd650: 'macqd650.zip;macqd800.zip;adbmodem.zip',
   macqd700: 'macqd700.zip;adbmodem.zip',
   macqd800: 'macqd800.zip;adbmodem.zip',
@@ -488,6 +539,7 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   macse30: 'macse30.zip;mac2fdhd.zip;macii.zip;nb_mdc824.zip;adbmodem.zip',
   macsefd: 'macsefd.zip;macse.zip;adbmodem.zip',
   mactv: 'mactv.zip;adbmodem.zip;cuda.zip',
+  macxl: 'macxl.zip;lisa2.zip;macxlfdc.zip;macxlvideo.zip',
   maxxi: 'maxxi.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   mc10: 'mc10.zip',
   megast: 'megast.zip;st.zip;st_kbd.zip',
@@ -495,13 +547,47 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   mprof3: 'mprof3.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
   oric1: 'oric1.zip',
   orica: 'orica.zip;oric1.zip',
+  pdp11qb: 'pdp11qb.zip;pdp11ub.zip;rx01.zip',
+  pdp11ub: 'pdp11ub.zip;rx01.zip',
+  pdp11ub2: 'pdp11ub2.zip;pdp11ub.zip;rx01.zip',
+  pi4d20: 'pi4d20.zip;sgi_kbd.zip',
+  pi4d25: 'pi4d25.zip;sgi_kbd.zip',
+  pi4d30: 'pi4d30.zip;sgi_kbd.zip',
+  pi4d35: 'pi4d35.zip;sgi_kbd.zip',
   prav82: 'prav82.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   prav8c: 'prav8c.zip;d2fdc.zip;prav8ckb.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
   prav8d: 'prav8d.zip;oric1.zip',
   prav8m: 'prav8m.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
+  rc2030: 'rc2030.zip;at_keybc.zip',
+  rc3230: 'rc3230.zip;at_keybc.zip;kb_ms_natural.zip',
+  rs2030: 'rs2030.zip;at_keybc.zip;kb_ms_natural.zip',
+  rs3230: 'rs3230.zip;at_keybc.zip;kb_ms_natural.zip',
+  rtpc010: 'rtpc010.zip;isa_ibm_mda.zip;rtpc_kbd.zip;rtpc_kls.zip;ubpnic.zip',
+  rtpc015: 'rtpc015.zip;isa_ibm_mda.zip;rtpc_kbd.zip;rtpc_kls.zip;ubpnic.zip',
+  rtpc020: 'rtpc020.zip;isa_ibm_mda.zip;rtpc_kbd.zip;rtpc_kls.zip;ubpnic.zip',
+  rtpc025: 'rtpc025.zip;isa_ibm_mda.zip;rtpc_kbd.zip;rtpc_kls.zip;ubpnic.zip',
+  rtpca25: 'rtpca25.zip;isa_ibm_mda.zip;rtpc_kbd.zip;rtpc_kls.zip;ubpnic.zip',
   space84: 'space84.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   spectred: 'spectred.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
   st: 'st.zip;st_kbd.zip',
+  sun1: 'sun1.zip;sun1_cpu.zip',
+  sun2_120: 'sun2_120.zip',
+  sun2_50: 'sun2_50.zip',
+  sun3_110: 'sun3_110.zip',
+  sun3_150: 'sun3_150.zip',
+  sun3_260: 'sun3_260.zip',
+  sun3_50: 'sun3_50.zip',
+  sun3_60: 'sun3_60.zip',
+  sun3_80: 'sun3_80.zip',
+  sun3_e: 'sun3_e.zip',
+  sun4_20: 'sun4_20.zip;bwtwo.zip;sun4_300.zip',
+  sun4_25: 'sun4_25.zip;bwtwo.zip;sun4_300.zip',
+  sun4_40: 'sun4_40.zip;bwtwo.zip;sun4_300.zip',
+  sun4_50: 'sun4_50.zip;sun4_300.zip;turbogx.zip',
+  sun4_65: 'sun4_65.zip;bwtwo.zip;sun4_300.zip',
+  t1000: 't1000.zip;ibm5150.zip;tandy_1000_graphics.zip',
+  t1000hx: 't1000hx.zip;ibm5150.zip;tandy_1000_graphics.zip;tandy_1000x_graphics.zip',
+  t1000sx: 't1000sx.zip;ibm5150.zip;tandy_1000_graphics.zip;tandy_1000x_graphics.zip',
   tanodr64: 'tanodr64.zip;dragon32.zip;sdtandy_fdc.zip',
   telstrat: 'telstrat.zip;oric1.zip',
   tk3000: 'tk3000.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
@@ -509,8 +595,12 @@ const DRIVER_ROM_MAP: Record<string, string> = {
   trs80l2: 'trs80l2.zip',
   uniap2en: 'uniap2en.zip;d2fdc.zip;uniap2ti.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
   uniap2pt: 'uniap2pt.zip;d2fdc.zip;uniap2ti.zip;votrsc01a.zip;a2diskiing.zip;apple2.zip',
+  vt100: 'vt100.zip',
+  vt101: 'vt101.zip;vt102.zip',
+  vt102: 'vt102.zip',
+  vt240: 'vt240.zip;lk201.zip;upd7220.zip',
+  vt52: 'vt52.zip',
   zijini: 'zijini.zip;d2fdc.zip;votrsc01a.zip;a2diskiing.zip;apple2e.zip',
-  // Special overrides
   apple2gs_shared: 'apple2gs.zip;apple2c.zip',
 }
 
@@ -1588,7 +1678,7 @@ function App() {
    * Maps machine driver names to emulator WASM files.
    */
   function getEmulatorForMachine(machineName: string): string | null {
-    // We now use a unified MAME 0.287 engine ('mame.wasm') for all machines
+    // We now use a unified MAME 0.288 engine ('mame.wasm') for all machines
     // to ensure ROM mapping consistency across all 150+ variants.
     const families = [
       'apple', 'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', // Apple II / Clones
@@ -1676,6 +1766,9 @@ function App() {
             Object.entries(option.media).forEach(([mameType, count]: [string, number]) => {
               addMedia(mameType, count)
             })
+          } else if (option.value === 'cdrom_2x') {
+            // Compatibility fallback for SCSI CD-ROM (2X speed) which lacks explicit media tag in plist
+            addMedia('cdrom', 1)
           }
           const nextPath = selectedValue ? `${fullPath}:${selectedValue}` : fullPath
           if (Array.isArray(option.slots)) {
@@ -4208,7 +4301,7 @@ function App() {
       ) : (
           <div className="welcome">
             <img src={`${BASE_URL}icon-256.png`} className="welcome-icon" alt="Ample Logo" />
-            <h2>AmpleWeb</h2>
+            <h2>AmpleWeb <span style={{ fontSize: '0.5em', opacity: 0.6, marginLeft: '8px', fontWeight: 'normal', verticalAlign: 'middle' }}>v{MAME_VERSION}</span></h2>
             <div className="welcome-author">
               by <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer">anomixer</a>
             </div>

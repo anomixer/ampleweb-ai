@@ -3,6 +3,19 @@
 ## Status: Active
 ## Project: AmpleWeb (MAME WASM Frontend)
 
+### 📅 2026-06-05 Updates
+- **MAME WASM Core Upgrade (MAME 0.288-patched)**:
+    - **Upgraded MAME Base**: Upgraded the universal WASM emulator core from MAME 0.287 to **MAME 0.288**.
+    - **EASC Audio Chip Crash Fix**: Integrated the official upstream bugfix commit `553bbc0` (which corrects the ASC device type in PowerBook memory maps), completely resolving the launch crash on Mac PowerBook 30 models (such as `macpb160`, `macpb180`, etc.).
+    - **Maintained Apple II RAM DMA Access**: Verified and linked the direct WASM-to-emulator RAM query functions (`emscripten_read_ram`, `emscripten_read_ram_bulk` etc.), ensuring 100% precision screen memory reading for the AI control layer remains functional.
+- **0.288 Machine Configuration & ROM Mapping Parity**:
+    - **Configuration Plist Import**: Synchronized all 251 updated machine profile `.plist` files from the monorepo's `Ample/Resources/` folder to `public/resources/` to match MAME 0.288's new slot configurations.
+    - **ROM Dependency Map Expansion**: Expanded the TypeScript `DRIVER_ROM_MAP` in `src/App.tsx` from 158 to 248 entries to fully map the dependencies of the new MAME 0.288 systems (Amiga A1000/A2000/A500, Atari ST, Lisa, etc.).
+    - **ROM Downloader Priorities**: Updated `rom_manager_cli.py` to prioritize `mdk.cab` over `callapple.org` to align with the core's downloader configuration.
+    - **SCSI CD-ROM speed compat**: Verified `cdrom_2x` media mapping fallback logic for SCSI CD-ROM options.
+- **Refactored Version Heading**:
+    - **Global Constant**: Extracted the version string to a global constant `MAME_VERSION` in `App.tsx` and dynamically rendered it inside the welcome screen heading (`v{MAME_VERSION}`) to ease future upgrades.
+
 ### 📅 2026-05-26 Updates
 - **MAME UI and MAME Menu Button Text Alignment Fix**:
     - **Button Text Centering**: Added `justifyContent: 'center'` to the inline style of the `MAME UI (ScrlLk)` and `MAME Menu (Tab)` button elements in `App.tsx` to correct the left-alignment issue caused by the global `.btn` style class.

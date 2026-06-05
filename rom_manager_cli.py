@@ -17,8 +17,8 @@ class RomManagerCLI:
                 self.base_urls = [s if s.endswith('/') else s + '/' for s in self.base_urls]
         else:
             self.base_urls = [
-                "https://www.callapple.org/roms/",
-                "https://mdk.cab/download/split/"
+                "https://mdk.cab/download/split/",
+                "https://www.callapple.org/roms/"
             ]
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'

@@ -280,7 +280,7 @@ We have pre-configured two instant-launch retro systems containing Apple II Desk
         - The system detects missing files in `public/roms` and launches the high-speed multi-threaded downloader.
         - You can select sources (CallApple, MDK, etc.) or provide a custom URL.
         - Downloaded `.zip` files are stored in `public/roms` for immediate use by the WASM frontend.
-    *   **(Optional)** To rebuild `public/wasm/mame.wasm.gz`, use the [MameWasm](https://github.com/anomixer/MameWasm) project to build the binary, then compress it to `.gz`.
+    *   **(Optional)** To rebuild `public/wasm/mame.wasm.gz` (currently powered by a custom MAME 0.288-patched core), use the [MameWasm](https://github.com/anomixer/MameWasm) project to build the binary, then compress it to `.gz`.
     *   Launch server: `npm run dev` or `node server.js`
     Open `http://localhost:5173` to start playing.
 
