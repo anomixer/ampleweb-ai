@@ -1,7 +1,7 @@
-# AmpleWeb Development Log
+# AmpleWeb-AI Development Log
 
 ## Status: Active
-## Project: AmpleWeb (MAME WASM Frontend)
+## Project: AmpleWeb-AI (MAME WASM Frontend)
 
 ### 📅 2026-06-05 Updates
 - **MAME WASM Core Upgrade (MAME 0.288-patched)**:

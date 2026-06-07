@@ -1,8 +1,10 @@
-# [AmpleWeb-AI](https://github.com/anomixer/ampleweb-ai) - Vision-Based LLM Agent Edition
+# [AmpleWeb-AI](https://github.com/anomixer/ampleweb-ai) - Vision & Text-Based LLM Agent Edition
 
 [English](README.md) | [繁體中文](README_tw.md)
 
-This is a specialized, standalone edition of **AmpleWeb** configured as an experimental platform for Vision-Based AI Agents (LLM + Vision). By leveraging multi-modal large language models (such as Gemini 2.5/3.5 Flash, GPT-4o-mini, and Claude 3.5 Sonnet), AmpleWeb-AI allows an AI agent to "look" at the emulator canvas (running retro machines like the Apple IIe) via real-time screenshots, read the text, reason, and automatically dispatch keystroke sequences to play text adventure games (like Zork) autonomously.
+This repo is an AI-enhanced edition of [AmpleWeb](https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb), configured as a specialized standalone experimental platform for Vision-Based AI Agents (LLM + Vision). Currently, it targets retro text adventure games (such as Zork) on the Apple II series to implement and run autonomous AI-assisted gameplay. By leveraging multi-modal large language models (such as Gemini 2.5/3.5 Flash, GPT-4o-mini, and Claude 3.5 Sonnet), AmpleWeb-AI allows an AI agent to "look" at the emulator canvas (running retro machines like the Apple IIe) via real-time screenshots, read the text, reason, and automatically dispatch keystroke sequences to play text adventure games autonomously.
+
+![Screenshot AI](screenshot-ai.png)
 
 ## 🤖 Vision AI Agent — How It Works
 
@@ -22,6 +24,7 @@ MAME WASM (Canvas Screen)
 *   **Dual Modes (Vision & Low-Token Text)**: Switch between `Vision Mode` (captures pixel-perfect screenshots) and `Text Mode` (directly reads Apple II text memory buffer from WASM memory for extremely low token cost, no external OCR required).
     *   *Direct RAM Access (DMA Tech)*: Employs exported C helper APIs (`_emscripten_get_main_ram_wasm_offset` and `_emscripten_get_aux_ram_wasm_offset`) to fetch the exact WASM linear memory offset of the physical Main and Aux RAM pointers. This allows direct `HEAPU8` reading of screen memory (`0x400` / `0x800`) with **100% precision** and **zero delay**, completely bypassing fragile heap scanning.
     *   *Advanced 80-Column Decoupled Decoding*: Solves the character pair flipping bug (where `"ZORK I"` gets garbled into `"I   R OKI"`) using **Dynamic Dual-Base Pairing** to automatically resolve the dynamically-allocated Main and Aux RAM heaps without hardcoded 65,536-byte offset assumptions. It applies a **Self-Correcting Way A/Way B Heuristic** that runs both odd/even column interleaving patterns concurrently, measuring character density via `/[A-Za-z]/g` to auto-select the perfectly formatted text stream.
+    *   *Force 80-Col Override*: Adds a "Force 80-Col" toggle switch in the UI. Because software-level 80-column hardware register reads (e.g. `RD80COL`) can sometimes be desynced or unstable under MAME's Emscripten core, checking this option overrides auto-detection and forces the dual-bank interleaving decoder, guaranteeing flawless 80-column text extraction.
     *   *Incremental Chatbot Diffing*: In `Text Mode`, the frontend compares the current screen text with the previous turn using **LCS Suffix-Prefix matching** and command markers. It isolates and transmits *only* the newly printed game output (e.g. `"Opening the mailbox reveals a leaflet."` instead of the full room description). This reduces repetitive token costs by over 90% and keeps the context history extremely clean and focused.
 
 *   **Chain-of-Thought (CoT) Reasoning**: Prompts the AI to output its reasoning process before deciding the command. The system prompt templates require the LLM to output a `Reasoning:` block followed by a `Command:` line. The frontend parses the multi-line response, extracting only the clean action command for typing, which unlocks deeper logical planning and reduces repetitive "guessing" loops.
@@ -54,6 +57,7 @@ Click the **AI** tab in the upper-right settings panel. You will see:
 | :--- | :--- | :--- |
 | **AI Agent Status** | 🔴 Disabled / 🟢 Enabled toggle button | Disabled |
 | **Mode** | Choose: `🖼️ Vision Mode` (transmits base64 screenshots, consumes more tokens) or `📝 Text Mode (Low Token)` (directly parses emulator text buffer from WASM memory, extremely cheap/low-token) | Vision Mode |
+| **Force 80-Col** | Forced 80-column text mode override. If characters get garbled or split into odd spacing during Text Mode, check this box to force the dual-bank interleaving decoder | unchecked |
 | **Provider** | Choose: `Mock Simulator`, `Gemini 3.5 Flash`, `OpenAI GPT-4o-mini`, `Claude 3.5 Sonnet`, `NVIDIA NIM`, `Groq`, `Ollama Cloud`, `LM Studio (Local)`, `Ollama (Local)`, `Custom Provider` | Mock Simulator |
 | **API Key** | Your LLM provider's secret key (stored locally in browser, never sent to third-party servers) | — |
 | **API URL** | Base endpoint URL for the selected provider (editable, visible for OpenAI-compatible options) | *(auto-filled)* |
@@ -62,6 +66,7 @@ Click the **AI** tab in the upper-right settings panel. You will see:
 | **Type Delay (ms)** | Millisecond delay between each character keystroke (keep at 60ms to avoid WASM input skipping) | 60 |
 | **Max Tokens** | Maximum output token limit for the LLM response (increase if AI responses are being truncated) | 1000 |
 | **History Limit** | Turn limit of conversation history (screen states + AI actions) sent in request to prevent "goldfish brain" (configurable from `0` to `20`) | 5 |
+| **Temperature** | Sampling temperature for the model (range: `0.0` to `2.0`, lower is more deterministic, higher is more creative) | 0.6 |
 | **System Prompt** | Natural language instructions for the AI (what game it's playing, how to behave). Automatically syncs with current Mode templates | Zork preset |
 
 #### Getting an API Key
@@ -146,6 +151,8 @@ Want to test the pipeline without spending API credits?
 This verifies that screenshot capture, keystroke injection, and the AI loop are all working correctly before you use a real API key.
 
 ---
+
+# Below is the content of AmpleWeb
 
 ![](screenshot.png)
 

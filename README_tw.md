@@ -1,8 +1,10 @@
-# [AmpleWeb-AI](https://github.com/anomixer/ampleweb-ai) - 視覺 AI 代理版 (Apple 模擬器 + LLM)
+# [AmpleWeb-AI](https://github.com/anomixer/ampleweb-ai) - 視覺與文字 AI 代理版 (Apple 模擬器 + LLM)
 
 [English](README.md) | [繁體中文](README_tw.md)
 
-這是 **AmpleWeb** 的特化獨立版本，作為**視覺 AI 代理（LLM + Vision）**的實驗性平台。透過多模態大型語言模型（Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet），AmpleWeb-AI 讓 AI 代理能「看見」模擬器畫面（例如執行中的 Apple IIe），自動閱讀螢幕文字並產生指令，在文字冒險遊戲（如 Zork）中自主行動。
+本專案是 [AmpleWeb](https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb) 的 AI 加強版，作為**視覺 AI 代理（LLM + Vision）**的特化獨立與實驗性平台。目前特別針對 Apple II 系列的文字冒險遊戲（如 Zork）來實作 AI 幫玩/自主控制功能。透過多模態大型語言模型（Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet），AmpleWeb-AI 讓 AI 代理能「看見」模擬器畫面（例如執行中的 Apple IIe），自動閱讀螢幕文字並產生指令，在文字冒險遊戲中自主行動。
+
+![Screenshot AI](screenshot-ai.png)
 
 ## 🤖 視覺 AI 代理 — 運作原理
 
@@ -22,6 +24,7 @@ MAME WASM（Canvas 畫面）
 *   **雙模式（影像視覺與低 Token 文字）**：支援 `Vision Mode`（傳送像素完美畫面截圖）與 `Text Mode`（直接從 WASM 虛擬記憶體讀取 Apple II 螢幕文字，無需外部 OCR，Token 消耗極低且速度極快）。
     *   *直接記憶體存取 (DMA 讀取)*：採用導出的 C 語言 helper API（`_emscripten_get_main_ram_wasm_offset` 與 `_emscripten_get_aux_ram_wasm_offset`）來抓取實體 Main 與 Aux RAM 指標在 WASM 線性記憶體中的精確偏移量。這使得前端能以 **100% 的絕對精度**與**零延遲**直接由 `HEAPU8` 讀取螢幕記憶體（`0x400` / `0x800`），徹底繞過不穩定的 Heap 指紋掃描。
     *   *進階 80 行自適應解耦解碼*：攻克了 80 行模式下左右字元成對顛倒（例如 `"ZORK I"` 被錯誤解碼為 `"I   R OKI"`) 的頑疾。採用**動態雙基底配對 (Dynamic Dual-Base Pairing)** 技術，自動分析並配對 Main 與 Aux RAM 在 Heap 中任意的記憶體基底，徹底擺脫相隔 65,536 位址差的脆弱假設。並採用**雙向自校正解碼 (Self-Correcting Way A/Way B Heuristics)**，同時嘗試奇偶數欄交錯拼合的兩種解碼方向，透過即時 `/[A-Za-z]/g` 計算英文字母密度，自動選擇拼寫最正確的結果。
+    *   *強制 80 欄覆寫 (Force 80-Col Override)*：在 AI 設定面板中提供「Force 80-Col」切換開關。由於軟體層面的 80 欄狀態暫存器（如 `RD80COL`）在 MAME WASM 中有時會讀取不穩或非同步，勾選此項可直接忽略軟體暫存器狀態，強制以雙 Bank 交錯拼合解碼，保障 80 欄畫面文字在任何時候都完美解碼呈現。
     *   *Chatbot 式增量文字差分*：在 `Text Mode` 下，前端利用 **LCS 滾動行對齊與指令特徵定位演算法**，比對當前螢幕與前一輪文字的差異，**僅提取並發送全新印出的遊戲輸出內容**（如「Opening the mailbox reveals a leaflet.」而非重複傳送整頁房間描述）。這能大幅縮減 90% 以上的重複 Token 消耗，並保持極佳的上下文整潔度。
 
 *   **思考鏈 (Chain-of-Thought, CoT) 決策**：在輸出指令前，先引導 AI 寫出 Reasoning 推理分析。預設的系統提示詞範本已更新為要求 LLM 輸出 `Reasoning:`（思考步驟）與 `Command:`（動作命令）。前端解析器會智慧解析多行回應並精確提取出 Command 部分打入模擬器，進而釋放 AI 在複雜謎題與方向迷失時的規劃推理能力，消除盲目猜測。
@@ -54,6 +57,7 @@ MAME WASM（Canvas 畫面）
 | :--- | :--- | :--- |
 | **AI Agent Status** | 🔴 已停用 / 🟢 已啟用 切換按鈕 | 已停用 |
 | **Mode** | 選擇：`🖼️ Vision Mode`（傳送 base64 畫面截圖，耗費較多 Token）或 `📝 Text Mode (Low Token)`（直接讀取 WASM 內模擬器純文字緩衝區，消耗極少 Token 且價格極低） | Vision Mode |
+| **Force 80-Col** | 強制 80 欄純文字模式覆寫。若在 Text Mode 下文字出現拼寫錯位、空格過多等狀況，可勾選此項以強制使用雙 Bank 交錯解碼 | 未勾選 |
 | **Provider（提供商）** | 選擇：`Mock Simulator`、`Gemini 3.5 Flash`、`OpenAI GPT-4o-mini`、`Claude 3.5 Sonnet`、`NVIDIA NIM`、`Groq`、`Ollama Cloud`、`LM Studio (Local)`、`Ollama (Local)`、`Custom Provider` | Mock Simulator |
 | **API Key** | 您的 LLM 提供商金鑰（僅存於瀏覽器本地，絕不外傳） | — |
 | **API URL** | 所選提供商的 API 基礎網址（僅對 OpenAI 相容提供商顯示，可編輯） | *(自動填入)* |
@@ -62,6 +66,7 @@ MAME WASM（Canvas 畫面）
 | **Type Delay (ms)** | 每個字元按鍵之間的毫秒延遲（建議保持 60ms 以免 WASM 漏讀） | 60 |
 | **Max Tokens** | LLM 回應的最大輸出 Token 數（若回應被截斷請調高此值） | 1000 |
 | **History Limit** | 傳送給大模型的對話歷史（螢幕畫面狀態 + 做出指令）對話輪數限制，用以對抗 AI「金魚腦」（可設定 0 至 20 輪） | 5 |
+| **Temperature** | 模型採樣溫度（範圍 `0.0` 至 `2.0`，數值越低越確定，越高則越有創意） | 0.6 |
 | **System Prompt** | 給 AI 的自然語言說明（在玩什麼遊戲、如何回應等），會隨運作模式自動切換對應預設模板 | Zork 預設 |
 
 #### 如何取得 API 金鑰
@@ -146,6 +151,8 @@ MAME WASM（Canvas 畫面）
 這可以在使用真實 API 金鑰之前，驗證截圖擷取、按鍵注入與 AI 循環全部正常運作。
 
 ---
+
+# 以下是 AmpleWeb 的內容
 
 ![](screenshot.png)
 

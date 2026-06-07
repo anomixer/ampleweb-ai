@@ -2918,11 +2918,11 @@ function App() {
         <div className="sidebar-header">
           <a href={BASE_URL} className="sidebar-title" onClick={handleReset}>
             <span className="sidebar-logo">🍎</span>
-            <span>AmpleWeb</span>
+            <span>AmpleWeb-AI</span>
           </a>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <a 
-              href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" 
+              href="https://github.com/anomixer/ampleweb-ai" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="github-btn"
@@ -3337,7 +3337,7 @@ function App() {
                         </div>
                       )}
                       <p className="settings-hint" style={{ marginTop: 8 }}>
-                        AmpleWeb (WASM) does not support -shared_directory (USB flash emulation for Booti cards).
+                        AmpleWeb-AI (WASM) does not support -shared_directory (USB flash emulation for Booti cards).
                         Use this to map a local folder to /share for hot-swapping disk images. Restart Required.
                         Once set, Restart/Stop the machine, then Launch again and Reconnect when prompted to take effect.
                       </p>
@@ -4301,9 +4301,9 @@ function App() {
       ) : (
           <div className="welcome">
             <img src={`${BASE_URL}icon-256.png`} className="welcome-icon" alt="Ample Logo" />
-            <h2>AmpleWeb <span style={{ fontSize: '0.5em', opacity: 0.6, marginLeft: '8px', fontWeight: 'normal', verticalAlign: 'middle' }}>v{MAME_VERSION}</span></h2>
+            <h2>AmpleWeb-AI <span style={{ fontSize: '0.5em', opacity: 0.6, marginLeft: '8px', fontWeight: 'normal', verticalAlign: 'middle' }}>v{MAME_VERSION}</span></h2>
             <div className="welcome-author">
-              by <a href="https://github.com/anomixer/ample/tree/ampleweb/AmpleWeb" target="_blank" rel="noopener noreferrer">anomixer</a>
+              by <a href="https://github.com/anomixer/ampleweb-ai" target="_blank" rel="noopener noreferrer">anomixer</a>
             </div>
             <p>Browser-based Apple II &amp; Macintosh emulation</p>
             <p className="welcome-sub">Select a machine from the sidebar to begin</p>
