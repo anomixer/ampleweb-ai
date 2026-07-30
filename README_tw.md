@@ -28,6 +28,9 @@ MAME WASM（Canvas 畫面）
     *   *Chatbot 式增量文字差分*：在 `Text Mode` 下，前端利用 **LCS 滾動行對齊與指令特徵定位演算法**，比對當前螢幕與前一輪文字的差異，**僅提取並發送全新印出的遊戲輸出內容**（如「Opening the mailbox reveals a leaflet.」而非重複傳送整頁房間描述）。這能大幅縮減 90% 以上的重複 Token 消耗，並保持極佳的上下文整潔度。
 
 *   **思考鏈 (Chain-of-Thought, CoT) 決策**：在輸出指令前，先引導 AI 寫出 Reasoning 推理分析。預設的系統提示詞範本已更新為要求 LLM 輸出 `Reasoning:`（思考步驟）與 `Command:`（動作命令）。前端解析器會智慧解析多行回應並精確提取出 Command 部分打入模擬器，進而釋放 AI 在複雜謎題與方向迷失時的規劃推理能力，消除盲目猜測。
+*   **Chat Overlay 對話式介面（邊玩邊聊的 AI 副駕駛）**：模擬器畫面右下角的浮動聊天面板（💬 按鈕），讓您在 AI 遊玩的**同時**與它對話。您可以下指令（「往北走並拿起油燈」）、提問（「你現在看到什麼？」），或直接說「幫我玩這個遊戲」——若 AI 代理尚未啟動，送出訊息會自動啟動它，訊息會與螢幕狀態一起注入下一輪 LLM 請求。AI 透過結構化回應中的 `Reply:` 區塊回話，以聊天氣泡呈現，並附上它實際執行的按鍵指令。
+*   **Game Profile 多遊戲泛化機制**：AI 代理不再寫死只玩 Zork。**遊戲設定檔**（遊戲名稱 + 類型 + 輸入方式 + 遊玩提示）透過 `buildSystemPrompt()` 動態組出系統提示詞。內建預設集包含 Zork I、Karateka、Choplifter、Super Othello，以及針對未知遊戲的**通用文字冒險**與**通用動作遊戲**設定檔。遊戲類型會自動調整 Tick Rate（動作 2 秒 / 策略 5 秒 / 冒險 10 秒），`inputStyle` 則自動切換整句打字或即時按鍵模式。
+    *   *磁碟檔名自動偵測*：掛載磁碟（本地檔案或 URL）時，檔名會與關鍵字表（`detectGameProfileId`）比對——例如 `karateka.dsk` 會自動套用 Karateka 設定檔，Infocom 系列遊戲則套用通用文字冒險設定檔並以磁碟名作為遊戲名稱。您隨時可在 AI 分頁手動覆寫。
 *   **支援豐富模型與自訂提供商**：支援 Gemini 3.5 Flash、GPT-4o-mini、Claude 3.5 Sonnet、NVIDIA NIM、**Groq**、Ollama Cloud、LM Studio (本地)、Ollama (本地) 以及自訂 Provider。
 *   **可設定的對話歷史上限**：可自訂傳送給大模型的歷史記憶輪數（可調範圍 `0` 至 `20` 輪），徹底杜絕 AI 忘記前幾步而重複無效指令的「金魚腦」現象。
 *   **API 過載自動重試**：`fetchWithRetry` 包裝器在收到 `503`/`429` 錯誤時，使用指數退避自動重試（最多 3 次），讓短暫的 API 流量尖峰不再讓 AI 循環崩潰。

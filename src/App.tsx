@@ -12,8 +12,8 @@ import {
   type MediaFile,
 } from './core/wasm_loader'
 import { useStore, type VideoSettings } from './core/store'
-import { captureScreen, sendTextCommand, callRealLLM, callMockLLM, resetMockController, PROVIDER_DEFAULTS, readApple2TextScreen, resetMemoryCache, extractNewText, type HistoryTurn } from './ai/ai_controller'
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_VISION_SYSTEM_PROMPT, DEFAULT_TEXT_SYSTEM_PROMPT, ADVENTURE_PROMPT_PRESETS } from './ai/ai_prompt'
+import { captureScreen, sendActionCommand, parseAIResponse, callRealLLM, callMockLLM, resetMockController, PROVIDER_DEFAULTS, readApple2TextScreen, resetMemoryCache, extractNewText, type HistoryTurn } from './ai/ai_controller'
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_VISION_SYSTEM_PROMPT, DEFAULT_TEXT_SYSTEM_PROMPT, ADVENTURE_PROMPT_PRESETS, GAME_PROFILE_PRESETS, buildSystemPrompt, detectGameProfileId, type GameProfile } from './ai/ai_prompt'
 const BASE_URL = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
 
 
@@ -744,7 +744,22 @@ function App() {
   const [aiModel, setAiModel] = useState(() => {
     return localStorage.getItem('ample-ai-model') || ''
   })
-  const [aiSystemPrompt, setAiSystemPrompt] = useState(() => localStorage.getItem('ample-ai-prompt') || DEFAULT_SYSTEM_PROMPT)
+  const [aiSystemPrompt, setAiSystemPrompt] = useState(() => {
+    const savedId = localStorage.getItem('ample-ai-profile-id') || 'zork1'
+    if (savedId !== 'custom') {
+      const preset = GAME_PROFILE_PRESETS.find(p => p.id === savedId)
+      if (preset) {
+        return buildSystemPrompt({
+          name: preset.name,
+          genre: preset.genre,
+          inputStyle: preset.inputStyle,
+          customHint: preset.customHint
+        })
+      }
+    }
+    return localStorage.getItem('ample-ai-prompt') || DEFAULT_SYSTEM_PROMPT
+  })
+  const [sothelloSetupStep, setSothelloSetupStep] = useState(0)
   const [aiTickRate, setAiTickRate] = useState(() => {
     const saved = localStorage.getItem('ample-ai-tickrate')
     return saved ? parseInt(saved, 10) : 10
@@ -774,7 +789,84 @@ function App() {
   const [aiStatus, setAiStatus] = useState<'idle' | 'thinking' | 'typing' | 'error'>('idle')
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiLastScreenshot, setAiLastScreenshot] = useState<string | null>(null)
-  const [aiLogs, setAiLogs] = useState<Array<{ text: string; ts: number }>>([])
+
+  // ── Chat Overlay and Game Profile States ──
+  interface ChatMessage {
+    id: string
+    role: 'user' | 'assistant' | 'system_tick'
+    content: string
+    reasoning?: string
+    command?: string
+    screenshot?: string
+    timestamp: number
+  }
+
+  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [aiLoopPaused, setAiLoopPaused] = useState(false)
+  const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(() => {
+    return localStorage.getItem('ample-ai-chat-overlay') === '1'
+  })
+  useEffect(() => {
+    localStorage.setItem('ample-ai-chat-overlay', isChatOverlayOpen ? '1' : '0')
+  }, [isChatOverlayOpen])
+  const aiLoopPausedRef = useRef(aiLoopPaused)
+  useEffect(() => {
+    aiLoopPausedRef.current = aiLoopPaused
+  }, [aiLoopPaused])
+  const pendingUserMessageRef = useRef<string | null>(null)
+
+  const chatEndRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [aiMessages])
+
+  // Auto-scroll the floating chat overlay message list
+  const overlayMessagesRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = overlayMessagesRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [aiMessages, isChatOverlayOpen])
+
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(() => {
+    return localStorage.getItem('ample-ai-profile-id') || 'zork1'
+  })
+  const [gameProfile, setGameProfile] = useState<GameProfile>(() => {
+    const savedId = localStorage.getItem('ample-ai-profile-id') || 'zork1'
+    const preset = GAME_PROFILE_PRESETS.find(p => p.id === savedId)
+    if (preset) {
+      return {
+        name: preset.name,
+        genre: preset.genre,
+        inputStyle: preset.inputStyle,
+        customHint: preset.customHint
+      }
+    }
+    try {
+      const savedCustom = localStorage.getItem('ample-ai-custom-profile')
+      if (savedCustom) return JSON.parse(savedCustom)
+    } catch {}
+    return {
+      name: 'Custom Game',
+      genre: 'unknown',
+      inputStyle: 'text-command',
+      customHint: ''
+    }
+  })
+
+  useEffect(() => {
+    if (selectedProfileId === 'custom') {
+      localStorage.setItem('ample-ai-custom-profile', JSON.stringify(gameProfile))
+    }
+  }, [gameProfile, selectedProfileId])
+  
+  useEffect(() => {
+    if (selectedProfileId !== 'custom') {
+      setAiSystemPrompt(buildSystemPrompt(gameProfile))
+    }
+  }, [selectedProfileId, gameProfile])
   
   const aiTimerRef = useRef<any>(null)
   const aiIsProcessingRef = useRef(false)
@@ -891,6 +983,9 @@ function App() {
   // Clear conversation history on provider/URL/mode/machine switches to avoid leakage
   useEffect(() => {
     setAiHistory([])
+    setAiMessages([])
+    pendingUserMessageRef.current = null
+    setSothelloSetupStep(0)
   }, [aiMode, aiProvider, aiApiUrl, selectedMachine])
 
   // Reset RAM base address caches and history on ROM boot/reload
@@ -898,6 +993,9 @@ function App() {
     if (launchState === 'fetching-rom' || launchState === 'idle') {
       resetMemoryCache()
       setAiHistory([])
+      setAiMessages([])
+      pendingUserMessageRef.current = null
+      setSothelloSetupStep(0)
     }
   }, [launchState])
 
@@ -955,18 +1053,63 @@ function App() {
 
 
   // Helper to add AI logs
+  const addChatMessage = useCallback((msg: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    const newMsg: ChatMessage = {
+      ...msg,
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: Date.now()
+    }
+    setAiMessages(prev => [...prev.slice(-99), newMsg])
+  }, [])
+
   const addAiLog = useCallback((text: string) => {
-    setAiLogs(prev => [...prev.slice(-49), { text, ts: Date.now() }])
+    addChatMessage({
+      role: 'system_tick',
+      content: text
+    })
+  }, [addChatMessage])
+
+  // Apply a Game Profile preset (shared by the settings dropdown and media auto-detection).
+  // An optional gameName overrides the preset display name (used for generic profiles).
+  const applyGameProfile = useCallback((profileId: string, gameName?: string) => {
+    const preset = GAME_PROFILE_PRESETS.find(p => p.id === profileId)
+    if (!preset) return
+    setSelectedProfileId(profileId)
+    localStorage.setItem('ample-ai-profile-id', profileId)
+    const newProfile: GameProfile = {
+      name: gameName || preset.name,
+      genre: preset.genre,
+      inputStyle: preset.inputStyle,
+      customHint: preset.customHint
+    }
+    setGameProfile(newProfile)
+
+    if (preset.genre === 'action') {
+      setAiTickRate(2)
+    } else if (preset.genre === 'strategy') {
+      setAiTickRate(5)
+    } else {
+      setAiTickRate(10)
+    }
+
+    setAiSystemPrompt(buildSystemPrompt(newProfile))
   }, [])
 
   // AI Agent Main Logic
   const runAiTick = useCallback(async () => {
     if (aiIsProcessingRef.current) return
+    if (aiLoopPausedRef.current) {
+      return
+    }
     const canvas = document.getElementById('canvas') as HTMLCanvasElement | null
     if (!canvas) {
       addAiLog('Error: Emulator canvas not found')
       return
     }
+
+    // Consume pending user message if any
+    const userMsg = pendingUserMessageRef.current
+    pendingUserMessageRef.current = null
 
     try {
       aiIsProcessingRef.current = true
@@ -1015,22 +1158,36 @@ function App() {
       }
 
       addAiLog(`Calling LLM API (${aiProvider} - ${aiMode.toUpperCase()} mode)...`)
-      let command = ''
+      let rawResponse = ''
+
+      let activePromptContext = ''
+      if (selectedProfileId === 'sothello') {
+        if (sothelloSetupStep === 0) {
+          activePromptContext = `\n\n[Game State Context: We are in the SETUP PHASE. The game is asking "ONE OR TWO PLAYERS?". You must output exactly "Command: 1". Do not try to play coordinates!]`
+        } else if (sothelloSetupStep === 1) {
+          activePromptContext = `\n\n[Game State Context: We are in the SETUP PHASE. The game is asking "レベル (1-3)?". You must output exactly "Command: 1,ENTER". Do not try to play coordinates!]`
+        } else if (sothelloSetupStep === 2) {
+          activePromptContext = `\n\n[Game State Context: We are in the SETUP PHASE. The game is asking "センテ (Y/N)?". You must output exactly "Command: Y,ENTER" (or "N,ENTER"). Do not try to play coordinates!]`
+        } else {
+          activePromptContext = `\n\n[Game State Context: We are in the GAMEPLAY PHASE. The active prompt is "ヨコ =". You must decide your move (Col, Row) and output them together (e.g., "Command: 3,5").]`
+        }
+      }
 
       if (aiProvider === 'mock') {
-        command = await callMockLLM()
+        rawResponse = await callMockLLM(userMsg)
       } else {
         if (!aiApiKey) {
           throw new Error(`API key is required for ${aiProvider}`)
         }
-        command = await callRealLLM(
+        rawResponse = await callRealLLM(
           aiProvider,
           aiApiKey,
-          aiSystemPrompt,
+          aiSystemPrompt + activePromptContext,
           imgData,
           incrementalText,
           aiMode,
           aiHistoryRef.current,
+          userMsg,
           Number(aiMaxTokens) || 1000,
           typeof aiTemperature === 'number' && !isNaN(aiTemperature) ? aiTemperature : 0.6,
           aiApiUrl || undefined,
@@ -1041,18 +1198,52 @@ function App() {
         )
       }
 
-      if (!command) {
-        addAiLog('AI returned empty command. Skipping typing.')
-        setAiStatus('idle')
-        aiIsProcessingRef.current = false
-        return
+      if (!rawResponse) {
+        throw new Error('AI returned empty response.')
       }
 
-      addAiLog(`AI Command received: "${command}"`)
-      setAiStatus('typing')
+      // Parse multi-line structured response
+      const parsed = parseAIResponse(rawResponse)
+      
+      // Add assistant response to chat overlay.
+      // Fall back to reasoning/raw text if the model omitted the Reply section,
+      // so the chat bubble is never silently empty.
+      addChatMessage({
+        role: 'assistant',
+        content: parsed.reply || parsed.reasoning || rawResponse.trim().slice(0, 300),
+        reasoning: parsed.reasoning,
+        command: parsed.command || undefined,
+        screenshot: aiMode === 'vision' ? imgData : undefined
+      })
 
-      await sendTextCommand(command, canvas, Number(aiCharDelay) || 60)
-      addAiLog(`Successfully typed command: "${command}"`)
+      const command = parsed.command
+
+      if (command) {
+        if (aiLoopPausedRef.current) {
+          addAiLog('AI loop was paused. Skipping keystroke execution to prevent typing clash.')
+          setAiStatus('idle')
+          aiIsProcessingRef.current = false
+          return
+        }
+        addAiLog(`AI Command received: "${command}"`)
+        setAiStatus('typing')
+        await sendActionCommand(command, canvas, gameProfile.inputStyle, Number(aiCharDelay) || 60)
+        addAiLog(`Successfully executed command: "${command}"`)
+
+        // Setup phase progression for Super Othello
+        if (selectedProfileId === 'sothello') {
+          const upperCmd = command.toUpperCase().trim()
+          if (sothelloSetupStep === 0 && upperCmd === '1') {
+            setSothelloSetupStep(1)
+          } else if (sothelloSetupStep === 1 && upperCmd.startsWith('1')) {
+            setSothelloSetupStep(2)
+          } else if (sothelloSetupStep === 2 && (upperCmd.startsWith('Y') || upperCmd.startsWith('N'))) {
+            setSothelloSetupStep(3)
+          }
+        }
+      } else {
+        addAiLog('No action requested by AI this turn.')
+      }
 
       if (aiHistoryLimit > 0) {
         setAiHistory(prev => {
@@ -1061,7 +1252,9 @@ function App() {
             screenshotBase64: aiMode === 'vision' ? imgData : undefined,
             screenText: aiMode === 'text' ? incrementalText : undefined,
             fullScreenText: aiMode === 'text' ? screenText : undefined,
-            command
+            command: command || 'NONE',
+            userMessage: userMsg,
+            rawResponse
           }
           return [...prev, turn].slice(-aiHistoryLimit)
         })
@@ -1076,8 +1269,35 @@ function App() {
       addAiLog(`Error: ${errorMsg}`)
     } finally {
       aiIsProcessingRef.current = false
+      setAiStatus(prev => prev === 'error' ? 'error' : 'idle')
     }
-  }, [launchState, aiProvider, aiApiKey, aiApiUrl, aiModel, aiSystemPrompt, aiCharDelay, aiMaxTokens, aiTemperature, aiMode, aiHistoryLimit, setAiHistory, addAiLog, force80Col])
+  }, [launchState, aiProvider, aiApiKey, aiApiUrl, aiModel, aiSystemPrompt, aiCharDelay, aiMaxTokens, aiTemperature, aiMode, aiHistoryLimit, setAiHistory, addAiLog, force80Col, gameProfile.inputStyle, addChatMessage, selectedProfileId, sothelloSetupStep, setSothelloSetupStep])
+
+  const handleSendChatMessage = useCallback(() => {
+    if (!chatInput.trim()) return
+    const text = chatInput.trim()
+    addChatMessage({
+      role: 'user',
+      content: text
+    })
+    pendingUserMessageRef.current = text
+    setChatInput('')
+
+    // Automatically resume AI loop upon sending
+    setAiLoopPaused(false)
+
+    if (!aiEnabled) {
+      // Chat-first UX: typing a message auto-starts the AI agent
+      setAiEnabled(true)
+      addAiLog('Chat message received - AI Agent auto-started.')
+      return
+    }
+
+    // If AI loop is enabled and idle, trigger immediate tick for faster response
+    if (aiStatus === 'idle' && !aiIsProcessingRef.current) {
+      runAiTick()
+    }
+  }, [chatInput, addChatMessage, aiEnabled, aiStatus, runAiTick, setAiLoopPaused, addAiLog])
 
   // AI Loop Effect
   useEffect(() => {
@@ -1141,6 +1361,34 @@ function App() {
   }, [isLeftSidebarOpen, isRightSidebarOpen])
 
   const [mediaFiles, setMediaFiles] = useState<Record<string, File | null>>({})
+
+  // ── Game Profile auto-detection from mounted media filenames ──
+  const lastDetectedMediaRef = useRef('')
+  useEffect(() => {
+    const names: string[] = []
+    Object.values(mediaFiles).forEach(f => { if (f) names.push(f.name) })
+    Object.values(mediaUrls).forEach(u => {
+      if (u) {
+        try { names.push(decodeURIComponent(u.split('?')[0].split('/').pop() || '')) } catch {}
+      }
+    })
+    if (names.length === 0) return
+    const signature = names.join('|')
+    if (signature === lastDetectedMediaRef.current) return
+    lastDetectedMediaRef.current = signature
+    for (const name of names) {
+      const profileId = detectGameProfileId(name)
+      if (profileId && profileId !== selectedProfileId) {
+        const preset = GAME_PROFILE_PRESETS.find(p => p.id === profileId)
+        // For generic profiles, surface the actual media name as the game name
+        const cleanName = name.replace(/\.(zip|dsk|do|po|woz|nib|2mg|hdv|img|bin)$/i, '')
+        applyGameProfile(profileId, profileId.startsWith('generic-') ? cleanName : undefined)
+        addAiLog(`Game Profile auto-detected from "${name}" → ${preset?.name || profileId}`)
+        break
+      }
+    }
+  }, [mediaFiles, mediaUrls, selectedProfileId, applyGameProfile, addAiLog])
+
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
   const hasAutoLaunched = useRef(false)
@@ -3145,6 +3393,92 @@ function App() {
                       )}
                     </div>
                   )}
+
+                  {/* ── Floating Chat Overlay (conversational AI co-pilot) ── */}
+                  {launchState === 'running' && !isChatOverlayOpen && (
+                    <button
+                      className="chat-overlay-toggle"
+                      onClick={() => setIsChatOverlayOpen(true)}
+                      title="Open AI Chat"
+                    >
+                      💬
+                    </button>
+                  )}
+                  {launchState === 'running' && isChatOverlayOpen && (
+                    <div className="chat-overlay">
+                      <div className="chat-overlay-header">
+                        <span className="chat-overlay-title">
+                          🤖 AI Agent
+                          <span className={`chat-overlay-status ${aiStatus}`}>
+                            {!aiEnabled ? 'off' : aiStatus}
+                          </span>
+                        </span>
+                        <span className="chat-overlay-game" title={gameProfile.name}>{gameProfile.name}</span>
+                        <div className="chat-overlay-actions">
+                          <button
+                            className="chat-overlay-btn"
+                            disabled={!aiEnabled}
+                            onClick={() => {
+                              const nextPaused = !aiLoopPaused
+                              setAiLoopPaused(nextPaused)
+                              addAiLog(nextPaused ? 'AI Agent loop paused.' : 'AI Agent loop resumed.')
+                            }}
+                            title={aiLoopPaused ? 'Resume AI loop' : 'Pause AI loop'}
+                          >
+                            {aiLoopPaused ? '▶️' : '⏸️'}
+                          </button>
+                          <button
+                            className="chat-overlay-btn"
+                            onClick={() => setIsChatOverlayOpen(false)}
+                            title="Minimize chat"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                      <div className="chat-overlay-messages" ref={overlayMessagesRef}>
+                        {aiMessages.filter(m => m.role !== 'system_tick').length === 0 ? (
+                          <div className="chat-overlay-empty">
+                            Ask the AI to play for you — e.g. “play this game”, “go north and take the lamp”, “what do you see?”
+                          </div>
+                        ) : (
+                          aiMessages.filter(m => m.role !== 'system_tick').slice(-30).map(msg => (
+                            <div key={msg.id} className={`chat-overlay-msg ${msg.role}`}>
+                              <div className="chat-overlay-bubble">
+                                <div>{msg.content}</div>
+                                {msg.command && (
+                                  <div className="chat-overlay-cmd">⌨ {msg.command}</div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        {aiStatus === 'thinking' && aiEnabled && (
+                          <div className="chat-overlay-msg assistant">
+                            <div className="chat-overlay-bubble thinking">…</div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="chat-overlay-inputrow">
+                        <input
+                          type="text"
+                          placeholder={aiEnabled ? "Chat with the AI player..." : "Type to start the AI player..."}
+                          value={chatInput}
+                          onChange={e => setChatInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSendChatMessage()
+                          }}
+                        />
+                        <button
+                          className="btn btn-primary"
+                          disabled={!chatInput.trim()}
+                          onClick={handleSendChatMessage}
+                        >
+                          ➤
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3589,6 +3923,155 @@ function App() {
                         {aiEnabled ? '🟢 Enabled' : '🔴 Disabled'}
                       </button>
                     </div>
+                    {/* Game Profile Settings */}
+                    <div style={{
+                      padding: '10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      background: 'rgba(0, 0, 0, 0.15)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      marginBottom: '4px'
+                    }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '11px', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>🎮</span> Game Profile Settings
+                      </div>
+                      
+                      <div className="slot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="slot-label" style={{ fontSize: '11px', color: 'var(--text1)' }}>Profile Preset</label>
+                        <select
+                          className="slot-select"
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'var(--text0)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            width: '160px'
+                          }}
+                          value={selectedProfileId}
+                          onChange={e => applyGameProfile(e.target.value)}
+                        >
+                          {GAME_PROFILE_PRESETS.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="slot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="slot-label" style={{ fontSize: '11px', color: 'var(--text1)' }}>Game Name</label>
+                        <input
+                          type="text"
+                          className="slot-select"
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'var(--text0)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            width: '160px'
+                          }}
+                          disabled={selectedProfileId !== 'custom'}
+                          value={gameProfile.name}
+                          onChange={e => {
+                            const newProfile = { ...gameProfile, name: e.target.value }
+                            setGameProfile(newProfile)
+                            setAiSystemPrompt(buildSystemPrompt(newProfile))
+                          }}
+                        />
+                      </div>
+
+                      <div className="slot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="slot-label" style={{ fontSize: '11px', color: 'var(--text1)' }}>Genre</label>
+                        <select
+                          className="slot-select"
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'var(--text0)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            width: '160px'
+                          }}
+                          disabled={selectedProfileId !== 'custom'}
+                          value={gameProfile.genre}
+                          onChange={e => {
+                            const newProfile = { ...gameProfile, genre: e.target.value as any }
+                            setGameProfile(newProfile)
+                            setAiSystemPrompt(buildSystemPrompt(newProfile))
+                          }}
+                        >
+                          <option value="text-adventure">Text Adventure</option>
+                          <option value="action">Action</option>
+                          <option value="strategy">Strategy</option>
+                          <option value="unknown">Unknown</option>
+                        </select>
+                      </div>
+
+                      <div className="slot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="slot-label" style={{ fontSize: '11px', color: 'var(--text1)' }}>Input Style</label>
+                        <select
+                          className="slot-select"
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'var(--text0)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            width: '160px'
+                          }}
+                          disabled={selectedProfileId !== 'custom'}
+                          value={gameProfile.inputStyle}
+                          onChange={e => {
+                            const newProfile = { ...gameProfile, inputStyle: e.target.value as any }
+                            setGameProfile(newProfile)
+                            setAiSystemPrompt(buildSystemPrompt(newProfile))
+                            if (newProfile.inputStyle === 'realtime-keys') {
+                              setAiTickRate(2)
+                            } else {
+                              setAiTickRate(10)
+                            }
+                          }}
+                        >
+                          <option value="text-command">Text Command</option>
+                          <option value="realtime-keys">Realtime Keys</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label className="slot-label" style={{ fontSize: '11px', color: 'var(--text1)' }}>Play Hints & Rules</label>
+                        <textarea
+                          className="slot-select"
+                          style={{
+                            fontFamily: 'var(--font)',
+                            fontSize: '10px',
+                            height: '110px',
+                            resize: 'vertical',
+                            flex: 'none',
+                            background: 'rgba(0,0,0,0.2)',
+                            color: 'var(--text0)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            padding: '4px',
+                            opacity: selectedProfileId === 'custom' ? 1 : 0.75,
+                            cursor: selectedProfileId === 'custom' ? 'text' : 'default'
+                          }}
+                          readOnly={selectedProfileId !== 'custom'}
+                          value={gameProfile.customHint || ''}
+                          onChange={e => {
+                            const newProfile = { ...gameProfile, customHint: e.target.value }
+                            setGameProfile(newProfile)
+                            setAiSystemPrompt(buildSystemPrompt(newProfile))
+                          }}
+                          placeholder="Hints for AI navigation and keys mapping..."
+                        />
+                      </div>
+                    </div>
 
                     <div className="slot-grid" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div className="slot-row">
@@ -3959,12 +4442,13 @@ function App() {
                             fontSize: '10px',
                             lineHeight: '1.3',
                             height: '110px',
+                            resize: 'vertical',
+                            flex: 'none',
                             background: 'rgba(0, 0, 0, 0.2)',
                             color: '#e2e8f0',
                             border: '1px solid var(--border)',
                             borderRadius: '4px',
-                            padding: '6px',
-                            resize: 'none'
+                            padding: '6px'
                           }}
                           value={aiSystemPrompt}
                           onChange={e => setAiSystemPrompt(e.target.value)}
@@ -4190,7 +4674,9 @@ function App() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        resize: 'vertical',
+                        flex: 'none'
                       }}>
                         {aiLastScreenshot ? (
                           <img
@@ -4204,43 +4690,189 @@ function App() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '100px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '180px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>Agent Execution Log:</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>AI Agent Chat & Logs:</span>
                         <button
                           className="log-btn"
                           style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '10px' }}
                           onClick={() => {
-                            setAiLogs([])
                             setAiHistory([])
-                            addAiLog('Logs and AI history cleared.')
+                            setAiMessages([])
+                            pendingUserMessageRef.current = null
+                            addAiLog('Chat and AI history cleared.')
                           }}
                         >
                           Clear
                         </button>
                       </div>
+                      
+                      {/* Chat Messages Log */}
                       <div style={{
-                        flex: '1 1 auto',
+                        flex: 'none',
                         background: 'rgba(0,0,0,0.2)',
                         border: '1px solid var(--border)',
                         borderRadius: '4px',
                         padding: '6px',
-                        fontFamily: 'monospace',
-                        fontSize: '10px',
+                        fontSize: '13px',
                         overflowY: 'auto',
                         lineHeight: '1.4',
-                        height: '110px'
+                        height: '140px',
+                        resize: 'vertical',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
                       }}>
-                        {aiLogs.length === 0 ? (
-                          <span style={{ color: 'var(--text3)', fontStyle: 'italic' }}>Logs will appear here during execution...</span>
+                        {aiMessages.length === 0 ? (
+                          <span style={{ color: 'var(--text3)', fontStyle: 'italic', fontSize: '13px' }}>Chat logs will appear here during execution...</span>
                         ) : (
-                          aiLogs.map((log, idx) => (
-                            <div key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '2px', marginBottom: '2px' }}>
-                              <span style={{ color: 'var(--text3)', marginRight: '4px' }}>[{new Date(log.ts).toLocaleTimeString()}]</span>
-                              <span style={{ color: log.text.includes('Error') ? '#ef4444' : log.text.includes('typed') ? 'var(--green)' : 'var(--text1)' }}>{log.text}</span>
-                            </div>
-                          ))
+                          aiMessages.map((msg) => {
+                            if (msg.role === 'system_tick') {
+                              return (
+                                <div key={msg.id} style={{ fontSize: '11px', color: 'var(--text2)', opacity: 0.7, borderBottom: '1px solid rgba(255,255,255,0.02)', padding: '2px 0' }}>
+                                  <span style={{ color: 'var(--text3)', marginRight: '4px' }}>[{new Date(msg.timestamp).toLocaleTimeString()}]</span>
+                                  <span style={{ color: msg.content.includes('Error') ? '#ef4444' : msg.content.includes('AI Command') || msg.content.includes('Successfully') ? 'var(--green)' : 'var(--text2)' }}>{msg.content}</span>
+                                </div>
+                              )
+                            }
+                            if (msg.role === 'user') {
+                              return (
+                                <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '2px 0' }}>
+                                  <div style={{
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    borderRadius: '6px 6px 0 6px',
+                                    padding: '6px 10px',
+                                    color: 'var(--text0)',
+                                    fontSize: '13.5px',
+                                    maxWidth: '85%',
+                                    wordBreak: 'break-word',
+                                    textAlign: 'right'
+                                  }}>
+                                    {msg.content}
+                                  </div>
+                                  <span style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>
+                                    User • {new Date(msg.timestamp).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                              )
+                            }
+                            // Assistant message
+                            return (
+                              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', margin: '2px 0' }}>
+                                <div style={{
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '6px 6px 6px 0',
+                                  padding: '6px 10px',
+                                  color: 'var(--text0)',
+                                  fontSize: '13.5px',
+                                  maxWidth: '85%',
+                                  wordBreak: 'break-word'
+                                }}>
+                                  <div>{msg.content}</div>
+                                  
+                                  {msg.reasoning && (
+                                    <details style={{ marginTop: '4px', fontSize: '12px', opacity: 0.85 }}>
+                                      <summary style={{ cursor: 'pointer', outline: 'none', color: 'var(--green)', userSelect: 'none' }}>
+                                        💭 Thoughts
+                                      </summary>
+                                      <div style={{ marginTop: '2px', paddingLeft: '6px', borderLeft: '1px solid var(--border)', fontStyle: 'italic', color: 'var(--text1)' }}>
+                                        {msg.reasoning}
+                                      </div>
+                                    </details>
+                                  )}
+
+                                  {msg.command && (
+                                    <div style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      marginTop: '6px',
+                                      padding: '3px 8px',
+                                      background: 'var(--bg3)',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      fontFamily: 'monospace',
+                                      color: 'var(--green)'
+                                    }}>
+                                      <span>Keyboard Input:</span> <strong>{msg.command}</strong>
+                                    </div>
+                                  )}
+
+                                  {msg.screenshot && (
+                                    <div style={{ marginTop: '6px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', maxWidth: '120px' }}>
+                                      <img src={msg.screenshot} alt="Captured screen" style={{ width: '100%', display: 'block' }} />
+                                    </div>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>
+                                  AI Agent • {new Date(msg.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+                            )
+                          })
                         )}
+                        <div ref={chatEndRef} />
+                      </div>
+
+                      {/* Chat Input Controls */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input
+                            type="text"
+                            placeholder={launchState !== 'running' ? "Launch a machine to chat..." : "Type message to AI agent..."}
+                            disabled={launchState !== 'running'}
+                            value={chatInput}
+                            onChange={e => setChatInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                handleSendChatMessage()
+                              }
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 10px',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              color: 'var(--text0)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontSize: '13.5px',
+                              opacity: launchState === 'running' ? 1 : 0.5,
+                              cursor: launchState === 'running' ? 'text' : 'not-allowed'
+                            }}
+                          />
+                          <button
+                            className="btn btn-primary"
+                            disabled={launchState !== 'running' || !chatInput.trim()}
+                            onClick={handleSendChatMessage}
+                            style={{ padding: '6px 14px', fontSize: '13px' }}
+                          >
+                            Send
+                          </button>
+                          <button
+                            className={`btn ${aiLoopPaused ? 'btn-primary' : 'btn-secondary'}`}
+                            disabled={!aiEnabled}
+                            onClick={() => {
+                              const nextPaused = !aiLoopPaused;
+                              setAiLoopPaused(nextPaused);
+                              addAiLog(nextPaused ? 'AI Agent loop paused.' : 'AI Agent loop resumed.');
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '13px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: aiLoopPaused ? 'var(--green)' : 'rgba(255,255,255,0.08)',
+                              color: aiLoopPaused ? '#fff' : 'var(--text1)'
+                            }}
+                            title={aiLoopPaused ? "Resume AI loop" : "Pause AI loop"}
+                          >
+                            {aiLoopPaused ? '▶️ Play' : '⏸️ Pause'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

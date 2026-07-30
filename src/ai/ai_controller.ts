@@ -1,7 +1,7 @@
 
 
-/** Max width for screenshot sent to LLM. Smaller = fewer image tokens. */
-const CAPTURE_MAX_WIDTH = 480;
+/** Max width for screenshot sent to LLM. Larger (up to 1024) preserves pixel-perfect retro outlines without blurry downscaling. */
+const CAPTURE_MAX_WIDTH = 1024;
 
 /**
  * Captures the current frame from the emulator canvas as a compressed JPEG data URL.
@@ -169,6 +169,119 @@ export async function sendTextCommand(
 }
 
 /**
+ * Executes a game command depending on input style.
+ * For realtime keys, parses single/combo keys (e.g. LEFT+SPACE) and holds keydown before keyup.
+ * For text command, types character-by-character.
+ */
+export async function sendActionCommand(
+  command: string,
+  target: HTMLElement,
+  inputStyle: 'text-command' | 'realtime-keys',
+  charDelayMs: number = 60
+): Promise<void> {
+  const cleanCmd = command.trim().toUpperCase();
+  if (cleanCmd === 'NONE' || !cleanCmd) {
+    console.log('[AI Action] Command is NONE or empty, skipping keyboard simulation.');
+    return;
+  }
+
+  if (inputStyle === 'realtime-keys') {
+    if (cleanCmd.includes(',')) {
+      const subCommands = cleanCmd.split(',');
+      console.log(`[AI Action] Splitting sequential comma commands: ${JSON.stringify(subCommands)}`);
+      for (const subCmd of subCommands) {
+        await sendActionCommand(subCmd, target, inputStyle, charDelayMs);
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+      return;
+    }
+
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl !== target && (
+      activeEl.tagName.toLowerCase() === 'input' ||
+      activeEl.tagName.toLowerCase() === 'textarea' ||
+      activeEl.tagName.toLowerCase() === 'select' ||
+      activeEl.hasAttribute('contenteditable') ||
+      activeEl.getAttribute('contenteditable') === 'true'
+    )) {
+      try { (activeEl as HTMLElement).blur(); } catch (e) {}
+    }
+    target.focus();
+
+    const parts = cleanCmd.split('+').map(p => p.trim());
+    const keysToPress: { key: string; code: string; keyCode: number }[] = [];
+
+    for (const part of parts) {
+      let key = part;
+      let code = part;
+      let keyCode = 0;
+
+      if (part === 'UP') {
+        key = 'ArrowUp';
+        code = 'ArrowUp';
+        keyCode = 38;
+      } else if (part === 'DOWN') {
+        key = 'ArrowDown';
+        code = 'ArrowDown';
+        keyCode = 40;
+      } else if (part === 'LEFT') {
+        key = 'ArrowLeft';
+        code = 'ArrowLeft';
+        keyCode = 37;
+      } else if (part === 'RIGHT') {
+        key = 'ArrowRight';
+        code = 'ArrowRight';
+        keyCode = 39;
+      } else if (part === 'SPACE') {
+        key = ' ';
+        code = 'Space';
+        keyCode = 32;
+      } else if (part === 'ENTER') {
+        key = 'Enter';
+        code = 'Enter';
+        keyCode = 13;
+      } else if (part === 'ESC' || part === 'ESCAPE') {
+        key = 'Escape';
+        code = 'Escape';
+        keyCode = 27;
+      } else if (part.length === 1) {
+        key = part.toLowerCase();
+        if (/[0-9]/.test(part)) {
+          code = `Digit${part}`;
+        } else {
+          code = `Key${part}`;
+        }
+        keyCode = part.charCodeAt(0);
+      } else {
+        key = part;
+        code = part;
+        keyCode = part.charCodeAt(0) || 0;
+      }
+
+      keysToPress.push({ key, code, keyCode });
+    }
+
+    console.log(`[AI Action] Pressing realtime keys: ${JSON.stringify(keysToPress.map(k => k.code))}`);
+
+    for (const k of keysToPress) {
+      const opts = { key: k.key, code: k.code, keyCode: k.keyCode, which: k.keyCode, bubbles: true, cancelable: true };
+      target.dispatchEvent(new KeyboardEvent('keydown', opts));
+    }
+
+    const holdDelay = 200;
+    await new Promise(resolve => setTimeout(resolve, holdDelay));
+
+    for (let i = keysToPress.length - 1; i >= 0; i--) {
+      const k = keysToPress[i];
+      const opts = { key: k.key, code: k.code, keyCode: k.keyCode, which: k.keyCode, bubbles: true, cancelable: true };
+      target.dispatchEvent(new KeyboardEvent('keyup', opts));
+    }
+  } else {
+    await sendTextCommand(cleanCmd, target, charDelayMs);
+  }
+}
+
+/**
  * Mock LLM response generator that simulates playing Zork step-by-step.
  */
 let mockStepIndex = 0;
@@ -187,12 +300,32 @@ export function resetMockController(): void {
   mockStepIndex = 0;
 }
 
-export async function callMockLLM(): Promise<string> {
+export async function callMockLLM(userMessage?: string | null): Promise<string> {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 800));
+  
+  if (userMessage) {
+    const msgLower = userMessage.toLowerCase();
+    if (msgLower.includes('hello') || msgLower.includes('hi')) {
+      return `Reasoning: The user greeted me. I should greet them back and ask how to proceed.
+Reply: Hello! How can I help you with this game today?
+Command: NONE`;
+    }
+    if (msgLower.includes('stop') || msgLower.includes('pause')) {
+      return `Reasoning: The user requested to pause or stop.
+Reply: Understood. I will pause command execution.
+Command: NONE`;
+    }
+    return `Reasoning: The user said: "${userMessage}". I will respond and continue playing.
+Reply: I received your message: "${userMessage}". Let's continue.
+Command: LOOK`;
+  }
+
   const cmd = MOCK_ZORK_COMMANDS[mockStepIndex];
   mockStepIndex = (mockStepIndex + 1) % MOCK_ZORK_COMMANDS.length;
-  return cmd;
+  return `Reasoning: Simulating playing Zork. Step ${mockStepIndex + 1} is ${cmd}.
+Reply: I am going to execute the command: ${cmd}.
+Command: ${cmd}`;
 }
 
 /**
@@ -363,7 +496,7 @@ export const PROVIDER_DEFAULTS: Record<string, { baseUrl: string; model: string;
   groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'openai/gpt-oss-120b', requiresKey: true, label: 'Groq' },
   // Ollama Cloud also blocks browser CORS — route through corsfix.com proxy
   'ollama-cloud': { baseUrl: 'https://proxy.corsfix.com/?https://api.ollama.com/v1', model: 'gemma4:31b-cloud', requiresKey: true, label: 'Ollama Cloud' },
-  lmstudio: { baseUrl: 'http://localhost:1234/v1', model: 'qwen/qwen3.6:35b-a3b', requiresKey: false, label: 'LM Studio' },
+  lmstudio: { baseUrl: 'http://localhost:1234/v1', model: 'qwen/qwen3.6-35b-a3b', requiresKey: false, label: 'LM Studio' },
   ollama: { baseUrl: 'http://localhost:11434/v1', model: 'qwen3.6:35b-a3b', requiresKey: false, label: 'Ollama (Local)' },
   custom: { baseUrl: '', model: '', requiresKey: false, label: 'Custom Provider' },
 };
@@ -375,6 +508,169 @@ export interface HistoryTurn {
   screenText?: string;
   fullScreenText?: string;
   command: string;
+  userMessage?: string | null;
+  rawResponse?: string;
+}
+
+// Builds the per-turn user prompt. When the user sent a chat message, answering it
+// conversationally (in the user's language) takes priority over gameplay narration.
+function buildTurnUserPrompt(userMessage?: string | null): string {
+  if (userMessage) {
+    return `[USER CHAT MESSAGE]: "${userMessage}"
+
+The user is talking to you RIGHT NOW. Answering them is your TOP PRIORITY this turn:
+- The "Reply:" section MUST directly and conversationally answer the user's message, in the SAME language the user wrote in (e.g. answer in Chinese if they wrote Chinese).
+- Do NOT fill "Reply:" with gameplay narration this turn — talk to the user like a friendly companion.
+- If they asked a question, answer it based on the current game screen. If they gave an instruction, confirm it and follow it.
+- Only after answering, decide the next game command (use "NONE" if the user asked you to wait or no action fits).`;
+  }
+  return `Analyze the screen and decide the next command.`;
+}
+
+// Compact, game-agnostic output format reminder appended to every current turn.
+// Kept generic — game-specific examples live in the Game Profile system prompt.
+const FORMAT_REMINDER = `\n\nREMINDER — respond EXACTLY in one of these two formats:\nFormat A:\nReasoning: <one short sentence>\nReply: <brief response>\nCommand: <command or NONE>\n\nFormat B (XML, recommended for local models):\n<reasoning><one short sentence></reasoning>\n<reply><brief response></reply>\n<command><command or NONE></command>\n\nGROUNDING: Base your action ONLY on what is actually visible in the current screen. Do NOT invent objects, items, or exits that are not shown. If your previous command failed or was rejected, do NOT repeat it — try a different action.`;
+
+export interface AIResponseParsed {
+  reasoning: string;
+  reply: string;
+  command: string;
+}
+
+export function parseAIResponse(response: string): AIResponseParsed {
+  let reasoning = '';
+  let reply = '';
+  let command = '';
+
+  // Try XML tag parsing first (highly reliable for local instruction-tuned models)
+  const xmlReasoning = response.match(/<reasoning>([\s\S]*?)<\/reasoning>/i);
+  const xmlReply = response.match(/<reply>([\s\S]*?)<\/reply>/i);
+  const xmlCommand = response.match(/<command>([\s\S]*?)<\/command>/i);
+
+  if (xmlReasoning || xmlReply || xmlCommand) {
+    if (xmlReasoning) reasoning = xmlReasoning[1].trim();
+    if (xmlReply) reply = xmlReply[1].trim();
+    if (xmlCommand) command = xmlCommand[1].trim();
+  } else {
+    const lines = response.split('\n');
+    let currentSection: 'none' | 'reasoning' | 'reply' | 'command' = 'none';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const upper = trimmed.toUpperCase();
+
+      if (upper.startsWith('REASONING:')) {
+        currentSection = 'reasoning';
+        reasoning += trimmed.substring('REASONING:'.length).trim() + ' ';
+      } else if (upper.startsWith('REPLY:')) {
+        currentSection = 'reply';
+        reply += trimmed.substring('REPLY:'.length).trim() + ' ';
+      } else if (upper.startsWith('COMMAND:') || upper.startsWith('ACTION:')) {
+        currentSection = 'command';
+        command += trimmed.substring(trimmed.indexOf(':') + 1).trim() + ' ';
+      } else {
+        if (currentSection === 'reasoning') {
+          reasoning += trimmed + ' ';
+        } else if (currentSection === 'reply') {
+          reply += trimmed + ' ';
+        } else if (currentSection === 'command') {
+          command += trimmed + ' ';
+        }
+      }
+    }
+
+    reasoning = reasoning.trim();
+    reply = reply.trim();
+    command = command.trim();
+  }
+
+  // If no sections were parsed at all (meaning the model just spit out text without headings)
+  if (!reasoning && !reply && !command) {
+    const raw = response.trim();
+    const matchReasoning = raw.match(/reasoning:\s*(.*?)(?=(reply:|command:|action:|$))/is);
+    const matchReply = raw.match(/reply:\s*(.*?)(?=(reasoning:|command:|action:|$))/is);
+    const matchCommand = raw.match(/(?:command|action):\s*(.*?)(?=(reasoning:|reply:|$))/is);
+
+    if (matchReasoning) reasoning = matchReasoning[1].trim();
+    if (matchReply) reply = matchReply[1].trim();
+    if (matchCommand) command = matchCommand[1].trim();
+
+    if (!reasoning && !reply && !command) {
+      if (raw.length < 40 && /^[A-Z0-9+\s]+$/.test(raw)) {
+        command = raw;
+      } else {
+        reply = raw;
+      }
+    }
+  }
+
+  // Clean the command string
+  if (command) {
+    command = command.replace(/```[a-zA-Z]*\n?/g, '');
+    command = command.replace(/```/g, '');
+    command = command.replace(/^["']|["']$/g, '');
+    command = command.replace(/[.!?]+$/, '');
+    command = command.trim();
+
+    // Reject long/suspicious commands (e.g. LLM rambling)
+    const cleanTest = command.trim();
+    const isSuspicious = cleanTest.length > 50 || 
+                         (/[a-z]/.test(cleanTest) && !/^(ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Space|Enter|Escape)$/i.test(cleanTest));
+    if (isSuspicious) {
+      console.warn(`[AI Parser] Discarding suspicious command: "${command}"`);
+      if (!reply) reply = command;
+      command = '';
+    }
+
+    const upperCmd = command.toUpperCase();
+    if (upperCmd === 'NONE' || upperCmd === 'NONE.' || upperCmd === 'NONE!') {
+      command = '';
+    }
+  }
+
+  // Fallback for reply
+  if (!reply) {
+    if (command) {
+      reply = `Executing command: ${command}`;
+    } else if (reasoning) {
+      reply = reasoning;
+    } else {
+      reply = '(No response from AI)';
+    }
+  }
+
+  // Ultimate fallback coordinate scanner for Othello/Reversi when formatting fails or gets truncated
+  if (!command && response) {
+    const choiceRegex = /(?:choose|play|move|place|at|go\s+to|select)\s*[\w\s:]*\(?\b([1-8])\s*[,.-/]\s*([1-8])\b/i;
+    const match = response.match(choiceRegex);
+    if (match) {
+      const col = match[1];
+      const row = match[2];
+      
+      // Detect whether the model was aiming for column (yoko) or row (tate)
+      const lastYoko = Math.max(
+        response.lastIndexOf('ヨコ'),
+        response.lastIndexOf('Yoko'),
+        response.lastIndexOf('Column'),
+        response.lastIndexOf('column')
+      );
+      const lastTate = Math.max(
+        response.lastIndexOf('タテ'),
+        response.lastIndexOf('Tate'),
+        response.lastIndexOf('Row'),
+        response.lastIndexOf('row')
+      );
+      
+      const targetMode = lastTate > lastYoko ? 'tate' : 'yoko';
+      command = targetMode === 'tate' ? row : `${col},${row}`;
+      console.log(`[AI Parser Fallback] Detected Othello choice (${col}, ${row}) in prompt mode ${targetMode}. Extracted command: "${command}"`);
+      if (!reply) {
+        reply = `Decided to play at (${col}, ${row}). Sending coordinate: ${command}`;
+      }
+    }
+  }
+
+  return { reasoning, reply, command };
 }
 
 /**
@@ -412,9 +708,13 @@ async function callOpenAICompatible(
   }
 
   const data = await response.json();
-  const textOut = data.choices?.[0]?.message?.content;
+  const msgObj = data.choices?.[0]?.message;
+  let textOut = msgObj?.content;
+  if (!textOut && msgObj) {
+    textOut = msgObj.reasoning || msgObj.reasoning_content;
+  }
   if (!textOut) throw new Error(`Empty response from ${providerLabel} API. Response: ${JSON.stringify(data)}`);
-  return cleanLLMResponse(textOut);
+  return textOut.trim();
 }
 
 /**
@@ -440,14 +740,13 @@ export async function callRealLLM(
   screenText: string,
   mode: 'vision' | 'text',
   history: HistoryTurn[],
+  userMessage?: string | null,
   maxTokens: number = 1000,
   temperature: number = 0.6,
   apiBaseUrl?: string,
   aiModel?: string,
   onRetry?: (status: number, nextDelay: number, attempt: number) => void
 ): Promise<string> {
-  const prompt = "Next command? Output ONLY the command, nothing else.";
-
   // ── Gemini (custom REST API, not OpenAI-compatible) ──────────────────────
   if (provider === 'gemini') {
     const model = aiModel || 'gemini-3.5-flash';
@@ -460,7 +759,12 @@ export async function callRealLLM(
     for (let i = 0; i < history.length; i++) {
       const turn = history[i];
       const parts: any[] = [];
-      const turnPrompt = i === 0 ? `${systemPrompt}\n\n${prompt}` : prompt;
+      
+      let turnPrompt = buildTurnUserPrompt(turn.userMessage);
+
+      if (i === 0) {
+        turnPrompt = `${systemPrompt}\n\n${turnPrompt}`;
+      }
 
       if (turn.mode === 'vision') {
         const rawBase64 = turn.screenshotBase64!.replace(/^data:image\/\w+;base64,/, '');
@@ -470,12 +774,19 @@ export async function callRealLLM(
         parts.push({ text: `${turnPrompt}\n\nGame Screen Text:\n================================\n${turn.screenText}\n================================` });
       }
       contents.push({ role: 'user', parts });
-      contents.push({ role: 'model', parts: [{ text: turn.command }] });
+      
+      const assistantText = turn.rawResponse || `Reasoning: Executing next step.\nReply: I am typing the command "${turn.command}".\nCommand: ${turn.command}`;
+      contents.push({ role: 'model', parts: [{ text: assistantText }] });
     }
 
-    // Add current turn
     const currentParts: any[] = [];
-    const currentPrompt = history.length === 0 ? `${systemPrompt}\n\n${prompt}` : prompt;
+    let currentPrompt = buildTurnUserPrompt(userMessage);
+    currentPrompt += FORMAT_REMINDER;
+
+    if (history.length === 0) {
+      currentPrompt = `${systemPrompt}\n\n${currentPrompt}`;
+    }
+
     if (mode === 'vision') {
       const rawBase64 = screenshotBase64.replace(/^data:image\/\w+;base64,/, '');
       currentParts.push({ text: currentPrompt });
@@ -503,7 +814,7 @@ export async function callRealLLM(
     if (!textOut) {
       throw new Error(`Empty response from Gemini API. Response JSON: ${JSON.stringify(data)}`);
     }
-    return cleanLLMResponse(textOut);
+    return textOut.trim();
   }
 
   // ── Claude (Anthropic REST API, not OpenAI-compatible) ───────────────────
@@ -517,29 +828,35 @@ export async function callRealLLM(
     // Add history turns
     for (const turn of history) {
       const userContent: any[] = [];
+      let turnPrompt = buildTurnUserPrompt(turn.userMessage);
+
       if (turn.mode === 'vision') {
         const rawBase64 = turn.screenshotBase64!.replace(/^data:image\/\w+;base64,/, '');
         userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: rawBase64 } });
-        userContent.push({ type: 'text', text: prompt });
+        userContent.push({ type: 'text', text: turnPrompt });
       } else {
-        userContent.push({ type: 'text', text: `Game Screen Text:\n================================\n${turn.screenText}\n================================\n\n${prompt}` });
+        userContent.push({ type: 'text', text: `Game Screen Text:\n================================\n${turn.screenText}\n================================\n\n${turnPrompt}` });
       }
 
       messages.push({
         role: 'user',
         content: userContent.length === 1 && userContent[0].type === 'text' ? userContent[0].text : userContent
       });
-      messages.push({ role: 'assistant', content: turn.command });
+
+      const assistantText = turn.rawResponse || `Reasoning: Executing next step.\nReply: I am typing the command "${turn.command}".\nCommand: ${turn.command}`;
+      messages.push({ role: 'assistant', content: assistantText });
     }
 
-    // Add current turn
     const currentUserContent: any[] = [];
+    let currentPrompt = buildTurnUserPrompt(userMessage);
+    currentPrompt += FORMAT_REMINDER;
+
     if (mode === 'vision') {
       const rawBase64 = screenshotBase64.replace(/^data:image\/\w+;base64,/, '');
       currentUserContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: rawBase64 } });
-      currentUserContent.push({ type: 'text', text: prompt });
+      currentUserContent.push({ type: 'text', text: currentPrompt });
     } else {
-      currentUserContent.push({ type: 'text', text: `Game Screen Text:\n================================\n${screenText}\n================================\n\n${prompt}` });
+      currentUserContent.push({ type: 'text', text: `Game Screen Text:\n================================\n${screenText}\n================================\n\n${currentPrompt}` });
     }
     messages.push({
       role: 'user',
@@ -570,7 +887,7 @@ export async function callRealLLM(
     const data = await response.json();
     const textOut = data.content?.[0]?.text;
     if (!textOut) throw new Error('Empty response from Claude API');
-    return cleanLLMResponse(textOut);
+    return textOut.trim();
   }
 
   // ── All OpenAI-compatible providers ──────────────────────────────────────
@@ -593,36 +910,43 @@ export async function callRealLLM(
 
   // Add history turns
   for (const turn of history) {
+    let turnPrompt = buildTurnUserPrompt(turn.userMessage);
+
     if (turn.mode === 'vision') {
       messages.push({
         role: 'user',
         content: [
-          { type: 'text', text: prompt },
+          { type: 'text', text: turnPrompt },
           { type: 'image_url', image_url: { url: turn.screenshotBase64! } }
         ]
       });
     } else {
       messages.push({
         role: 'user',
-        content: `Game Screen:\n${capScreen(turn.screenText)}\n\n${prompt}`
+        content: `Game Screen:\n${capScreen(turn.screenText)}\n\n${turnPrompt}`
       });
     }
-    messages.push({ role: 'assistant', content: turn.command });
+    
+    const assistantText = turn.rawResponse || `Reasoning: Executing next step.\nReply: I am typing the command "${turn.command}".\nCommand: ${turn.command}`;
+    messages.push({ role: 'assistant', content: assistantText });
   }
 
   // Add current turn
+  let currentPrompt = buildTurnUserPrompt(userMessage);
+  currentPrompt += FORMAT_REMINDER;
+
   if (mode === 'vision') {
     messages.push({
       role: 'user',
       content: [
-        { type: 'text', text: prompt },
+        { type: 'text', text: currentPrompt },
         { type: 'image_url', image_url: { url: screenshotBase64 } }
       ]
     });
   } else {
     messages.push({
       role: 'user',
-      content: `Game Screen:\n${capScreen(screenText)}\n\n${prompt}`
+      content: `Game Screen:\n${capScreen(screenText)}\n\n${currentPrompt}`
     });
   }
 

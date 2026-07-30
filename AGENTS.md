@@ -3,6 +3,16 @@
 ## Status: Active
 ## Project: AmpleWeb-AI (MAME WASM Frontend)
 
+### 📅 2026-07-30 Updates
+- **Floating Chat Overlay (Conversational AI Co-Pilot)**:
+    - **In-Canvas Chat Panel**: Added a floating, glassmorphism-styled chat overlay rendered inside `.emulator-container` (toggled via a 💬 button at the bottom-right of the emulator screen, state persisted to `localStorage` as `ample-ai-chat-overlay`). Shows user/assistant bubbles (filtering out `system_tick` log entries), the executed keystroke chip, a pulsing "thinking" indicator, plus inline Pause/Resume and minimize controls. Styles live in `global.css` under the `.chat-overlay*` classes.
+    - **Chat Without Pausing**: Removed the old requirement that the AI loop must be paused before typing (`disabled={!aiEnabled || !aiLoopPaused}`). The chat input (both overlay and sidebar) is now available whenever the emulator is running; sent messages are queued in `pendingUserMessageRef` and consumed by the next LLM turn while the agent keeps playing.
+    - **Chat-First Auto-Start**: `handleSendChatMessage` now auto-enables the AI agent when a message is sent while the agent is off, so users can simply type "play this game" to kick off autonomous play. The overlay and sidebar share the same `chatInput` state and send handler.
+- **Game Profile Generalization (Multi-Game Support)**:
+    - **Generic Profiles**: Added `generic-text` (Generic Text Adventure) and `generic-action` (Generic Action Game) presets to `GAME_PROFILE_PRESETS` in `ai_prompt.ts`, with hints teaching the LLM to discover controls from title screens and use standard IF parser verbs, enabling play of unknown titles.
+    - **Media Filename Auto-Detection**: Added `detectGameProfileId()` with a `GAME_DETECT_RULES` keyword/regex table (Zork, Karateka, Choplifter, Othello, Infocom titles → generic-text, arcade titles → generic-action). A new `App.tsx` effect watches `mediaFiles`/`mediaUrls`, and on mount auto-applies the matching profile (generic profiles adopt the cleaned disk filename as the game name), logging the switch to the AI console. A signature ref prevents re-triggering on unrelated re-renders so manual overrides stick.
+    - **Shared `applyGameProfile` Helper**: Extracted the profile-apply logic (profile id → state + tick-rate tuning + `buildSystemPrompt` sync) into a single `useCallback`, now used by both the settings dropdown and the auto-detection effect.
+
 ### 📅 2026-06-05 Updates
 - **MAME WASM Core Upgrade (MAME 0.288-patched)**:
     - **Upgraded MAME Base**: Upgraded the universal WASM emulator core from MAME 0.287 to **MAME 0.288**.
