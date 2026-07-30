@@ -529,7 +529,7 @@ The user is talking to you RIGHT NOW. Answering them is your TOP PRIORITY this t
 
 // Compact, game-agnostic output format reminder appended to every current turn.
 // Kept generic — game-specific examples live in the Game Profile system prompt.
-const FORMAT_REMINDER = `\n\nREMINDER — respond EXACTLY in one of these two formats:\nFormat A:\nReasoning: <one short sentence>\nReply: <brief response>\nCommand: <command or NONE>\n\nFormat B (XML, recommended for local models):\n<reasoning><one short sentence></reasoning>\n<reply><brief response></reply>\n<command><command or NONE></command>\n\nGROUNDING: Base your action ONLY on what is actually visible in the current screen. Do NOT invent objects, items, or exits that are not shown. If your previous command failed or was rejected, do NOT repeat it — try a different action.`;
+const FORMAT_REMINDER = `\n\nREMINDER — respond EXACTLY in one of these two formats:\nFormat A:\nReasoning: <ONE short sentence, max 20 words>\nReply: <brief response>\nCommand: <UPPERCASE game command, or NONE>\n\nFormat B (XML, recommended for local models):\n<reasoning><ONE short sentence, max 20 words></reasoning>\n<reply><brief response></reply>\n<command><UPPERCASE game command, or NONE></command>\n\nCRITICAL: Do NOT deliberate or second-guess yourself. Pick an action DECISIVELY in one sentence — long reasoning gets truncated and your Command is LOST, wasting the turn.\nIMPORTANT: The Command section MUST contain the actual keystrokes for the action you describe in Reply — announce AND act in the SAME response. Never output NONE while saying you are about to do something.\n\nGROUNDING: Act on what the game has shown you — the current screen AND earlier turns (known exits, items, map layout are fair game). Just never invent things the game NEVER showed. If a command failed, do NOT repeat it — try something different.`;
 
 export interface AIResponseParsed {
   reasoning: string;
@@ -612,10 +612,19 @@ export function parseAIResponse(response: string): AIResponseParsed {
     command = command.replace(/[.!?]+$/, '');
     command = command.trim();
 
-    // Reject long/suspicious commands (e.g. LLM rambling)
+    // Reject long/suspicious commands (e.g. LLM rambling), but normalize
+    // plausible lowercase text commands (e.g. "open mailbox") to uppercase
+    // instead of discarding them.
     const cleanTest = command.trim();
-    const isSuspicious = cleanTest.length > 50 || 
-                         (/[a-z]/.test(cleanTest) && !/^(ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Space|Enter|Escape)$/i.test(cleanTest));
+    let isSuspicious = cleanTest.length > 50;
+    if (!isSuspicious && /[a-z]/.test(cleanTest) &&
+        !/^(ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Space|Enter|Escape)$/i.test(cleanTest)) {
+      if (/^[A-Za-z0-9\s,'-]+$/.test(cleanTest)) {
+        command = cleanTest.toUpperCase();
+      } else {
+        isSuspicious = true;
+      }
+    }
     if (isSuspicious) {
       console.warn(`[AI Parser] Discarding suspicious command: "${command}"`);
       if (!reply) reply = command;
@@ -636,6 +645,23 @@ export function parseAIResponse(response: string): AIResponseParsed {
       reply = reasoning;
     } else {
       reply = '(No response from AI)';
+    }
+  }
+
+  // Truncation rescue: thinking models sometimes burn all tokens deliberating and
+  // never emit a "Command:" line. Recover the last quoted uppercase command from
+  // the rambling text (e.g. ...So "LOOK" is the way) instead of wasting the turn.
+  if (!command && response) {
+    const quoted = response.match(/"([A-Z][A-Z0-9 ,'-]{1,30})"/g);
+    if (quoted && quoted.length > 0) {
+      const candidate = quoted[quoted.length - 1].replace(/"/g, '').trim();
+      if (candidate && candidate !== 'NONE') {
+        command = candidate;
+        console.log(`[AI Parser Rescue] Response truncated without Command. Recovered quoted command: "${command}"`);
+        if (!reply || reply === '(No response from AI)') {
+          reply = `(Recovered from truncated response) Executing: ${command}`;
+        }
+      }
     }
   }
 

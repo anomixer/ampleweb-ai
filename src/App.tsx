@@ -1254,7 +1254,10 @@ function App() {
             fullScreenText: aiMode === 'text' ? screenText : undefined,
             command: command || 'NONE',
             userMessage: userMsg,
-            rawResponse
+            // Store a compact synthesized response instead of the raw LLM output:
+            // thinking models can ramble for thousands of tokens per turn, and
+            // replaying that verbatim in history blows up local context windows.
+            rawResponse: `Reasoning: ${(parsed.reasoning || '').slice(0, 200)}\nReply: ${(parsed.reply || '').slice(0, 200)}\nCommand: ${command || 'NONE'}`
           }
           return [...prev, turn].slice(-aiHistoryLimit)
         })

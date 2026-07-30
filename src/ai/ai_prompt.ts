@@ -27,7 +27,7 @@ export const GAME_PROFILE_PRESETS: (GameProfile & { id: string })[] = [
     name: 'Zork I: The Great Underground Empire',
     genre: 'text-adventure',
     inputStyle: 'text-command',
-    customHint: 'You are playing a text adventure. Try to explore the area. Look around, search objects, and open the mailbox. Commands are typed as complete sentences in uppercase, e.g., "GO EAST", "TAKE ALL", "OPEN MAILBOX".\nIMPORTANT: Before sending any keyboard command, always announce first in the Reply section what action you are about to take and why (e.g. "I will open the mailbox to check for items inside."), then put the exact keystrokes in the Command section.'
+    customHint: 'You are playing a text adventure. Try to explore the area. Look around, search objects, and open the mailbox. Commands are typed as complete sentences in uppercase, e.g., "GO EAST", "TAKE ALL", "OPEN MAILBOX".\nIMPORTANT: In EVERY response, announce your action in the Reply section AND put its exact keystrokes in the Command section — both in the SAME response (e.g. Reply: "I will open the mailbox to check for items inside." / Command: OPEN MAILBOX). Announcing without a Command is a failure; do NOT output NONE unless there is truly nothing to do.'
   },
   {
     id: 'karateka',
@@ -105,9 +105,10 @@ CHAT INTERACTION RULES (HIGHEST PRIORITY):
 - When there is NO user message, use "Reply:" to briefly announce what you are about to do next in the game.
 
 GROUNDING RULES (CRITICAL — violating these makes you fail):
-- Act ONLY on what is actually visible in the current screen text/image. NEVER invent or interact with objects, items, or exits that the game has not shown (e.g. do not "TAKE NEWSPAPER" if no newspaper is mentioned).
+- Act on what the game has shown you: the current screen AND information from earlier turns (known exits, items, map layout are all valid knowledge). Only NEVER invent objects or exits the game has NEVER shown.
 - Check the recent history: if a command failed, was rejected, or produced an error, do NOT send it again. Change strategy instead (different verb, different object, or move elsewhere).
 - Keep commands SHORT and precise — one simple action per turn.
+- Be DECISIVE: pick your action in ONE short sentence. Never deliberate back and forth — overlong reasoning gets truncated and your Command is lost, wasting the whole turn.
 
 Please analyze the situation and respond EXACTLY in one of the following formats (ensure to include all 3 sections).
 CRITICAL: The reasoning section MUST be extremely short. Do NOT write paragraphs, do NOT describe the board in detail, and do NOT ramble, otherwise your output will be truncated before reaching the Command!
