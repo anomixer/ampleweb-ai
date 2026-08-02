@@ -12,6 +12,8 @@
     - **Configuration Plist Sync**: Synchronized all 251 updated machine profile `.plist` files from `Ample/Resources/` to `public/resources/`.
     - **ROM Downloader Priorities**: Updated `rom_manager_cli.py` to prioritize CallApple with MDK failover, added `dragon32` auto-patcher (`patch_dragon32()`), and included Laser 128 series (`las128ex`, etc.) fallback definitions.
     - **Global Version Constant**: Updated `MAME_VERSION` in `src/App.tsx` to `'0.289'`.
+- **UI Screen Layout Refinement**:
+    - **Unobstructed Emulator Canvas**: Removed the in-canvas floating chat overlay button (`💬`) and overlay panel inside `.emulator-container` to ensure the Apple II & Macintosh display remains 100% visible without overlap. Consolidated all AI conversational controls and message logs into the right sidebar's **AI Agent** tab.
 
 ### 📅 2026-07-30 Updates
 - **Floating Chat Overlay (Conversational AI Co-Pilot)**:
