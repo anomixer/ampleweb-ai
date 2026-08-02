@@ -292,7 +292,7 @@ AmpleWeb 內建強大的網址參數映射引擎（Deep Linking），允許您�
         - 系統會偵測 `public/roms` 是否有缺檔，自動啟動高效能的多執行緒 **ROM 下載器**。
         - 您可以手動選擇來源 (CallApple, MDK 等) 或自定義 URL。
         - 下載後的 `.zip` 檔案會存放在 `public/roms`，以便前端 WASM 直接讀取。
-    *   (非必要) 若要重建 `public/wasm/mame.wasm.gz`（目前採用基於 MAME 0.288-patched 的自訂核心），可使用 [MameWasm](https://github.com/anomixer/MameWasm) 專案來建置，再用壓縮軟體轉成 .gz。
+    *   (非必要) 若要重建 `public/wasm/mame.wasm.gz`（目前採用基於 MAME 0.289-patched 的自訂核心），可使用 [MameWasm](https://github.com/anomixer/MameWasm) 專案來建置，再用壓縮軟體轉成 .gz。
     *   啟動伺服器：`npm run dev` 或 `node server.js`
     開啟 `http://localhost:5173` 即可開始使用。
 

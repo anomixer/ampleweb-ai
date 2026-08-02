@@ -3,6 +3,16 @@
 ## Status: Active
 ## Project: AmpleWeb-AI (MAME WASM Frontend)
 
+### 📅 2026-08-02 Updates
+- **MAME WASM Core Upgrade (MAME 0.289-patched)**:
+    - **Upgraded MAME Base**: Upgraded the universal WASM emulator core from MAME 0.288 to **MAME 0.289** (built via MameWasm factory with `-Oz` and LTO optimization).
+    - **PowerBook EASC Native Fix**: Retained official upstream MAME 0.289 C++ fixes for ASC/EASC audio devices, enabling native boot for all PowerBook 30 models without fallback prompts.
+    - **AI Memory DMA Integration**: Preserved `_emscripten_get_main_ram_wasm_offset` and `_emscripten_get_aux_ram_wasm_offset` exports in the 0.289 binary, ensuring `ai_controller.ts` screen memory DMA reading operates with 100% precision.
+- **0.289 Machine Profile & ROM Manager Parity**:
+    - **Configuration Plist Sync**: Synchronized all 251 updated machine profile `.plist` files from `Ample/Resources/` to `public/resources/`.
+    - **ROM Downloader Priorities**: Updated `rom_manager_cli.py` to prioritize CallApple with MDK failover, added `dragon32` auto-patcher (`patch_dragon32()`), and included Laser 128 series (`las128ex`, etc.) fallback definitions.
+    - **Global Version Constant**: Updated `MAME_VERSION` in `src/App.tsx` to `'0.289'`.
+
 ### 📅 2026-07-30 Updates
 - **Floating Chat Overlay (Conversational AI Co-Pilot)**:
     - **In-Canvas Chat Panel**: Added a floating, glassmorphism-styled chat overlay rendered inside `.emulator-container` (toggled via a 💬 button at the bottom-right of the emulator screen, state persisted to `localStorage` as `ample-ai-chat-overlay`). Shows user/assistant bubbles (filtering out `system_tick` log entries), the executed keystroke chip, a pulsing "thinking" indicator, plus inline Pause/Resume and minimize controls. Styles live in `global.css` under the `.chat-overlay*` classes.
