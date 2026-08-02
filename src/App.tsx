@@ -804,12 +804,6 @@ function App() {
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [aiLoopPaused, setAiLoopPaused] = useState(false)
-  const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(() => {
-    return localStorage.getItem('ample-ai-chat-overlay') === '1'
-  })
-  useEffect(() => {
-    localStorage.setItem('ample-ai-chat-overlay', isChatOverlayOpen ? '1' : '0')
-  }, [isChatOverlayOpen])
   const aiLoopPausedRef = useRef(aiLoopPaused)
   useEffect(() => {
     aiLoopPausedRef.current = aiLoopPaused
@@ -822,13 +816,6 @@ function App() {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [aiMessages])
-
-  // Auto-scroll the floating chat overlay message list
-  const overlayMessagesRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = overlayMessagesRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [aiMessages, isChatOverlayOpen])
 
   const [selectedProfileId, setSelectedProfileId] = useState<string>(() => {
     return localStorage.getItem('ample-ai-profile-id') || 'zork1'
@@ -3397,91 +3384,7 @@ function App() {
                     </div>
                   )}
 
-                  {/* ── Floating Chat Overlay (conversational AI co-pilot) ── */}
-                  {launchState === 'running' && !isChatOverlayOpen && (
-                    <button
-                      className="chat-overlay-toggle"
-                      onClick={() => setIsChatOverlayOpen(true)}
-                      title="Open AI Chat"
-                    >
-                      💬
-                    </button>
-                  )}
-                  {launchState === 'running' && isChatOverlayOpen && (
-                    <div className="chat-overlay">
-                      <div className="chat-overlay-header">
-                        <span className="chat-overlay-title">
-                          🤖 AI Agent
-                          <span className={`chat-overlay-status ${aiStatus}`}>
-                            {!aiEnabled ? 'off' : aiStatus}
-                          </span>
-                        </span>
-                        <span className="chat-overlay-game" title={gameProfile.name}>{gameProfile.name}</span>
-                        <div className="chat-overlay-actions">
-                          <button
-                            className="chat-overlay-btn"
-                            disabled={!aiEnabled}
-                            onClick={() => {
-                              const nextPaused = !aiLoopPaused
-                              setAiLoopPaused(nextPaused)
-                              addAiLog(nextPaused ? 'AI Agent loop paused.' : 'AI Agent loop resumed.')
-                            }}
-                            title={aiLoopPaused ? 'Resume AI loop' : 'Pause AI loop'}
-                          >
-                            {aiLoopPaused ? '▶️' : '⏸️'}
-                          </button>
-                          <button
-                            className="chat-overlay-btn"
-                            onClick={() => setIsChatOverlayOpen(false)}
-                            title="Minimize chat"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                      <div className="chat-overlay-messages" ref={overlayMessagesRef}>
-                        {aiMessages.filter(m => m.role !== 'system_tick').length === 0 ? (
-                          <div className="chat-overlay-empty">
-                            Ask the AI to play for you — e.g. “play this game”, “go north and take the lamp”, “what do you see?”
-                          </div>
-                        ) : (
-                          aiMessages.filter(m => m.role !== 'system_tick').slice(-30).map(msg => (
-                            <div key={msg.id} className={`chat-overlay-msg ${msg.role}`}>
-                              <div className="chat-overlay-bubble">
-                                <div>{msg.content}</div>
-                                {msg.command && (
-                                  <div className="chat-overlay-cmd">⌨ {msg.command}</div>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                        {aiStatus === 'thinking' && aiEnabled && (
-                          <div className="chat-overlay-msg assistant">
-                            <div className="chat-overlay-bubble thinking">…</div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="chat-overlay-inputrow">
-                        <input
-                          type="text"
-                          placeholder={aiEnabled ? "Chat with the AI player..." : "Type to start the AI player..."}
-                          value={chatInput}
-                          onChange={e => setChatInput(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleSendChatMessage()
-                          }}
-                        />
-                        <button
-                          className="btn btn-primary"
-                          disabled={!chatInput.trim()}
-                          onClick={handleSendChatMessage}
-                        >
-                          ➤
-                        </button>
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               </div>
             </div>
