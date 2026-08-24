@@ -85,7 +85,7 @@ export const useStore = create<StoreState>()(
         bgfxEffect: 'none',
         keepAspect: true
       },
-      setVideoSettings: (settings) => set((state: any) => ({ videoSettings: { ...state.videoSettings, ...settings } })),
+      setVideoSettings: (settings) => set((state: StoreState) => ({ videoSettings: { ...state.videoSettings, ...settings } })),
       cpuSettings: { speed: '100', debug: false, rewind: false },
       setCpuSettings: (settings) => set((state) => ({ cpuSettings: { ...state.cpuSettings, ...settings } })),
       avSettings: { generateAvi: false, generateWav: false, diskSound: false },
@@ -106,13 +106,24 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'ample-app-storage-v2',
+      // Persist only the data fields (not the setter functions), and force the
+      // capture flags off so a fresh launch never auto-records.
       partialize: (state) => ({
-        ...state,
+        theme: state.theme,
+        romSettings: state.romSettings,
+        sidebarWidth: state.sidebarWidth,
+        configWidth: state.configWidth,
+        videoSettings: state.videoSettings,
+        cpuSettings: state.cpuSettings,
         avSettings: {
           ...state.avSettings,
           generateAvi: false,
           generateWav: false
-        }
+        },
+        pathSettings: state.pathSettings,
+        selectedMachine: state.selectedMachine,
+        slotValues: state.slotValues,
+        lastMedia: state.lastMedia
       })
     }
   )

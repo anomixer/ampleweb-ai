@@ -54,6 +54,71 @@ function injectPortsIntoXml(xml: string, ports: Record<string, string>): string 
   return result
 }
 
+/**
+ * Parse a raw `extra` MAME-args string (e.g. `-port,:tag,1,-monitor,video7`) into
+ * the set of ports to inject into the cfg, plus the remaining args to pass through.
+ * Consumed `-port`/`-monitor`/`-cfg` triples are dropped from `remaining`.
+ */
+function parseExtraArgs(raw: string | null): { ports: Record<string, string>; remaining: string[] } {
+  const args: string[] = []
+  if (raw) {
+    raw.split(',').forEach(a => {
+      const t = a.trim()
+      if (t) args.push(t)
+    })
+  }
+
+  const ports: Record<string, string> = {}
+  const remaining: string[] = []
+  let i = 0
+  while (i < args.length) {
+    const a = args[i]
+    if (a === '-port') {
+      if (i + 2 < args.length) { ports[args[i + 1]] = args[i + 2]; i += 3 }
+      else i++
+    } else if (a === '-monitor' || a === '-cfg') {
+      if (i + 1 < args.length) {
+        const v = args[i + 1].toLowerCase()
+        let val = '3'
+        if (v === 'video7' || v === 'video-7' || v === '3' || v.includes('video7') || v === 'rgb') val = '3'
+        else if (v === 'color' || v === '0') val = '0'
+        else if (v === 'mono' || v === 'monochrome' || v === 'green' || v === '1') val = '1'
+        else if (v === 'amber' || v === '2') val = '2'
+        else if (!isNaN(Number(v))) val = args[i + 1]
+        ports[':a2video:a2_video_config'] = val
+        i += args[i + 1].startsWith('-') ? 1 : 2
+      } else i++
+    } else {
+      remaining.push(a)
+      i++
+    }
+  }
+  return { ports, remaining }
+}
+
+/**
+ * Read a driver's live `.cfg` from the Emscripten VFS, trying the relative,
+ * absolute, and cwd-absolute locations in order. Returns null if not found.
+ */
+function readVirtualCfg(driver: string): string | null {
+  const FS = (window as any).FS
+  if (!FS) return null
+  const relPath = `cfg/${driver}.cfg`
+  const absPath = `/cfg/${driver}.cfg`
+  let cwdPath: string | null = null
+  try {
+    const cwd = FS.cwd ? FS.cwd() : '/'
+    cwdPath = `${cwd}/cfg/${driver}.cfg`
+  } catch { /* ignore */ }
+  for (const p of [relPath, absPath, cwdPath]) {
+    if (!p) continue
+    try {
+      if (FS.analyzePath(p).exists) return FS.readFile(p, { encoding: 'utf8' })
+    } catch { /* try next */ }
+  }
+  return null
+}
+
 
 /**
  * Unified MAME engine version.
@@ -304,19 +369,6 @@ const FLOPPY_SAMPLES = [
   '525_spin_empty.wav', '525_spin_end.wav', '525_spin_loaded.wav',
   '525_spin_start_empty.wav', '525_spin_start_loaded.wav', '525_step_1_1.wav'
 ];
-
-/** Lightweight file existence check (synchronous, checks browser cache). */
-const _wasmCache: Record<string, boolean> = {}
-function _wasmExists(filename: string): boolean {
-  const url = `${BASE_URL}wasm/${filename}`
-  if (!(url in _wasmCache)) {
-    _wasmCache[url] = false
-    fetch(url, { method: 'HEAD' })
-      .then(r => { _wasmCache[url] = r.ok })
-      .catch(() => { _wasmCache[url] = false })
-  }
-  return _wasmCache[url]
-}
 
 async function fetchAllSamples(): Promise<RomFile[]> {
   const results: RomFile[] = []
@@ -868,6 +920,14 @@ function App() {
     ? selectedMachine.name
     : 'apple2ee'
 
+  // Severity of the running status, derived from the machine (matches the two
+  // status messages set in onReady) — used to style the badge / progress label.
+  const statusKind: 'error' | 'warning' | null = NOT_WORKING_MACHINES.includes(currentMachineName)
+    ? 'error'
+    : SLOW_BOOT_MACHINES.includes(currentMachineName)
+      ? 'warning'
+      : null
+
   useEffect(() => {
     let saved = localStorage.getItem('ample_cfg_' + currentMachineName) || getDefaultCfgTemplate(currentMachineName)
     // Ensure the system name matches the user-visible machine name in UI & localStorage
@@ -875,55 +935,7 @@ function App() {
     
     // Parse URL parameters for port overrides on load, accommodating both 'extra' and potential malformed '&?extra' keys
     const urlParams = new URLSearchParams(window.location.search)
-    const extraParam = urlParams.get('extra') || urlParams.get('?extra')
-    const extraArgsFromUrl: string[] = []
-    if (extraParam) {
-      try {
-        extraParam.split(',').forEach(arg => {
-          const trimmed = arg.trim()
-          if (trimmed) extraArgsFromUrl.push(trimmed)
-        })
-      } catch (e) {}
-    }
-
-    const portsToInject: Record<string, string> = {}
-    let idx = 0
-    while (idx < extraArgsFromUrl.length) {
-      const arg = extraArgsFromUrl[idx]
-      if (arg === '-port') {
-        if (idx + 2 < extraArgsFromUrl.length) {
-          const tag = extraArgsFromUrl[idx + 1]
-          const val = extraArgsFromUrl[idx + 2]
-          portsToInject[tag] = val
-          idx += 3
-        } else {
-          idx += 1
-        }
-      } else if (arg === '-monitor' || arg === '-cfg') {
-        if (idx + 1 < extraArgsFromUrl.length) {
-          const monitorVal = extraArgsFromUrl[idx + 1].toLowerCase()
-          let valStr = '3'
-          if (monitorVal === 'video7' || monitorVal === 'video-7' || monitorVal === '3' || monitorVal.includes('video7') || monitorVal === 'rgb') {
-            valStr = '3'
-          } else if (monitorVal === 'color' || monitorVal === '0') {
-            valStr = '0'
-          } else if (monitorVal === 'mono' || monitorVal === 'monochrome' || monitorVal === 'green' || monitorVal === '1') {
-            valStr = '1'
-          } else if (monitorVal === 'amber' || monitorVal === '2') {
-            valStr = '2'
-          } else if (!isNaN(Number(monitorVal))) {
-            valStr = monitorVal
-          }
-          
-          portsToInject[':a2video:a2_video_config'] = valStr
-          idx += 2
-        } else {
-          idx += 1
-        }
-      } else {
-        idx++
-      }
-    }
+    const { ports: portsToInject } = parseExtraArgs(urlParams.get('extra') || urlParams.get('?extra'))
 
     if (Object.keys(portsToInject).length > 0) {
       let mergedCfg = injectPortsIntoXml(saved, portsToInject)
@@ -1382,6 +1394,7 @@ function App() {
   const logEndRef = useRef<HTMLDivElement>(null)
   const localDirHandleRef = useRef<any>(null)
   const hasAutoLaunched = useRef(false)
+  const hasInitializedRef = useRef(false)
   const [isInitializing, setIsInitializing] = useState(true)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const mountTimeRef = useRef<number>(0)
@@ -1406,13 +1419,8 @@ function App() {
     return 'other';
   }, []);
 
-  // Detect available WASM on mount (legacy display only)
-  const [wasmTarget] = useState(() => {
-    for (const [emu, info] of Object.entries(EMULATOR_WASM_MAP)) {
-      if (_wasmExists(info.wasm)) return emu
-    }
-    return 'none'
-  })
+  // Active WASM engine (footer display). EMULATOR_WASM_MAP has a single 'mame' entry.
+  const wasmTarget = 'mame'
 
   // ── Canvas Scaling ──
   useEffect(() => {
@@ -1915,26 +1923,10 @@ function App() {
    * Determine which emulator type a machine belongs to.
    * Maps machine driver names to emulator WASM files.
    */
-  function getEmulatorForMachine(machineName: string): string | null {
-    // We now use a unified MAME 0.289 engine ('mame.wasm') for all machines
-    // to ensure ROM mapping consistency across all 150+ variants.
-    const families = [
-      'apple', 'ace', 'basis', 'cec', 'agat', 'prav8', 'laser', 'tk2000', 'f108', 'space84', 'albert', // Apple II / Clones
-      'mac', // Macintosh
-      'coco', 'trs80', 'dragon', 'mc10', // Tandy / TRS-80 / Dragon
-      'st', 'megast', 'spectred', // Atari ST
-      'bbc', 'electron', // Acorn
-      'c64', // Commodore
-      'oric', 'telstrat' // Oric
-    ];
-
-    const lowerName = machineName.toLowerCase();
-    if (families.some(family => lowerName.startsWith(family))) {
-      return 'mame';
-    }
-
-    // Final fallback: use the universal MAME engine for everything else
-    return 'mame';
+  function getEmulatorForMachine(_machineName: string): string | null {
+    // We use a unified MAME 0.289 engine ('mame.wasm') for all machines to ensure
+    // ROM mapping consistency across all 150+ variants.
+    return 'mame'
   }
 
   /**
@@ -2175,61 +2167,7 @@ function App() {
     // Read arbitrary extra MAME parameters from URL (e.g. ?extra=-monitor,video7)
     const urlParams = new URLSearchParams(window.location.search)
     const extraParam = urlParams.get('extra') || urlParams.get('?extra')
-    const extraArgsFromUrl: string[] = []
-    if (extraParam) {
-      try {
-        extraParam.split(',').forEach(arg => {
-          const trimmed = arg.trim()
-          if (trimmed) extraArgsFromUrl.push(trimmed)
-        })
-      } catch (e) {}
-    }
-
-    const portsToInject: Record<string, string> = {}
-    let idx = 0
-    while (idx < extraArgsFromUrl.length) {
-      const arg = extraArgsFromUrl[idx]
-      if (arg === '-port') {
-        if (idx + 2 < extraArgsFromUrl.length) {
-          const tag = extraArgsFromUrl[idx + 1]
-          const val = extraArgsFromUrl[idx + 2]
-          portsToInject[tag] = val
-          extraArgsFromUrl.splice(idx, 3)
-        } else {
-          extraArgsFromUrl.splice(idx, 1)
-        }
-      } else if (arg === '-monitor' || arg === '-cfg') {
-        if (idx + 1 < extraArgsFromUrl.length) {
-          const monitorVal = extraArgsFromUrl[idx + 1].toLowerCase()
-          let valStr = '3'
-          if (monitorVal === 'video7' || monitorVal === 'video-7' || monitorVal === '3' || monitorVal.includes('video7') || monitorVal === 'rgb') {
-            valStr = '3'
-          } else if (monitorVal === 'color' || monitorVal === '0') {
-            valStr = '0'
-          } else if (monitorVal === 'mono' || monitorVal === 'monochrome' || monitorVal === 'green' || monitorVal === '1') {
-            valStr = '1'
-          } else if (monitorVal === 'amber' || monitorVal === '2') {
-            valStr = '2'
-          } else if (!isNaN(Number(monitorVal))) {
-            valStr = monitorVal
-          } else {
-            valStr = monitorVal.startsWith('-') ? '3' : '3'
-          }
-          
-          portsToInject[':a2video:a2_video_config'] = valStr
-
-          if (!extraArgsFromUrl[idx + 1].startsWith('-')) {
-            extraArgsFromUrl.splice(idx, 2)
-          } else {
-            extraArgsFromUrl.splice(idx, 1)
-          }
-        } else {
-          extraArgsFromUrl.splice(idx, 1)
-        }
-      } else {
-        idx++
-      }
-    }
+    const { ports: portsToInject, remaining: extraArgsFromUrl } = parseExtraArgs(extraParam)
 
     let savedCfg = localStorage.getItem('ample_cfg_' + machine.name) || getDefaultCfgTemplate(mameDriver)
     // Ensure the system name is fully aligned with mameDriver before writing to VFS
@@ -2242,13 +2180,10 @@ function App() {
       }
     ]
 
-    console.log('[App.tsx] extraParam is:', extraParam)
-    console.log('[App.tsx] parsed extraArgsFromUrl:', extraArgsFromUrl)
-    console.log('[App.tsx] generated cfgFiles:', cfgFiles)
-
     const currentVideoSettings = useStore.getState().videoSettings
     const args = buildMameArgs(mameDriver, {
       slots: filteredSlots,
+      resolution,
       cpuSpeed: cpuSettings?.speed,
       debug: false, // Disabled as requested
       rewind: cpuSettings?.rewind,
@@ -2263,7 +2198,6 @@ function App() {
         '-verbose',
         '-cfg_directory', 'cfg',
         ...(ramsizeArg ? ['-ramsize', ramsizeArg] : []),
-        '-resolution', resolution,
         '-rompath', romPathArg,
         ...(mediaList.map(m => [`-${m.type}`, `/media/${m.name}`]).flat()),
         ...extraArgsFromUrl
@@ -2328,31 +2262,11 @@ function App() {
 
           // VFS Diagnostic Check
           try {
-            const FS = (window as any).FS
-            if (FS) {
-              const cwd = FS.cwd ? FS.cwd() : '/'
-              console.log('[VFS Diagnostic] Current working directory (FS.cwd()):', cwd)
-              
-              const absPath = `/cfg/${mameDriver}.cfg`
-              const relPath = `cfg/${mameDriver}.cfg`
-              const cwdAbsPath = `${cwd}/cfg/${mameDriver}.cfg`
-              
-              console.log('[VFS Diagnostic] Absolute path exists?', FS.analyzePath(absPath).exists)
-              console.log('[VFS Diagnostic] Relative path exists?', FS.analyzePath(relPath).exists)
-              console.log('[VFS Diagnostic] CWD absolute path exists?', FS.analyzePath(cwdAbsPath).exists)
-
-              if (FS.analyzePath(relPath).exists) {
-                const content = FS.readFile(relPath, { encoding: 'utf8' })
-                console.log('[VFS Diagnostic] Content of relative cfg:', content)
-              } else if (FS.analyzePath(absPath).exists) {
-                const content = FS.readFile(absPath, { encoding: 'utf8' })
-                console.log('[VFS Diagnostic] Content of absolute cfg:', content)
-              } else if (FS.analyzePath(cwdAbsPath).exists) {
-                const content = FS.readFile(cwdAbsPath, { encoding: 'utf8' })
-                console.log('[VFS Diagnostic] Content of CWD absolute cfg:', content)
-              }
+            const content = readVirtualCfg(mameDriver)
+            if (content) {
+              console.log(`[VFS Diagnostic] cfg found for ${mameDriver}:\n`, content)
             } else {
-              console.warn('[VFS Diagnostic] FS object not found on window!')
+              console.warn(`[VFS Diagnostic] no cfg file found for ${mameDriver} in VFS`)
             }
           } catch (e) {
             console.error('[VFS Diagnostic] Error performing diagnostic:', e)
@@ -2714,6 +2628,11 @@ function App() {
 
   useEffect(() => {
     const init = async () => {
+      // StrictMode (and any double-mount) runs this effect twice. Guard so the
+      // async init body only executes once, preventing a double doLaunch race.
+      if (hasInitializedRef.current) return
+      hasInitializedRef.current = true
+
       const data = await dataManager.loadModels()
       setModels(data)
 
@@ -3020,88 +2939,6 @@ function App() {
     }
   }, [addLog])
 
-  /**
-   * Test launch — no ROMs, just load the WASM runtime.
-  /*
-  const _handleTestLaunch = useCallback(async () => {
-    setWasmModule(null)
-    setErrorText(null)
-    setLogs([])
-    setWasmProgress(0)
-    setShowLogs(true)
-    setLaunchState('loading-wasm')
-
-    const wasmInfo = getWasmForEmulator('apple2e', 'apple2e')
-    if (!wasmInfo) {
-      setErrorText('No WASM file available')
-      setLaunchState('error')
-      return
-    }
-
-    const wasmUrl = `/wasm/${wasmInfo.wasm}`
-    addLog(`Test: /wasm/${wasmInfo.wasm}`, false)
-
-    const args = buildMameArgs('apple2e', {
-      video: 'soft',
-      resolution: '640x480',
-      extraArgs: ['-verbose'],
-    })
-
-    try {
-      await loadMameWasm(wasmUrl, {
-        driverArgs: args,
-        romFiles: [],
-        jsUrl: `/wasm/${wasmInfo.js}`,
-        onProgress: (loaded, total) => {
-          if (total > 0) {
-            const pct = Math.round((loaded / total) * 100)
-            setWasmProgress(pct)
-            setStatusText(`Loading... ${pct}%`)
-          }
-        },
-        onError: (err) => {
-          addLog(`Error: ${err}`, true)
-          setLaunchState('error')
-        },
-        onLog: addLog,
-        onReady: (m) => {
-          if (m.canvas && canvasContainerRef.current) {
-            canvasContainerRef.current.innerHTML = ''
-            canvasContainerRef.current.appendChild(m.canvas)
-            m.canvas.style.display = 'block'
-            m.canvas.style.width = '100%'
-            m.canvas.style.height = '100%'
-            m.canvas.style.objectFit = 'contain'
-          }
-          setWasmModule(m)
-          setLaunchState('running')
-        },
-      })
-    } catch (e: any) {
-      setErrorText(e.message || String(e))
-      setLaunchState('error')
-      addLog(`Fatal: ${e}`, true)
-    }
-  }, [wasmTarget, addLog])
-  */
-
-  /**
-   * Strip TorrentZip footer (40 bytes: 36-byte SHA256 + PK\x07\x08 sig)
-   * so MAME's ZIP parser can read the file.
-  /*
-  const _stripTorrentZip = (data: Uint8Array): Uint8Array => {
-    if (data.length < 48) return data
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
-    const end = data.length
-    if (view.getUint32(end - 4, true) === 0x506b0708) {
-      const cleaned = new Uint8Array(end - 40)
-      cleaned.set(data.subarray(0, end - 40))
-      return cleaned
-    }
-    return data
-  }
-  */
-
   const toggleNode = useCallback((id: string) => {
     setExpandedNodes(prev => {
       const next = new Set(prev)
@@ -3302,7 +3139,7 @@ function App() {
                 {launchState === 'running' && (
                   <>
                     {statusText && (
-                      <span className={`badge ${statusText.includes('longer time') ? 'badge-warning' : 'badge-error'}`} style={{ marginRight: '6px' }}>
+                      <span className={`badge ${statusKind === 'warning' ? 'badge-warning' : 'badge-error'}`} style={{ marginRight: '6px' }}>
                         ⚠️ {statusText}
                       </span>
                     )}
@@ -3340,7 +3177,7 @@ function App() {
                     <div className="progress-container">
                       <div className="progress-wrap" style={{ maxWidth: '320px', margin: '0 auto' }}>
                         <div className="progress-spinner" />
-                        <span className={`progress-label ${statusText.includes('longer time') ? 'highlight' : ''} ${statusText.includes('may not work') ? 'highlight-error' : ''}`}>{statusText}</span>
+                        <span className={`progress-label ${statusKind === 'warning' ? 'highlight' : ''} ${statusKind === 'error' ? 'highlight-error' : ''}`}>{statusText}</span>
                       </div>
                     </div>
                   )}
@@ -3630,29 +3467,13 @@ function App() {
                         }}
                         onClick={() => {
                           try {
-                            const FS = (window as any).FS
-                            if (!FS) {
+                            if (!(window as any).FS) {
                               addLog('Emulator filesystem (FS) is not available. Launch the emulator first!', true)
                               alert('Emulator filesystem (FS) is not available. Please launch the emulator first!')
                               return
                             }
-                            
-                            const relPath = `cfg/${currentMameDriver}.cfg`
-                            const absPath = `/cfg/${currentMameDriver}.cfg`
-                            let fileData: string | null = null
 
-                            if (FS.analyzePath(relPath).exists) {
-                              fileData = FS.readFile(relPath, { encoding: 'utf8' })
-                            } else if (FS.analyzePath(absPath).exists) {
-                              fileData = FS.readFile(absPath, { encoding: 'utf8' })
-                            } else {
-                              const cwd = FS.cwd ? FS.cwd() : '/'
-                              const cwdAbsPath = `${cwd}/cfg/${currentMameDriver}.cfg`
-                              if (FS.analyzePath(cwdAbsPath).exists) {
-                                fileData = FS.readFile(cwdAbsPath, { encoding: 'utf8' })
-                              }
-                            }
-
+                            const fileData = readVirtualCfg(currentMameDriver)
                             if (!fileData) {
                               addLog(`Could not find live config file for ${currentMameDriver} in virtual filesystem. Modify settings in emulator first!`, true)
                               alert(`Could not find live config file for ${currentMameDriver} in virtual filesystem. Modify settings in emulator first!`)
@@ -3705,28 +3526,12 @@ function App() {
                         }}
                         onClick={async () => {
                           try {
-                            const FS = (window as any).FS
-                            if (!FS) {
+                            if (!(window as any).FS) {
                               addLog('Emulator filesystem (FS) is not available. Launch the emulator first!', true)
                               return
                             }
-                            
-                            const relPath = `cfg/${currentMameDriver}.cfg`
-                            const absPath = `/cfg/${currentMameDriver}.cfg`
-                            let fileData: string | null = null
 
-                            if (FS.analyzePath(relPath).exists) {
-                              fileData = FS.readFile(relPath, { encoding: 'utf8' })
-                            } else if (FS.analyzePath(absPath).exists) {
-                              fileData = FS.readFile(absPath, { encoding: 'utf8' })
-                            } else {
-                              const cwd = FS.cwd ? FS.cwd() : '/'
-                              const cwdAbsPath = `${cwd}/cfg/${currentMameDriver}.cfg`
-                              if (FS.analyzePath(cwdAbsPath).exists) {
-                                fileData = FS.readFile(cwdAbsPath, { encoding: 'utf8' })
-                              }
-                            }
-
+                            const fileData = readVirtualCfg(currentMameDriver)
                             if (!fileData) {
                               addLog(`Could not find live config file for ${currentMameDriver} in virtual filesystem. Modify settings in emulator first!`, true)
                               return
@@ -4858,165 +4663,6 @@ function App() {
   )
 }
 
-/*
-function _parseZip(data: Uint8Array, wanted: string[]): Record<string, Uint8Array> {
-  const result: Record<string, Uint8Array> = {}
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
-
-  // Find End of Central Directory
-  let eocdOffset = -1
-  for (let i = data.length - 22; i >= 0; i--) {
-    if (view.getUint32(i, true) === 0x06054b50) {
-      eocdOffset = i
-      break
-    }
-  }
-  if (eocdOffset < 0) return result
-
-  const cdOffset = view.getUint32(eocdOffset + 16, true)
-  const cdEntries = view.getUint16(eocdOffset + 10, true)
-
-  let pos = cdOffset
-  for (let i = 0; i < cdEntries; i++) {
-    if (view.getUint32(pos, true) !== 0x02014b50) break
-
-    // const compSize = view.getUint32(pos + 20, true)
-    const uncompSize = view.getUint32(pos + 24, true)
-    const nameLen = view.getUint16(pos + 28, true)
-    const extraLen = view.getUint16(pos + 30, true)
-    const commentLen = view.getUint16(pos + 32, true)
-    const localHdrOffset = view.getUint32(pos + 42, true)
-    const method = view.getUint16(pos + 10, true)
-
-    const name = new TextDecoder().decode(data.subarray(pos + 46, pos + 46 + nameLen))
-    const baseName = name.split('/').pop() || name
-
-    if (!wanted.includes(baseName)) {
-      pos += 46 + nameLen + extraLen + commentLen + 6
-      continue
-    }
-
-    const lhNameLen = view.getUint16(localHdrOffset + 26, true)
-    const lhExtraLen = view.getUint16(localHdrOffset + 28, true)
-    const lhDataOffset = localHdrOffset + 30 + lhNameLen + lhExtraLen
-    const fileData = data.subarray(lhDataOffset, lhDataOffset + uncompSize)
-
-    if (method === 0) {
-      result[baseName] = fileData
-    } else if (method === 8) {
-      console.warn(`[App] ${name} is deflated — cannot decompress in browser`)
-    }
-    pos += 46 + nameLen + extraLen + commentLen + 6
-  }
-  return result
-}
-*/
-
-/*
-function _createZip(entries: Record<string, Uint8Array>): Uint8Array {
-  const encoder = new TextEncoder()
-  const fileNames = Object.keys(entries)
-  let dataOffset = 0
-  for (const [name, data] of Object.entries(entries)) {
-    dataOffset += 30 + encoder.encode(name).length + data.length
-  }
-
-  const cdSize = fileNames.reduce((s, n) => s + 46 + encoder.encode(n).length, 0)
-  const totalSize = dataOffset + cdSize + 22
-  const zip = new Uint8Array(totalSize)
-  const view = new DataView(zip.buffer)
-  let pos = 0
-
-  // Local file headers + data
-  for (const name of fileNames) {
-    const data = entries[name]
-    const nameBytes = encoder.encode(name)
-    const crc = crc32(data)
-    view.setUint32(pos, 0x04034b50, true); pos += 4
-    view.setUint16(pos, 20, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint32(pos, crc, true); pos += 4
-    view.setUint32(pos, data.length, true); pos += 4
-    view.setUint32(pos, data.length, true); pos += 4
-    view.setUint16(pos, nameBytes.length, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    zip.set(nameBytes, pos); pos += nameBytes.length
-    zip.set(data, pos); pos += data.length
-  }
-
-  // Central directory
-  const cdStart = pos
-  for (const name of fileNames) {
-    const data = entries[name]
-    const nameBytes = encoder.encode(name)
-    const crc = crc32(data)
-    let off = 0
-    for (let i = 0; i < fileNames.indexOf(name); i++) {
-      off += 30 + encoder.encode(Object.keys(entries)[i]).length + entries[Object.keys(entries)[i]].length
-    }
-    view.setUint32(pos, 0x02014b50, true); pos += 4
-    view.setUint16(pos, 20, true); pos += 2
-    view.setUint16(pos, 20, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint32(pos, crc, true); pos += 4
-    view.setUint32(pos, data.length, true); pos += 4
-    view.setUint32(pos, data.length, true); pos += 4
-    view.setUint16(pos, nameBytes.length, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint16(pos, 0, true); pos += 2
-    view.setUint32(pos, 0, true); pos += 4
-    view.setUint32(pos, off, true); pos += 4
-    zip.set(nameBytes, pos); pos += nameBytes.length
-  }
-
-  // End of central directory
-  view.setUint32(pos, 0x06054b50, true); pos += 4
-  view.setUint16(pos, 0, true); pos += 2
-  view.setUint16(pos, 0, true); pos += 2
-  view.setUint16(pos, fileNames.length, true); pos += 2
-  view.setUint16(pos, fileNames.length, true); pos += 2
-  view.setUint32(pos, cdSize, true); pos += 4
-  view.setUint32(pos, cdStart, true); pos += 4
-  view.setUint16(pos, 0, true); pos += 2
-
-  return zip
-}
-*/
-
-/**
- * CRC32 lookup table and computation.
- */
-/*
-const _crc32Table: Uint32Array = (() => {
-  const table = new Uint32Array(256)
-  for (let i = 0; i < 256; i++) {
-    let c = i
-    for (let j = 0; j < 8; j++) {
-      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)
-    }
-    table[i] = c >>> 0
-  }
-  return table
-})()
-*/
-
-/*
-function crc32(data: Uint8Array): number {
-  let crc = 0xFFFFFFFF
-  for (let i = 0; i < data.length; i++) {
-    crc = _crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8)
-  }
-  return (crc ^ 0xFFFFFFFF) >>> 0
-}
-*/
 
 /** Read File as Uint8Array */
 async function readFileAsArrayBuffer(file: File): Promise<Uint8Array> {
