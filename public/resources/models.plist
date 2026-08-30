@@ -882,6 +882,37 @@
     </dict>
     <dict>
       <key>description</key>
+      <string>Lisa</string>
+      <key>children</key>
+      <array>
+        <dict>
+          <key>description</key>
+          <string>Lisa</string>
+          <key>value</key>
+          <string>lisa</string>
+        </dict>
+        <dict>
+          <key>description</key>
+          <string>Lisa2</string>
+          <key>value</key>
+          <string>lisa2</string>
+        </dict>
+        <dict>
+          <key>description</key>
+          <string>Lisa2/10</string>
+          <key>value</key>
+          <string>lisa210</string>
+        </dict>
+        <dict>
+          <key>description</key>
+          <string>Macintosh XL</string>
+          <key>value</key>
+          <string>macxl</string>
+        </dict>
+      </array>
+    </dict>
+    <dict>
+      <key>description</key>
       <string>Acorn</string>
       <key>children</key>
       <array>
@@ -1126,6 +1157,37 @@
           <string>Tano Dragon 64 (NTSC)</string>
           <key>value</key>
           <string>tanodr64</string>
+        </dict>
+      </array>
+    </dict>
+    <dict>
+      <key>description</key>
+      <string>Silicon Graphics</string>
+      <key>children</key>
+      <array>
+        <dict>
+          <key>description</key>
+          <string> Indigo2 (R4400, 150MHz)</string>
+          <key>value</key>
+          <string>indigo2_4415</string>
+        </dict>
+        <dict>
+          <key>description</key>
+          <string> Indy (R4600, 100MHz)</string>
+          <key>value</key>
+          <string>indy_4610</string>
+        </dict>
+        <dict>
+          <key>description</key>
+          <string> Indy (R4600, 133MHz)</string>
+          <key>value</key>
+          <string>indy_4613</string>
+        </dict>
+        <dict>
+          <key>description</key>
+          <string> Indy (R5000, 150MHz)</string>
+          <key>value</key>
+          <string>indy_5015</string>
         </dict>
       </array>
     </dict>
