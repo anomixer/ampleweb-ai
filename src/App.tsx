@@ -148,7 +148,7 @@ const DRIVER_MAP: Record<string, string> = {
   macse: 'macse',
   macsefd: 'macse',
   macse30: 'macse30',
-  macxl: 'mac',
+  macxl: 'macxl',
   // Mac II family
   macii: 'macii',
   maciihmu: 'macii',
@@ -330,6 +330,16 @@ const DRIVER_MAP: Record<string, string> = {
   apple2gsr0: 'apple2gsr0',
   apple2gsr1: 'apple2gsr1',
   apple3: 'apple3',
+  // Lisa family
+  lisa: 'lisa',
+  lisa2: 'lisa2',
+  lisa210: 'lisa210',
+  // SGI family
+  indigo: 'indigo',
+  indigo2_4415: 'indigo2_4415',
+  indy_4610: 'indy_4610',
+  indy_4613: 'indy_4613',
+  indy_5015: 'indy_5015',
 }
 
 /** Machines known to have a very slow hardware initialization/boot process. */
@@ -2075,7 +2085,7 @@ function App() {
                        '640x480'
     
     // Resolve MAME driver name (e.g. mac128k → mac)
-    const mameDriver = driverName || wasmInfo.driver
+    const mameDriver = driverName || machine.name
 
     // Step 1: fetch ROMs
     setLaunchState('fetching-rom')
@@ -2395,7 +2405,7 @@ function App() {
         await writable.close()
         addLog(`Saved ${filename} to local filesystem`, false)
       } else {
-        const blob = new Blob([data], { type: 'application/octet-stream' })
+        const blob = new Blob([data as any], { type: 'application/octet-stream' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url

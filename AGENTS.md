@@ -3,6 +3,12 @@
 ## Status: Active
 ## Project: AmpleWeb-AI (MAME WASM Frontend)
 
+### 📅 2026-09-02 Updates
+- **Lisa & SGI Workstation Support (MAME WASM 0.289 Subtarget Expansion)**:
+    - **WASM Core Upgrade**: Recompiled `mame.wasm.gz` (10.55MB) via MameWasm factory to include Lisa (`lisa`, `lisa2`, `lisa210`, `macxl`) and SGI RISC Workstation (`indigo`, `indigo2_4415`, `indy_4610`, `indy_4613`, `indy_5015`) drivers.
+    - **Driver Fallback Bug Fix**: Fixed a critical bug in `App.tsx` where `mameDriver = driverName || wasmInfo.driver` fell back to `'apple2e'` whenever a machine was unmapped in `DRIVER_MAP`. Changed fallback to `driverName || machine.name`, ensuring all current and future machines execute under their exact MAME driver.
+    - **Menu Tree & ROM Parity**: Added `Indigo (R3000)` to the standard `models.plist` Silicon Graphics tree across `AmpleWeb` and `AmpleWeb-AI`. Synchronized full ROM ZIP packages (`indigo2_4415.zip`, `indy_4610.zip`, `indigo.zip`, `kb_ms_natural.zip`, `ps2_keybc.zip`, `sgi_kbd.zip`) for instant 0.1s CDN loading and automatic fallback fetching.
+
 ### 📅 2026-08-24 Updates
 - **Code-Quality Refactor (P0–P3)**:
     - **P0 Bug Fixes**:

@@ -1167,6 +1167,12 @@
       <array>
         <dict>
           <key>description</key>
+          <string> Indigo (R3000)</string>
+          <key>value</key>
+          <string>indigo</string>
+        </dict>
+        <dict>
+          <key>description</key>
           <string> Indigo2 (R4400, 150MHz)</string>
           <key>value</key>
           <string>indigo2_4415</string>
