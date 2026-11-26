@@ -1874,7 +1874,22 @@ function App() {
       }
       resolveDeps(addedSlotRoms)
 
+      // Load known ROMs from roms.plist so ROM-less slot devices (e.g. a2erwks3) are skipped cleanly
+      let knownRoms: Set<string> | null = null
+      try {
+        const romEntries = await dataManager.loadRoms()
+        if (romEntries.length > 0) {
+          knownRoms = new Set(romEntries.map(r => r.value))
+        }
+      } catch {
+        // Fallback: if roms.plist fails to load, proceed with normal fetch
+      }
+
       const slotPromises = Array.from(finalDeviceList).map(async (devName) => {
+        if (knownRoms && !knownRoms.has(devName)) {
+          addLog(`Slot device ${devName} requires no ROM (skipped)`, false)
+          return
+        }
         let success = false
         const romFile = `${devName}.zip`
 
@@ -2260,6 +2275,14 @@ function App() {
         // its game loop (audio + video together). Reveal canvas here for sync.
         onStart: () => {
           setLaunchState('running')
+          if (NOT_WORKING_MACHINES.includes(machine.name)) {
+            setStatusText('This machine may not work...')
+          } else if (SLOW_BOOT_MACHINES.includes(machine.name)) {
+            setStatusText('This takes longer time to boot...')
+            setTimeout(() => setStatusText(''), 10000)
+          } else {
+            setStatusText('')
+          }
         },
         onReady: (m) => {
           // Canvas is already in #canvas-host from wasm_loader init; appendChild is idempotent.
@@ -2906,13 +2929,12 @@ function App() {
       if (slotStrings) url.searchParams.set('s', slotStrings)
       else url.searchParams.delete('s')
 
-      // Sync media (only sync if it's a small URL or a filename)
+      // Sync media (preserve source URL if available, otherwise fall back to filename)
       const mediaStrings = Object.entries(mediaFiles)
         .filter(([_, f]) => !!f)
         .map(([k, f]) => {
-           // We can't easily sync large file data in URL, so we just sync the name or a source URL if we had one.
-           // For now, syncing the name is enough for IndexedDB restoration.
-           return `${k}:${f!.name}`
+          const sourceUrl = mediaUrls[k]
+          return sourceUrl ? `${k}:${sourceUrl}` : `${k}:${f!.name}`
         })
         .join(',')
       if (mediaStrings) url.searchParams.set('media', mediaStrings)
@@ -2922,7 +2944,7 @@ function App() {
       finalUrl = finalUrl.replace(/([?&])autoboot=(&|$)/g, '$1autoboot$2')
       window.history.replaceState({}, '', finalUrl)
     }
-  }, [selectedMachine, slotValues, mediaFiles])
+  }, [selectedMachine, slotValues, mediaFiles, mediaUrls])
 
   // Sync media to store for persistence across reloads
   useEffect(() => {
@@ -3148,7 +3170,7 @@ function App() {
               <div className="header-badges" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                 {launchState === 'running' && (
                   <>
-                    {statusText && (
+                    {statusText && statusKind && (
                       <span className={`badge ${statusKind === 'warning' ? 'badge-warning' : 'badge-error'}`} style={{ marginRight: '6px' }}>
                         ⚠️ {statusText}
                       </span>
